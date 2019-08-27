@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="10px">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="50px"
+        android:text="DESCUENTO"
+        android:textAlignment="center"
+        android:textColor="@color/fareazul"
+        android:textSize="30sp"
+        android:textStyle="bold" />
+
+    <androidx.appcompat.widget.AppCompatSpinner
+        android:id="@+id/sp_planta_desc"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/spinner"
+        android:layout_margin="10dp"
+        android:layout_marginTop="5dp"
+        android:background="@drawable/bg_dropdown" />
+
+    <androidx.appcompat.widget.AppCompatSpinner
+        android:id="@+id/sp_concepto_desc"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/spinner"
+        android:layout_margin="10dp"
+        android:layout_marginTop="5dp"
+        android:background="@drawable/bg_dropdown" />
+
+    <androidx.appcompat.widget.AppCompatSpinner
+        android:id="@+id/sp_tipopago_desc"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/spinner"
+        android:layout_margin="10dp"
+        android:layout_marginTop="5dp"
+        android:background="@drawable/bg_dropdown" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="5dp"
+        android:hint="@string/placa">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/txtPlaca_desc"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textCapCharacters"
+            android:textColor="@color/fareazul"
+            android:textStyle="bold" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="5dp"
+        android:hint="@string/valor">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/txtMonto_desc"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="numberDecimal"
+            android:textColor="@color/fareazul"
+            android:textStyle="bold" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <Button
+        android:id="@+id/btnGuardar_desc"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginLeft="50px"
+        android:layout_marginTop="50dp"
+        android:layout_marginRight="50px"
+        android:background="@drawable/border_btn"
+        android:text="@string/agregar"
+        android:textColor="@android:color/white"
+        android:textStyle="bold" />
+
+
+</LinearLayout>
