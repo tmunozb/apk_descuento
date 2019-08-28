@@ -3,4 +3,5 @@
     <string name="placa">Placa</string>
     <string name="valor">Monto</string>
     <string name="agregar">Agregar</string>
+    <string name="msjwhtsp">Se registro el descuento de placa</string>
 </resources>

@@ -8,10 +8,11 @@ import java.util.List;
 
 import io.realm.Realm;
 import io.realm.RealmList;
+import io.realm.Sort;
 
 public class QueryRealm {
 
-    public static void savePlanta(final List<Planta> plantas){
+    public static void savePlanta(final List<Planta> plantas) {
         Realm realm = Realm.getDefaultInstance();
         realm.executeTransaction(new Realm.Transaction() {
             @Override
@@ -23,12 +24,12 @@ public class QueryRealm {
         });
     }
 
-    public static List<Planta> getAllPlantas(){
+    public static List<Planta> getAllPlantas() {
         Realm realm = Realm.getDefaultInstance();
-        return realm.where(Planta.class).findAll();
+        return realm.where(Planta.class).findAll().sort("nombre", Sort.ASCENDING);
     }
 
-    public static void saveConceptos(final List<Conceptoinspeccion> conceptoinspeccions){
+    public static void saveConceptos(final List<Conceptoinspeccion> conceptoinspeccions) {
         Realm realm = Realm.getDefaultInstance();
         realm.executeTransaction(new Realm.Transaction() {
             @Override
@@ -40,12 +41,12 @@ public class QueryRealm {
         });
     }
 
-    public static List<Conceptoinspeccion> getAllConcepto(){
+    public static List<Conceptoinspeccion> getAllConcepto() {
         Realm realm = Realm.getDefaultInstance();
-        return realm.where(Conceptoinspeccion.class).findAll();
+        return realm.where(Conceptoinspeccion.class).findAll().sort("abreviatura", Sort.ASCENDING);
     }
 
-    public static void saveTipoPago(final List<TipoPagoDescuento> tipoPagoDescuentos){
+    public static void saveTipoPago(final List<TipoPagoDescuento> tipoPagoDescuentos) {
         Realm realm = Realm.getDefaultInstance();
         realm.executeTransaction(new Realm.Transaction() {
             @Override
@@ -57,8 +58,8 @@ public class QueryRealm {
         });
     }
 
-    public static List<TipoPagoDescuento> getAllTipoPagos(){
+    public static List<TipoPagoDescuento> getAllTipoPagos() {
         Realm realm = Realm.getDefaultInstance();
-        return realm.where(TipoPagoDescuento.class).findAll();
+        return realm.where(TipoPagoDescuento.class).findAll().sort("nombre", Sort.ASCENDING);
     }
 }

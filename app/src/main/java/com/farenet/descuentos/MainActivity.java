@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager.widget.ViewPager;
 
 import android.content.SharedPreferences;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
@@ -65,6 +66,7 @@ public class MainActivity extends AppCompatActivity {
         txt.setText("Descuento");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             txt.setTextColor(getColor(R.color.selected));
+            txt.setTypeface(null, Typeface.BOLD);
         }
         txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
         tabLayout.getTabAt(0).setCustomView(v);
@@ -97,6 +99,7 @@ public class MainActivity extends AppCompatActivity {
                     TextView txt = (TextView) v.findViewById(R.id.txt);
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                         txt.setTextColor(getColor(R.color.selected));
+                        txt.setTypeface(null, Typeface.BOLD);
                     }
                     Drawable top = getResources().getDrawable(R.drawable.ic_descuento_selected);
                     txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
@@ -106,6 +109,7 @@ public class MainActivity extends AppCompatActivity {
                     TextView txt = (TextView) v.findViewById(R.id.txt);
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                         txt.setTextColor(getColor(R.color.selected));
+                        txt.setTypeface(null, Typeface.BOLD);
                     }
                     Drawable top = getResources().getDrawable(R.drawable.ic_cortesia_selected);
                     txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
@@ -120,6 +124,7 @@ public class MainActivity extends AppCompatActivity {
                     TextView txt = (TextView) v.findViewById(R.id.txt);
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                         txt.setTextColor(getColor(R.color.unselected));
+                        txt.setTypeface(null, Typeface.NORMAL);
                     }
                     Drawable top = getResources().getDrawable(R.drawable.ic_descuento);
                     txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
@@ -129,6 +134,7 @@ public class MainActivity extends AppCompatActivity {
                     TextView txt = (TextView) v.findViewById(R.id.txt);
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                         txt.setTextColor(getColor(R.color.unselected));
+                        txt.setTypeface(null, Typeface.NORMAL);
                     }
                     Drawable top = getResources().getDrawable(R.drawable.ic_cortesia);
                     txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);

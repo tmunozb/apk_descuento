@@ -12,6 +12,11 @@ public class TipoPagoDescuento extends RealmObject {
     public TipoPagoDescuento() {
     }
 
+    public TipoPagoDescuento(String key, String nombre) {
+        this.key = key;
+        this.nombre = nombre;
+    }
+
     public String getKey() {
         return key;
     }

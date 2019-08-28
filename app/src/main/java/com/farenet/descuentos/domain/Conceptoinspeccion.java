@@ -13,6 +13,11 @@ public class Conceptoinspeccion extends RealmObject {
     public Conceptoinspeccion() {
     }
 
+    public Conceptoinspeccion(String key, String abreviatura) {
+        this.key = key;
+        this.abreviatura = abreviatura;
+    }
+
     public String getKey() {
         return key;
     }

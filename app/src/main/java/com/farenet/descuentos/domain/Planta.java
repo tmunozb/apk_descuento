@@ -13,6 +13,11 @@ public class Planta extends RealmObject {
     public Planta() {
     }
 
+    public Planta(String key, String nombre) {
+        this.key = key;
+        this.nombre = nombre;
+    }
+
     public String getKey() {
         return key;
     }

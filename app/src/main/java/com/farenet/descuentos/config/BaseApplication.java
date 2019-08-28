@@ -13,6 +13,7 @@ import com.farenet.descuentos.repository.LoginRepository;
 import com.farenet.descuentos.repository.MaestroRepository;
 import com.farenet.descuentos.sql.QueryRealm;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import io.realm.Realm;
@@ -27,9 +28,9 @@ public class BaseApplication extends Application {
     private MaestroRepository maestroRepository;
     private Usuario usuario;
     private SharedPreferences sharedPreferences;
-    private List<Planta> plantas;
-    private List<Conceptoinspeccion> conceptoinspeccions;
-    private List<TipoPagoDescuento> tipoPagoDescuentos;
+    private List<Planta> plantas = new ArrayList<>();
+    private List<Conceptoinspeccion> conceptoinspeccions = new ArrayList<>();
+    private List<TipoPagoDescuento> tipoPagoDescuentos = new ArrayList<>();
 
     @Override
     public void onCreate() {
@@ -142,7 +143,7 @@ public class BaseApplication extends Application {
             @Override
             public void onResponse(Call<List<TipoPagoDescuento>> call, Response<List<TipoPagoDescuento>> response) {
                 if (response.isSuccessful() && response.code() == 200) {
-                    tipoPagoDescuentos = response.body();
+                    tipoPagoDescuentos= response.body();
                     QueryRealm.saveTipoPago(tipoPagoDescuentos);
                 } else {
                     Toast.makeText(getApplicationContext(), "Error al iniciar", Toast.LENGTH_LONG).show();

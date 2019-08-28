@@ -33,7 +33,9 @@
             android:id="@+id/txtPlaca_cort"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="textCapCharacters" />
+            android:inputType="textCapCharacters"
+            android:textColor="@color/fareazul"
+            android:textStyle="bold" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <Button
