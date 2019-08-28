@@ -15,29 +15,29 @@
         android:textSize="30sp"
         android:textStyle="bold" />
 
-    <androidx.appcompat.widget.AppCompatSpinner
+    <Spinner
         android:id="@+id/sp_planta_desc"
         android:layout_width="match_parent"
         android:layout_height="@dimen/spinner"
         android:layout_margin="10dp"
         android:layout_marginTop="5dp"
-        android:background="@drawable/bg_dropdown" />
+         />
 
-    <androidx.appcompat.widget.AppCompatSpinner
+    <Spinner
         android:id="@+id/sp_concepto_desc"
         android:layout_width="match_parent"
         android:layout_height="@dimen/spinner"
         android:layout_margin="10dp"
         android:layout_marginTop="5dp"
-        android:background="@drawable/bg_dropdown" />
+         />
 
-    <androidx.appcompat.widget.AppCompatSpinner
+    <Spinner
         android:id="@+id/sp_tipopago_desc"
         android:layout_width="match_parent"
         android:layout_height="@dimen/spinner"
         android:layout_margin="10dp"
         android:layout_marginTop="5dp"
-        android:background="@drawable/bg_dropdown" />
+        />
 
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
