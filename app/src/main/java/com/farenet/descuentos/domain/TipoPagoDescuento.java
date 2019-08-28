@@ -3,6 +3,11 @@ package com.farenet.descuentos.domain;
 import io.realm.RealmObject;
 import io.realm.annotations.PrimaryKey;
 
+/**
+ * Author by Alexis Pumayalla on 28/08/19.
+ * Email apumayallag@gmail.com
+ * Phone 961778965
+ */
 public class TipoPagoDescuento extends RealmObject {
 
     @PrimaryKey

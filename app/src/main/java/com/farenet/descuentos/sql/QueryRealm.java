@@ -10,6 +10,11 @@ import io.realm.Realm;
 import io.realm.RealmList;
 import io.realm.Sort;
 
+/**
+ * Author by Alexis Pumayalla on 28/08/19.
+ * Email apumayallag@gmail.com
+ * Phone 961778965
+ */
 public class QueryRealm {
 
     public static void savePlanta(final List<Planta> plantas) {

@@ -14,6 +14,11 @@ import com.farenet.descuentos.R;
 
 import java.util.List;
 
+/**
+ * Author by Alexis Pumayalla on 28/08/19.
+ * Email apumayallag@gmail.com
+ * Phone 961778965
+ */
 public class SpinerAdapter<T> extends ArrayAdapter<T> {
 
     private Context context;

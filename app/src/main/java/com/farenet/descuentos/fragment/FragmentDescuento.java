@@ -33,6 +33,11 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+/**
+ * Author by Alexis Pumayalla on 28/08/19.
+ * Email apumayallag@gmail.com
+ * Phone 961778965
+ */
 public class FragmentDescuento extends Fragment {
 
     private Spinner spPlanta;
@@ -115,7 +120,7 @@ public class FragmentDescuento extends Fragment {
                         Toast.makeText(getContext(), "Se agrego el descuento", Toast.LENGTH_LONG).show();
                         limpiar();
                         Intent intent = new Intent(Intent.ACTION_VIEW);
-                        String uri = "whatsapp://send?text=" + getResources().getString(R.string.msjwhtsp) + txtPlaca.getText().toString().toUpperCase();
+                        String uri = "whatsapp://send?text=" + getResources().getString(R.string.msjwhtsp) + " " + txtPlaca.getText().toString().toUpperCase();
                         intent.setData(Uri.parse(uri));
                         startActivity(intent);
                     }
