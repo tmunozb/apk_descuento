@@ -11,7 +11,7 @@ import com.farenet.descuentos.repository.MaestroRepository;
  */
 public class Constante {
 
-    public static final String API_URL = "http://34.209.251.245:8080";
+    public static final String API_URL = "https://api.farenet.net";
 
     //key shpf
     public static final String TOKEN = "TOKEN";
