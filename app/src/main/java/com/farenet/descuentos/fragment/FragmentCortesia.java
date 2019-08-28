@@ -89,13 +89,17 @@ public class FragmentCortesia extends Fragment {
                 call.enqueue(new Callback<String>() {
                     @Override
                     public void onResponse(Call<String> call, Response<String> response) {
-                        Toast.makeText(getContext(), "Se agrego el descuento", Toast.LENGTH_LONG).show();
-                        String msg = getResources().getString(R.string.msjwhtsp_corte) + " " + cortesia.getPlaca();
-                        limpiar();
-                        Intent intent = new Intent(Intent.ACTION_VIEW);
-                        String uri = "whatsapp://send?text=" + msg;
-                        intent.setData(Uri.parse(uri));
-                        startActivity(intent);
+                        if (response.isSuccessful() && response.code() == 200) {
+                            Toast.makeText(getContext(), "Se agrego el descuento", Toast.LENGTH_LONG).show();
+                            String msg = getResources().getString(R.string.msjwhtsp_corte) + " " + cortesia.getPlaca();
+                            limpiar();
+                            Intent intent = new Intent(Intent.ACTION_VIEW);
+                            String uri = "whatsapp://send?text=" + msg;
+                            intent.setData(Uri.parse(uri));
+                            startActivity(intent);
+                        } else {
+                            Toast.makeText(getContext(), "Error al registrar", Toast.LENGTH_LONG).show();
+                        }
                     }
 
                     @Override
