@@ -118,9 +118,10 @@ public class FragmentDescuento extends Fragment {
                     @Override
                     public void onResponse(Call<String> call, Response<String> response) {
                         Toast.makeText(getContext(), "Se agrego el descuento", Toast.LENGTH_LONG).show();
+                        String msg = getResources().getString(R.string.msjwhtsp) + " " + descuento.getPlaca();
                         limpiar();
                         Intent intent = new Intent(Intent.ACTION_VIEW);
-                        String uri = "whatsapp://send?text=" + getResources().getString(R.string.msjwhtsp) + " " + txtPlaca.getText().toString().toUpperCase();
+                        String uri = "whatsapp://send?text=" + msg;
                         intent.setData(Uri.parse(uri));
                         startActivity(intent);
                     }
