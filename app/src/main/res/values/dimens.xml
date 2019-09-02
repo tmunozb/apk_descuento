@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="spinner">40dp</dimen>
+
+
+    <dimen name="margin">16dp</dimen>
+    <dimen name="top_button">8dp</dimen>
+    <dimen name="top_min">5dp</dimen>
+    <dimen name="basic_dimen">10dp</dimen>
+    <dimen name="titulo_home">25sp</dimen>
+    <dimen name="centro_login">25dp</dimen>
+
 </resources>

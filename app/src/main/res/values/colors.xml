@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="colorPrimary">#092f79</color>
-    <color name="colorPrimaryDark">#00574B</color>
+    <color name="colorPrimaryDark">#092f79</color>
     <color name="colorAccent">#092f79</color>
 
     <color name="unselected">#9e9e9e</color>
     <color name="selected">#092f79</color>
     <color name="black">#000</color>
     <color name="fareazul">#092f79</color>
+    <color name="etField">#dce4ec</color>
+
+
 
 </resources>
