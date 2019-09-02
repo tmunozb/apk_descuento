@@ -51,6 +51,7 @@ public class LoginActivity extends AppCompatActivity {
         loginRepository = Constante.getLoginRespository();
         if (sharedPreferences.getString("token", null) != null) {
             startActivity(new Intent(LoginActivity.this, MainActivity.class));
+            finish();
         }
 
 
