@@ -52,7 +52,7 @@ public class BaseApplication extends Application {
         maestroRepository = Constante.getMaestroRespository();
 
         sharedPreferences = getSharedPreferences(Constante.TOKEN, MODE_PRIVATE);
-        login();
+        login(sharedPreferences.getString("user",null), sharedPreferences.getString("pw",null));
 
         plantas = QueryRealm.getAllPlantas();
         conceptoinspeccions = QueryRealm.getAllConcepto();
@@ -68,9 +68,9 @@ public class BaseApplication extends Application {
         }
     }
 
-    private void login() {
+    private void login(String user, String password) {
         try {
-            Call<Usuario> call = loginRepository.getUsuario(Constante.user, Constante.password);
+            Call<Usuario> call = loginRepository.getUsuario(user, password);
             call.enqueue(new Callback<Usuario>() {
                 @Override
                 public void onResponse(Call<Usuario> call, Response<Usuario> response) {
@@ -79,8 +79,6 @@ public class BaseApplication extends Application {
                         SharedPreferences.Editor editor = sharedPreferences.edit();
                         editor.putString("token", usuario.getToken());
                         editor.commit();
-                    } else {
-                        Toast.makeText(getApplicationContext(), "Error al iniciar", Toast.LENGTH_LONG).show();
                     }
                 }
 

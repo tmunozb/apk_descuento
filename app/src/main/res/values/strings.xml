@@ -5,5 +5,12 @@
     <string name="agregar">Agregar</string>
     <string name="msjwhtsp">Se registro el descuento de placa</string>
     <string name="msjwhtsp_corte">Se registro la cortesia de placa</string>
+    <string name="user">Usuario</string>
+    <string name="pass">Contraseña</string>
+
+    <string name="home_tittle">Login</string>
+    <string name="btn_login">OK</string>
+    <string name="msg_login">Datos no válidos</string>
+    <string name="cerrarsesion">Cerrar Sesion</string>
 
 </resources>
