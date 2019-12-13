@@ -9,7 +9,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingBottom="50px"
-        android:text="AUTORIZADOS"
+        android:text="CARTAS"
         android:textAlignment="center"
         android:textColor="@color/fareazul"
         android:textSize="30sp"
