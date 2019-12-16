@@ -13,7 +13,7 @@ public class Constante {
 
     public static final String API_URL = "https://api.farenet.net";
 
-    //key shpf
+    //key sharedprefences
     public static final String TOKEN = "TOKEN";
 
     public static LoginRepository getLoginRespository(){

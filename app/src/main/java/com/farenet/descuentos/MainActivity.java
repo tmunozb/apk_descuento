@@ -100,10 +100,10 @@ public class MainActivity extends AppCompatActivity {
         tabLayout.getTabAt(1).setCustomView(v);
 
         v = LayoutInflater.from(this).inflate(R.layout.custom_tab, null);
-        top = getResources().getDrawable(R.drawable.ic_cartas);
+        //top = getResources().getDrawable(R.drawable.ic_cartas);
         txt = (TextView) v.findViewById(R.id.txt);
         txt.setText("Cartas");
-        txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
+        //txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
         tabLayout.getTabAt(2).setCustomView(v);
 
 
