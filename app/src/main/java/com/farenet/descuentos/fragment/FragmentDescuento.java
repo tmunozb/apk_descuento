@@ -43,8 +43,10 @@ public class FragmentDescuento extends Fragment {
     private Spinner spPlanta;
     private Spinner spConcepto;
     private Spinner spTipoPago;
+    private Spinner spAutoriza;
     private EditText txtPlaca;
     private EditText txtMonto;
+    private EditText txtMotivo;
     private Button btnGuardar;
     private List<Planta> plantas;
     private List<Conceptoinspeccion> conceptoinspeccions;
@@ -68,6 +70,8 @@ public class FragmentDescuento extends Fragment {
         txtPlaca = (EditText) view.findViewById(R.id.txtPlaca_desc);
         txtMonto = (EditText) view.findViewById(R.id.txtMonto_desc);
         btnGuardar = (Button) view.findViewById(R.id.btnGuardar_desc);
+        spAutoriza = (Spinner) view.findViewById(R.id.sp_autoriza_desc);
+        txtMotivo = (EditText) view.findViewById(R.id.txtMotivo_desc);
 
 
         plantas = QueryRealm.getAllPlantas();
@@ -113,6 +117,8 @@ public class FragmentDescuento extends Fragment {
                 descuento.setPlanta(planta.getKey());
                 descuento.setPlaca(txtPlaca.getText().toString().toUpperCase());
                 descuento.setMonto(Double.valueOf(txtMonto.getText().toString()));
+                descuento.setMotivo(txtMotivo.getText().toString());
+                descuento.setAutoriza(spAutoriza.getSelectedItem().toString());
                 Call<String> call = descuentoRepository.saveDescuento(descuento, sharedPreferences.getString("token", null));
                 call.enqueue(new Callback<String>() {
                     @Override
@@ -146,14 +152,24 @@ public class FragmentDescuento extends Fragment {
         if (txtPlaca.getText() != null && !txtPlaca.getText().toString().isEmpty()) {
             pasa = true;
         } else {
+            pasa = false;
             txtPlaca.setError("Ingrese placa");
         }
 
         if (txtMonto.getText() != null && !txtMonto.getText().toString().isEmpty()) {
             pasa = true;
         } else {
+            pasa = false;
             txtMonto.setError("Ingrese Monto");
         }
+
+        if (txtMotivo.getText() != null && !txtMotivo.getText().toString().isEmpty()) {
+            pasa = true;
+        } else {
+            pasa = false;
+            txtMotivo.setError("Ingrese Motivo");
+        }
+
         return pasa;
     }
 

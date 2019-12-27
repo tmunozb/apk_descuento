@@ -69,6 +69,29 @@
             android:textStyle="bold" />
     </com.google.android.material.textfield.TextInputLayout>
 
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="5dp"
+        android:hint="@string/motivo">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/txtMotivo_desc"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textCapCharacters"
+            android:textColor="@color/fareazul"
+            android:textStyle="bold" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <Spinner
+        android:id="@+id/sp_autoriza_desc"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/spinner"
+        android:entries="@array/autoriza"
+        android:layout_margin="10dp"
+        android:layout_marginTop="5dp" />
+
     <Button
         android:id="@+id/btnGuardar_desc"
         android:layout_width="match_parent"

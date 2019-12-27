@@ -12,6 +12,8 @@ public class Descuento {
     private String tipoPagoDescuento;
     private String placa;
     private double monto;
+    private String motivo;
+    private String autoriza;
 
     public Descuento() {
     }
@@ -54,5 +56,21 @@ public class Descuento {
 
     public void setMonto(double monto) {
         this.monto = monto;
+    }
+
+    public String getMotivo() {
+        return motivo;
+    }
+
+    public void setMotivo(String motivo) {
+        this.motivo = motivo;
+    }
+
+    public String getAutoriza() {
+        return autoriza;
+    }
+
+    public void setAutoriza(String autoriza) {
+        this.autoriza = autoriza;
     }
 }
