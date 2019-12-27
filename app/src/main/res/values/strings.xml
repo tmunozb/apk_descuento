@@ -16,5 +16,15 @@
 
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="autoriza">Autoriza</string>
+    <string name="motivo">Motivo</string>
+
+    <array name="autoriza" >
+        <item>PATRICIA FLORES</item>
+        <item>JONATHAN TORRES</item>
+        <item>DELFINA ELIAS</item>
+        <item>MOISES RODRICH</item>
+        <item>JACK RODRICH</item>
+    </array>
 
 </resources>

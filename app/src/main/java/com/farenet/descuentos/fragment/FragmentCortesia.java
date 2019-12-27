@@ -39,8 +39,8 @@ import retrofit2.Response;
  */
 public class FragmentCortesia extends Fragment {
 
-    private Spinner spPlanta;
-    private EditText txtPlaca;
+    private Spinner spPlanta, spAutoriza;
+    private EditText txtPlaca, txtMotivo;
     private Button btnGuardar;
 
     private List<Planta> plantas;
@@ -58,6 +58,8 @@ public class FragmentCortesia extends Fragment {
         spPlanta = (Spinner) view.findViewById(R.id.sp_planta_cort);
         txtPlaca = (EditText) view.findViewById(R.id.txtPlaca_cort);
         btnGuardar = (Button) view.findViewById(R.id.btnGuardar_cort);
+        spAutoriza = (Spinner) view.findViewById(R.id.sp_autoriza_cort);
+        txtMotivo = (EditText) view.findViewById(R.id.txtMotivo_cort);
 
         descuentoRepository = Constante.getDescuentoRepository();
         sharedPreferences = this.getActivity().getSharedPreferences(Constante.TOKEN, Context.MODE_PRIVATE);
@@ -85,6 +87,8 @@ public class FragmentCortesia extends Fragment {
                 final Cortesia cortesia = new Cortesia();
                 cortesia.setPlaca(txtPlaca.getText().toString().toUpperCase());
                 cortesia.setPlanta(planta.getKey());
+                cortesia.setAutoriza(spAutoriza.getSelectedItem().toString());
+                cortesia.setMotivo(txtMotivo.getText().toString());
                 Call<String> call = descuentoRepository.saveCortesia(cortesia, sharedPreferences.getString("token", null));
                 call.enqueue(new Callback<String>() {
                     @Override
@@ -113,12 +117,21 @@ public class FragmentCortesia extends Fragment {
     }
 
     private boolean validarCampos() {
+        Boolean pasa = false;
         if (txtPlaca.getText() != null && !txtPlaca.getText().toString().isEmpty()) {
-            return true;
+            pasa = true;
         } else {
             txtPlaca.setError("Ingrese placa");
-            return false;
+            pasa = false;
         }
+
+        if (txtMotivo.getText() != null && !txtMotivo.getText().toString().isEmpty()) {
+            pasa = true;
+        } else {
+            txtMotivo.setError("Ingrese Motivo");
+            pasa = false;
+        }
+        return pasa;
     }
 
     private void limpiar() {

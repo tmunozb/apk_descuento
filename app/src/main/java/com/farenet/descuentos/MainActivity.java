@@ -154,8 +154,8 @@ public class MainActivity extends AppCompatActivity {
                         txt.setTextColor(getColor(R.color.selected));
                         txt.setTypeface(null, Typeface.BOLD);
                     }
-                    Drawable top = getResources().getDrawable(R.drawable.ic_cartas_selected);
-                    txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
+                    //Drawable top = getResources().getDrawable(R.drawable.ic_cartas_selected);
+                    //txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
                     tabLayout.getTabAt(2).setCustomView(v);
                 }
             }
@@ -190,8 +190,8 @@ public class MainActivity extends AppCompatActivity {
                         txt.setTextColor(getColor(R.color.unselected));
                         txt.setTypeface(null, Typeface.NORMAL);
                     }
-                    Drawable top = getResources().getDrawable(R.drawable.ic_cartas);
-                    txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
+                    //rawable top = getResources().getDrawable(R.drawable.ic_cartas);
+                    //txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
                     tabLayout.getTabAt(2).setCustomView(v);
                 }
             }
