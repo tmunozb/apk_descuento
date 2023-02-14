@@ -18,6 +18,9 @@ public interface DescuentoRepository {
     @POST("/mobileapi/guardar/descuento")
     Call<String> saveDescuento(@Body Descuento descuento, @Header("Token") String token);
 
+    @POST("/mobileapi/guardar/campana")
+    Call<String> saveCampana(@Body Descuento descuento, @Header("Token") String token);
+
     @POST("/mobileapi/guardar/cortesia")
     Call<String> saveCortesia(@Body Cortesia cortesia, @Header("Token") String token);
 

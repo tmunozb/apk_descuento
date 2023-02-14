@@ -84,7 +84,7 @@ public class MainActivity extends AppCompatActivity {
         View v = LayoutInflater.from(this).inflate(R.layout.custom_tab, null);
         //Drawable top = getResources().getDrawable(R.drawable.ic_descuento);
         TextView txt = (TextView) v.findViewById(R.id.txt);
-        txt.setText("Autorizados");
+        txt.setText("Campañas");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             txt.setTextColor(getColor(R.color.selected));
             txt.setTypeface(null, Typeface.BOLD);
@@ -99,15 +99,6 @@ public class MainActivity extends AppCompatActivity {
         //txt.setCompoundDrawablesWithIntrinsicBounds(null, top1, null, null);
         tabLayout.getTabAt(1).setCustomView(v);
 
-        v = LayoutInflater.from(this).inflate(R.layout.custom_tab, null);
-        //top = getResources().getDrawable(R.drawable.ic_cartas);
-        txt = (TextView) v.findViewById(R.id.txt);
-        txt.setText("Cartas");
-        //txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
-        tabLayout.getTabAt(2).setCustomView(v);
-
-
-
     }
 
     private void setupViewPager() {
@@ -115,7 +106,6 @@ public class MainActivity extends AppCompatActivity {
         FragmentPageAdapter pagerAdapter = new FragmentPageAdapter(getSupportFragmentManager());
         pagerAdapter.addFragment(new FragmentDescuento(), "Descuento");
         pagerAdapter.addFragment(new FragmentCortesia(), "Cortesia");
-        pagerAdapter.addFragment(new FragmentCartas(), "Cartas");
         viewPager.setAdapter(pagerAdapter);
     }
 
@@ -147,16 +137,6 @@ public class MainActivity extends AppCompatActivity {
                     //Drawable top = getResources().getDrawable(R.drawable.ic_cortesia_selected);
                     //txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
                     tabLayout.getTabAt(1).setCustomView(v);
-                }else if(tab.getPosition() == 2){
-                    View v = tabLayout.getTabAt(2).getCustomView();
-                    TextView txt = (TextView) v.findViewById(R.id.txt);
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        txt.setTextColor(getColor(R.color.selected));
-                        txt.setTypeface(null, Typeface.BOLD);
-                    }
-                    //Drawable top = getResources().getDrawable(R.drawable.ic_cartas_selected);
-                    //txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
-                    tabLayout.getTabAt(2).setCustomView(v);
                 }
             }
 
@@ -183,16 +163,6 @@ public class MainActivity extends AppCompatActivity {
                     //txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
                     tabLayout.getTabAt(1).setCustomView(v);
 
-                }else if(tab.getPosition() == 2){
-                    View v = tabLayout.getTabAt(2).getCustomView();
-                    TextView txt = (TextView) v.findViewById(R.id.txt);
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        txt.setTextColor(getColor(R.color.unselected));
-                        txt.setTypeface(null, Typeface.NORMAL);
-                    }
-                    //rawable top = getResources().getDrawable(R.drawable.ic_cartas);
-                    //txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
-                    tabLayout.getTabAt(2).setCustomView(v);
                 }
             }
 

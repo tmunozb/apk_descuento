@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
@@ -27,6 +28,7 @@ import com.farenet.descuentos.domain.TipoPagoDescuento;
 import com.farenet.descuentos.repository.DescuentoRepository;
 import com.farenet.descuentos.sql.QueryRealm;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import retrofit2.Call;
@@ -43,6 +45,8 @@ public class FragmentDescuento extends Fragment {
     private Spinner spPlanta;
     private Spinner spConcepto;
     private Spinner spTipoPago;
+    private Spinner spTipoCampana;
+    private Spinner spTipoDescuento;
     private Spinner spAutoriza;
     private EditText txtPlaca;
     private EditText txtMonto;
@@ -54,11 +58,14 @@ public class FragmentDescuento extends Fragment {
     private SpinerAdapter<Planta> spPlantaAdapter;
     private SpinerAdapter<Conceptoinspeccion> spConceptoAdapter;
     private SpinerAdapter<TipoPagoDescuento> spTipoPagoAdapter;
+    private SpinerAdapter<String> spTipoCampanaAdapter;
+    private SpinerAdapter<String> spTipoDescuentoAdapter;
 
     private DescuentoRepository descuentoRepository;
     private Descuento descuento = new Descuento();
 
     private SharedPreferences sharedPreferences;
+    private String tipoDescSelect;
 
     @Nullable
     @Override
@@ -70,13 +77,30 @@ public class FragmentDescuento extends Fragment {
         txtPlaca = (EditText) view.findViewById(R.id.txtPlaca_desc);
         txtMonto = (EditText) view.findViewById(R.id.txtMonto_desc);
         btnGuardar = (Button) view.findViewById(R.id.btnGuardar_desc);
+        spTipoCampana = (Spinner) view.findViewById(R.id.sp_tipocampaña);
+        spTipoDescuento = (Spinner) view.findViewById(R.id.sp_tipodescuento);
         spAutoriza = (Spinner) view.findViewById(R.id.sp_autoriza_desc);
-        txtMotivo = (EditText) view.findViewById(R.id.txtMotivo_desc);
 
 
         plantas = QueryRealm.getAllPlantas();
         spPlantaAdapter = new SpinerAdapter<Planta>(getContext(), plantas);
         spPlanta.setAdapter(spPlantaAdapter);
+
+        List<String> tipoDescuento = new ArrayList<>();
+        tipoDescuento.add("AUTORIZADO");
+        tipoDescuento.add("CARTA");
+        tipoDescuento.add("CAMPAÑA");
+        spTipoDescuentoAdapter = new SpinerAdapter<>(getContext(), tipoDescuento);
+        spTipoDescuento.setAdapter(spTipoDescuentoAdapter);
+
+        List<String> campañas = new ArrayList<>();
+        campañas.add("COMPETENCIA");
+        campañas.add("RECUPERADOS");
+        campañas.add("REZAGADOS");
+        campañas.add("CUPONIDAD");
+
+        spTipoCampanaAdapter = new SpinerAdapter<>(getContext(), campañas);
+        spTipoCampana.setAdapter(spTipoCampanaAdapter);
 
         conceptoinspeccions = QueryRealm.getAllConcepto();
         spConceptoAdapter = new SpinerAdapter<Conceptoinspeccion>(getContext(), conceptoinspeccions);
@@ -103,6 +127,23 @@ public class FragmentDescuento extends Fragment {
 
     private void event() {
 
+        spTipoDescuento.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                tipoDescSelect = adapterView.getItemAtPosition(i).toString();
+                if ("CAMPAÑA".equalsIgnoreCase(tipoDescSelect)) {
+                    spTipoCampana.setVisibility(View.VISIBLE);
+                } else {
+                    spTipoCampana.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+
+            }
+        });
+
         btnGuardar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -117,9 +158,20 @@ public class FragmentDescuento extends Fragment {
                 descuento.setPlanta(planta.getKey());
                 descuento.setPlaca(txtPlaca.getText().toString().toUpperCase());
                 descuento.setMonto(Double.valueOf(txtMonto.getText().toString()));
-                descuento.setMotivo(txtMotivo.getText().toString());
                 descuento.setAutoriza(spAutoriza.getSelectedItem().toString());
-                Call<String> call = descuentoRepository.saveDescuento(descuento, sharedPreferences.getString("token", null));
+                descuento.setMotivo(txtMotivo.getText().toString());
+                if ("CAMPAÑA".equalsIgnoreCase(tipoDescSelect)) {
+                    descuento.setNomDescuento(spTipoCampana.getSelectedItem().toString());
+                }
+                Call<String> call = null;
+                if ("AUTORIZADO".equalsIgnoreCase(tipoDescSelect)) {
+                    call = descuentoRepository.saveCampana(descuento, sharedPreferences.getString("token", null));
+                }else if ("CARTA".equalsIgnoreCase(tipoDescSelect)) {
+                    call = descuentoRepository.saveCarta(descuento, sharedPreferences.getString("token", null));
+                }else if ("CAMPAÑA".equalsIgnoreCase(tipoDescSelect)) {
+                    call = descuentoRepository.saveCampana(descuento, sharedPreferences.getString("token", null));
+                }
+
                 call.enqueue(new Callback<String>() {
                     @Override
                     public void onResponse(Call<String> call, Response<String> response) {

@@ -9,7 +9,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingBottom="50px"
-        android:text="AUTORIZADOS"
+        android:text="CAMPAÑAS"
         android:textAlignment="center"
         android:textColor="@color/fareazul"
         android:textSize="30sp"
@@ -38,6 +38,22 @@
         android:layout_margin="10dp"
         android:layout_marginTop="5dp"
         />
+
+    <androidx.appcompat.widget.AppCompatSpinner
+        android:id="@+id/sp_tipodescuento"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/spinner"
+        android:layout_margin="10dp"
+        android:layout_marginTop="5dp"
+        android:background="@drawable/bg_dropdown" />
+
+    <androidx.appcompat.widget.AppCompatSpinner
+        android:id="@+id/sp_tipocampaña"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/spinner"
+        android:layout_margin="10dp"
+        android:layout_marginTop="5dp"
+        android:background="@drawable/bg_dropdown" />
 
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"

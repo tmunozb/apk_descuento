@@ -14,6 +14,7 @@ public class Descuento {
     private double monto;
     private String motivo;
     private String autoriza;
+    private String nomDescuento;
 
     public Descuento() {
     }
@@ -72,5 +73,13 @@ public class Descuento {
 
     public void setAutoriza(String autoriza) {
         this.autoriza = autoriza;
+    }
+
+    public String getNomDescuento() {
+        return nomDescuento;
+    }
+
+    public void setNomDescuento(String nomDescuento) {
+        this.nomDescuento = nomDescuento;
     }
 }
