@@ -76,6 +76,7 @@ public class FragmentDescuento extends Fragment {
         spTipoPago = (Spinner) view.findViewById(R.id.sp_tipopago_desc);
         txtPlaca = (EditText) view.findViewById(R.id.txtPlaca_desc);
         txtMonto = (EditText) view.findViewById(R.id.txtMonto_desc);
+        txtMotivo = (EditText) view.findViewById(R.id.txtMotivo_desc) ;
         btnGuardar = (Button) view.findViewById(R.id.btnGuardar_desc);
         spTipoCampana = (Spinner) view.findViewById(R.id.sp_tipocampaña);
         spTipoDescuento = (Spinner) view.findViewById(R.id.sp_tipodescuento);
@@ -165,7 +166,7 @@ public class FragmentDescuento extends Fragment {
                 }
                 Call<String> call = null;
                 if ("AUTORIZADO".equalsIgnoreCase(tipoDescSelect)) {
-                    call = descuentoRepository.saveCampana(descuento, sharedPreferences.getString("token", null));
+                    call = descuentoRepository.saveDescuento(descuento, sharedPreferences.getString("token", null));
                 }else if ("CARTA".equalsIgnoreCase(tipoDescSelect)) {
                     call = descuentoRepository.saveCarta(descuento, sharedPreferences.getString("token", null));
                 }else if ("CAMPAÑA".equalsIgnoreCase(tipoDescSelect)) {

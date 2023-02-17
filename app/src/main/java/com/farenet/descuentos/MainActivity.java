@@ -1,28 +1,25 @@
 package com.farenet.descuentos;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.viewpager.widget.ViewPager;
-
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
-import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.viewpager.widget.ViewPager;
 
 import com.farenet.descuentos.adapter.FragmentPageAdapter;
 import com.farenet.descuentos.config.Constante;
 import com.farenet.descuentos.domain.Planta;
 import com.farenet.descuentos.domain.Usuario;
-import com.farenet.descuentos.fragment.FragmentCartas;
 import com.farenet.descuentos.fragment.FragmentCortesia;
 import com.farenet.descuentos.fragment.FragmentDescuento;
 import com.farenet.descuentos.repository.LoginRepository;
@@ -84,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
         View v = LayoutInflater.from(this).inflate(R.layout.custom_tab, null);
         //Drawable top = getResources().getDrawable(R.drawable.ic_descuento);
         TextView txt = (TextView) v.findViewById(R.id.txt);
-        txt.setText("Campañas");
+        txt.setText("Descuentos");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             txt.setTextColor(getColor(R.color.selected));
             txt.setTypeface(null, Typeface.BOLD);
