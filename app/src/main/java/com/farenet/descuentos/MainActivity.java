@@ -1,22 +1,20 @@
 package com.farenet.descuentos;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.viewpager.widget.ViewPager;
-
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
-import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.viewpager.widget.ViewPager;
 
 import com.farenet.descuentos.adapter.FragmentPageAdapter;
 import com.farenet.descuentos.config.Constante;
@@ -81,22 +79,23 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupTabIcons() {
         View v = LayoutInflater.from(this).inflate(R.layout.custom_tab, null);
-        Drawable top = getResources().getDrawable(R.drawable.ic_descuento_selected);
+        //Drawable top = getResources().getDrawable(R.drawable.ic_descuento);
         TextView txt = (TextView) v.findViewById(R.id.txt);
-        txt.setText("Descuento");
+        txt.setText("Descuentos");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             txt.setTextColor(getColor(R.color.selected));
             txt.setTypeface(null, Typeface.BOLD);
         }
-        txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
+        //txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
         tabLayout.getTabAt(0).setCustomView(v);
 
         v = LayoutInflater.from(this).inflate(R.layout.custom_tab, null);
-        top = getResources().getDrawable(R.drawable.ic_cortesia);
+        //Drawable top1 = getResources().getDrawable(R.drawable.ic_cortesia);
         txt = (TextView) v.findViewById(R.id.txt);
         txt.setText("Cortesia");
-        txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
+        //txt.setCompoundDrawablesWithIntrinsicBounds(null, top1, null, null);
         tabLayout.getTabAt(1).setCustomView(v);
+
     }
 
     private void setupViewPager() {
@@ -121,9 +120,10 @@ public class MainActivity extends AppCompatActivity {
                         txt.setTextColor(getColor(R.color.selected));
                         txt.setTypeface(null, Typeface.BOLD);
                     }
-                    Drawable top = getResources().getDrawable(R.drawable.ic_descuento_selected);
-                    txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
+                    //Drawable top = getResources().getDrawable(R.drawable.ic_descuento_selected);
+                    //txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
                     tabLayout.getTabAt(0).setCustomView(v);
+
                 } else if (tab.getPosition() == 1) {
                     View v = tabLayout.getTabAt(1).getCustomView();
                     TextView txt = (TextView) v.findViewById(R.id.txt);
@@ -131,8 +131,8 @@ public class MainActivity extends AppCompatActivity {
                         txt.setTextColor(getColor(R.color.selected));
                         txt.setTypeface(null, Typeface.BOLD);
                     }
-                    Drawable top = getResources().getDrawable(R.drawable.ic_cortesia_selected);
-                    txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
+                    //Drawable top = getResources().getDrawable(R.drawable.ic_cortesia_selected);
+                    //txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
                     tabLayout.getTabAt(1).setCustomView(v);
                 }
             }
@@ -146,8 +146,8 @@ public class MainActivity extends AppCompatActivity {
                         txt.setTextColor(getColor(R.color.unselected));
                         txt.setTypeface(null, Typeface.NORMAL);
                     }
-                    Drawable top = getResources().getDrawable(R.drawable.ic_descuento);
-                    txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
+                    //Drawable top = getResources().getDrawable(R.drawable.ic_descuento);
+                    //txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
                     tabLayout.getTabAt(0).setCustomView(v);
                 } else if (tab.getPosition() == 1) {
                     View v = tabLayout.getTabAt(1).getCustomView();
@@ -156,9 +156,10 @@ public class MainActivity extends AppCompatActivity {
                         txt.setTextColor(getColor(R.color.unselected));
                         txt.setTypeface(null, Typeface.NORMAL);
                     }
-                    Drawable top = getResources().getDrawable(R.drawable.ic_cortesia);
-                    txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
+                    //Drawable top = getResources().getDrawable(R.drawable.ic_cortesia);
+                    //txt.setCompoundDrawablesWithIntrinsicBounds(null, top, null, null);
                     tabLayout.getTabAt(1).setCustomView(v);
+
                 }
             }
 

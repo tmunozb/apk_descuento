@@ -9,7 +9,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingBottom="50px"
-        android:text="DESCUENTOS"
+        android:text="CARTAS"
         android:textAlignment="center"
         android:textColor="@color/fareazul"
         android:textSize="30sp"
@@ -20,40 +20,21 @@
         android:layout_width="match_parent"
         android:layout_height="@dimen/spinner"
         android:layout_margin="10dp"
-        android:layout_marginTop="5dp"
-         />
+        android:layout_marginTop="5dp" />
 
     <Spinner
         android:id="@+id/sp_concepto_desc"
         android:layout_width="match_parent"
         android:layout_height="@dimen/spinner"
         android:layout_margin="10dp"
-        android:layout_marginTop="5dp"
-         />
+        android:layout_marginTop="5dp" />
 
     <Spinner
         android:id="@+id/sp_tipopago_desc"
         android:layout_width="match_parent"
         android:layout_height="@dimen/spinner"
         android:layout_margin="10dp"
-        android:layout_marginTop="5dp"
-        />
-
-    <androidx.appcompat.widget.AppCompatSpinner
-        android:id="@+id/sp_tipodescuento"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/spinner"
-        android:layout_margin="10dp"
-        android:layout_marginTop="5dp"
-        android:background="@drawable/bg_dropdown" />
-
-    <androidx.appcompat.widget.AppCompatSpinner
-        android:id="@+id/sp_tipocampaña"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/spinner"
-        android:layout_margin="10dp"
-        android:layout_marginTop="5dp"
-        android:background="@drawable/bg_dropdown" />
+        android:layout_marginTop="5dp" />
 
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
@@ -84,29 +65,6 @@
             android:textColor="@color/fareazul"
             android:textStyle="bold" />
     </com.google.android.material.textfield.TextInputLayout>
-
-    <com.google.android.material.textfield.TextInputLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="5dp"
-        android:hint="@string/motivo">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/txtMotivo_desc"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="textCapCharacters"
-            android:textColor="@color/fareazul"
-            android:textStyle="bold" />
-    </com.google.android.material.textfield.TextInputLayout>
-
-    <Spinner
-        android:id="@+id/sp_autoriza_desc"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/spinner"
-        android:entries="@array/autoriza"
-        android:layout_margin="10dp"
-        android:layout_marginTop="5dp" />
 
     <Button
         android:id="@+id/btnGuardar_desc"

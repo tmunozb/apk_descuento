@@ -4,6 +4,7 @@
     <string name="valor">Monto</string>
     <string name="agregar">Agregar</string>
     <string name="msjwhtsp">Se registro el descuento de placa</string>
+    <string name="msjwhtspcarta">Se registro la carta de placa</string>
     <string name="msjwhtsp_corte">Se registro la cortesia de placa</string>
     <string name="user">Usuario</string>
     <string name="pass">Contraseña</string>
@@ -12,5 +13,18 @@
     <string name="btn_login">OK</string>
     <string name="msg_login">Datos no válidos</string>
     <string name="cerrarsesion">Cerrar Sesion</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="autoriza">Autoriza</string>
+    <string name="motivo">Motivo</string>
+
+    <array name="autoriza" >
+        <item>PATRICIA FLORES</item>
+        <item>JONATHAN TORRES</item>
+        <item>DELFINA ELIAS</item>
+        <item>MOISES RODRICH</item>
+        <item>JACK RODRICH</item>
+    </array>
 
 </resources>
