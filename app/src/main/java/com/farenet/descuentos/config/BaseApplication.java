@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.farenet.descuentos.domain.Autorizadores;
 import com.farenet.descuentos.domain.Conceptoinspeccion;
 import com.farenet.descuentos.domain.Planta;
 import com.farenet.descuentos.domain.TipoPagoDescuento;
@@ -36,6 +37,7 @@ public class BaseApplication extends Application {
     private List<Planta> plantas = new ArrayList<>();
     private List<Conceptoinspeccion> conceptoinspeccions = new ArrayList<>();
     private List<TipoPagoDescuento> tipoPagoDescuentos = new ArrayList<>();
+    private List<Autorizadores> autorizadores = new ArrayList<>();
 
     @Override
     public void onCreate() {
@@ -57,6 +59,7 @@ public class BaseApplication extends Application {
         plantas = QueryRealm.getAllPlantas();
         conceptoinspeccions = QueryRealm.getAllConcepto();
         tipoPagoDescuentos = QueryRealm.getAllTipoPagos();
+        autorizadores = QueryRealm.getAllAutorizadores();
         if(!(plantas != null && !plantas.isEmpty())){
             getPlantas();
         }
@@ -65,6 +68,9 @@ public class BaseApplication extends Application {
         }
         if(!(tipoPagoDescuentos != null && !tipoPagoDescuentos.isEmpty())){
             getTipoPagoDescuento();
+        }
+        if(!(autorizadores != null && !autorizadores.isEmpty())){
+            getAutorizadores();
         }
     }
 
@@ -155,6 +161,26 @@ public class BaseApplication extends Application {
 
             @Override
             public void onFailure(Call<List<TipoPagoDescuento>> call, Throwable t) {
+                Toast.makeText(getApplicationContext(), "Error al iniciar", Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void getAutorizadores(){
+        Call<List<Autorizadores>> listCall = maestroRepository.getAutorizadores(sharedPreferences.getString("token",null));
+        listCall.enqueue(new Callback<List<Autorizadores>>() {
+            @Override
+            public void onResponse(Call<List<Autorizadores>> call, Response<List<Autorizadores>> response) {
+                if (response.isSuccessful() && response.code() == 200) {
+                    autorizadores= response.body();
+                    QueryRealm.saveAutorizadores(autorizadores);
+                } else {
+                    Toast.makeText(getApplicationContext(), "Error al iniciar", Toast.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<Autorizadores>> call, Throwable t) {
                 Toast.makeText(getApplicationContext(), "Error al iniciar", Toast.LENGTH_LONG).show();
             }
         });

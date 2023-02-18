@@ -21,6 +21,7 @@ import androidx.fragment.app.Fragment;
 import com.farenet.descuentos.R;
 import com.farenet.descuentos.adapter.SpinerAdapter;
 import com.farenet.descuentos.config.Constante;
+import com.farenet.descuentos.domain.Autorizadores;
 import com.farenet.descuentos.domain.Conceptoinspeccion;
 import com.farenet.descuentos.domain.Descuento;
 import com.farenet.descuentos.domain.Planta;
@@ -55,9 +56,11 @@ public class FragmentDescuento extends Fragment {
     private List<Planta> plantas;
     private List<Conceptoinspeccion> conceptoinspeccions;
     private List<TipoPagoDescuento> tipoPagoDescuentos;
+    private List<Autorizadores> autorizadores;
     private SpinerAdapter<Planta> spPlantaAdapter;
     private SpinerAdapter<Conceptoinspeccion> spConceptoAdapter;
     private SpinerAdapter<TipoPagoDescuento> spTipoPagoAdapter;
+    private SpinerAdapter<Autorizadores> spAutorizadoresAdapter;
     private SpinerAdapter<String> spTipoCampanaAdapter;
     private SpinerAdapter<String> spTipoDescuentoAdapter;
 
@@ -86,6 +89,10 @@ public class FragmentDescuento extends Fragment {
         plantas = QueryRealm.getAllPlantas();
         spPlantaAdapter = new SpinerAdapter<Planta>(getContext(), plantas);
         spPlanta.setAdapter(spPlantaAdapter);
+
+        autorizadores = QueryRealm.getAllAutorizadores();
+        spAutorizadoresAdapter = new SpinerAdapter<Autorizadores>(getContext(), autorizadores);
+        spAutoriza.setAdapter(spAutorizadoresAdapter);
 
         List<String> tipoDescuento = new ArrayList<>();
         tipoDescuento.add("AUTORIZADO");

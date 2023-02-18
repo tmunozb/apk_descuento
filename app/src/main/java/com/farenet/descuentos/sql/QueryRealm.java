@@ -1,5 +1,6 @@
 package com.farenet.descuentos.sql;
 
+import com.farenet.descuentos.domain.Autorizadores;
 import com.farenet.descuentos.domain.Conceptoinspeccion;
 import com.farenet.descuentos.domain.Planta;
 import com.farenet.descuentos.domain.TipoPagoDescuento;
@@ -66,5 +67,22 @@ public class QueryRealm {
     public static List<TipoPagoDescuento> getAllTipoPagos() {
         Realm realm = Realm.getDefaultInstance();
         return realm.where(TipoPagoDescuento.class).findAll().sort("nombre", Sort.ASCENDING);
+    }
+
+    public static void saveAutorizadores(final List<Autorizadores> autorizadores) {
+        Realm realm = Realm.getDefaultInstance();
+        realm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                RealmList<Autorizadores> realmList = new RealmList<>();
+                realmList.addAll(autorizadores);
+                realm.insertOrUpdate(realmList);
+            }
+        });
+    }
+
+    public static List<Autorizadores> getAllAutorizadores() {
+        Realm realm = Realm.getDefaultInstance();
+        return realm.where(Autorizadores.class).findAll().sort("nombre", Sort.ASCENDING);
     }
 }
