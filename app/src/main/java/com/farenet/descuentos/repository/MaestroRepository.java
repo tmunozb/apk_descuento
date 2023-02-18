@@ -1,5 +1,6 @@
 package com.farenet.descuentos.repository;
 
+import com.farenet.descuentos.domain.Autorizadores;
 import com.farenet.descuentos.domain.Conceptoinspeccion;
 import com.farenet.descuentos.domain.Planta;
 import com.farenet.descuentos.domain.TipoPagoDescuento;
@@ -25,4 +26,7 @@ public interface MaestroRepository {
 
     @GET("/maestro/tipopagodescuentos")
     Call<List<TipoPagoDescuento>> getTipoPagoDescuento(@Header("Token") String token);
+
+    @GET("/maestro/autorizadores")
+    Call<List<Autorizadores>> getAutorizadores(@Header("Token") String token);
 }
