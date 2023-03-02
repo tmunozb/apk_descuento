@@ -106,6 +106,7 @@ public class FragmentDescuento extends Fragment {
         campañas.add("RECUPERADOS");
         campañas.add("REZAGADOS");
         campañas.add("CUPONIDAD");
+        campañas.add("PAGO WEB");
 
         spTipoCampanaAdapter = new SpinerAdapter<>(getContext(), campañas);
         spTipoCampana.setAdapter(spTipoCampanaAdapter);
