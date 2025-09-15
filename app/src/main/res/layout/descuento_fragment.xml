@@ -59,7 +59,7 @@
                 android:background="@drawable/bg_dropdown" />
 
             <androidx.appcompat.widget.AppCompatSpinner
-                android:id="@+id/sp_tipocampaña"
+                android:id="@+id/sp_tipocampana"
                 android:layout_width="match_parent"
                 android:layout_height="@dimen/spinner"
                 android:layout_margin="10dp"

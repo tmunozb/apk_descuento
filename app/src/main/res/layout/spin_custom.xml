@@ -1,19 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:layout_margin="5dp"
-    android:orientation="horizontal">
+    android:layout_height="48dp"
+    android:orientation="horizontal"
+    android:paddingHorizontal="12dp">
 
     <TextView
-        android:id="@+id/tv_sp_planta"
+        android:id="@+id/tv_sp_text"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="5dp"
-
-        android:text="Planta"
-        android:textColor="@color/fareazul"
-        android:textSize="15sp"
-        android:textStyle="bold" />
-
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:textColor="@android:color/black"
+        android:textSize="16sp"/>
 </LinearLayout>
