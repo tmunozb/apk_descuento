@@ -1,76 +1,118 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="10px">
+    android:fillViewport="true">
 
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingBottom="50px"
-        android:text="CORTESIA"
-        android:textAlignment="center"
-        android:textColor="@color/fareazul"
-        android:textSize="30sp"
-        android:textStyle="bold" />
+        android:orientation="vertical"
+        android:padding="16dp">
 
-    <Spinner
-        android:id="@+id/sp_planta_cort"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/spinner"
-        android:layout_margin="10dp"
-        android:layout_marginTop="5dp" />
-
-    <com.google.android.material.textfield.TextInputLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="5dp"
-        android:hint="@string/placa">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/txtPlaca_cort"
+        <!-- Título -->
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="textCapCharacters"
+            android:text="CORTESÍA"
+            android:textAlignment="center"
             android:textColor="@color/fareazul"
-            android:textStyle="bold" />
-    </com.google.android.material.textfield.TextInputLayout>
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.02"
+            android:paddingTop="4dp"
+            android:paddingBottom="12dp" />
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="5dp"
-        android:hint="@string/motivo">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/txtMotivo_cort"
+        <!-- Card -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="textCapCharacters"
-            android:textColor="@color/fareazul"
-            android:textStyle="bold" />
-    </com.google.android.material.textfield.TextInputLayout>
+            android:layout_marginTop="8dp"
+            app:cardUseCompatPadding="true"
+            app:cardCornerRadius="16dp"
+            app:strokeColor="?attr/colorOutline"
+            app:strokeWidth="1dp">
 
-    <Spinner
-        android:id="@+id/sp_autoriza_cort"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/spinner"
-        android:entries="@array/autoriza"
-        android:layout_margin="10dp"
-        android:layout_marginTop="5dp" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
 
-    <Button
-        android:id="@+id/btnGuardar_cort"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginLeft="50px"
-        android:layout_marginTop="50dp"
-        android:layout_marginRight="50px"
-        android:background="@drawable/border_btn"
-        android:text="@string/agregar"
-        android:textColor="@android:color/white"
-        android:textStyle="bold" />
+                <!-- Planta -->
+                <Spinner
+                    android:id="@+id/sp_planta_cort"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/spinner"
+                    android:layout_marginBottom="12dp"
+                    android:background="@drawable/bg_dropdown" />
 
-</LinearLayout>
+                <!-- Placa -->
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.App.TextInputLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/placa"
+                    app:counterEnabled="true"
+                    app:counterMaxLength="7"
+                    app:startIconDrawable="@drawable/ic_directions_car_24">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/txtPlaca_cort"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textCapCharacters"
+                        android:maxLength="7"
+                        android:textAllCaps="true"
+                        android:imeOptions="actionNext"/>
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Motivo (editable con sugerencias si luego quieres) -->
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.App.TextInputLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:hint="@string/motivo"
+                    app:helperText="Describe brevemente el motivo"
+                    app:helperTextEnabled="true"
+                    app:startIconDrawable="@drawable/ic_note_24">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/txtMotivo_cort"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textCapSentences|textMultiLine"
+                        android:minLines="2"
+                        android:maxLines="4"
+                        android:imeOptions="actionDone"/>
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Autoriza -->
+                <Spinner
+                    android:id="@+id/sp_autoriza_cort"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/spinner"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_dropdown" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Botón -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnGuardar_cort"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/agregar"
+            app:icon="@drawable/ic_save_24"
+            app:iconGravity="textStart"
+            app:cornerRadius="16dp" />
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>
