@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#092f79</color>
-    <color name="colorPrimaryDark">#092f79</color>
-    <color name="colorAccent">#092f79</color>
+    <color name="colorPrimary">#092F79</color>
+    <color name="colorPrimaryDark">#092F79</color>
+    <color name="colorAccent">#092F79</color>
 
-    <color name="unselected">#9e9e9e</color>
-    <color name="selected">#092f79</color>
-    <color name="black">#000</color>
-    <color name="fareazul">#092f79</color>
-    <color name="etField">#dce4ec</color>
+    <color name="unselected">#9E9E9E</color>
+    <color name="selected">#092F79</color>
+    <color name="black">#000000</color>
+    <color name="fareazul">#092F79</color>
+    <color name="etField">#DCE4EC</color>
 
 
-
+    <!-- PARA BORDES (lo usa ?attr/colorOutline) -->
+    <color name="color_outline">#1F000000</color>
 </resources>

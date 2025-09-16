@@ -1,143 +1,174 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="10px">
+    android:fillViewport="true">
 
-    <ScrollView
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0px"
-        android:layout_weight="1">
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
 
+        <!-- Título -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="DESCUENTOS"
+            android:textAlignment="center"
+            android:textColor="@color/fareazul"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.02"
+            android:paddingTop="4dp"
+            android:paddingBottom="12dp" />
+
+        <!-- Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            app:cardUseCompatPadding="true"
+            app:cardCornerRadius="16dp"
+            app:strokeColor="?attr/colorOutline"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <Spinner
+                    android:id="@+id/sp_planta_desc"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/spinner"
+                    android:layout_marginBottom="12dp"
+                    android:background="@drawable/bg_dropdown" />
+
+                <Spinner
+                    android:id="@+id/sp_concepto_desc"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/spinner"
+                    android:layout_marginBottom="12dp"
+                    android:background="@drawable/bg_dropdown" />
+
+                <Spinner
+                    android:id="@+id/sp_tipopago_desc"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/spinner"
+                    android:layout_marginBottom="12dp"
+                    android:background="@drawable/bg_dropdown" />
+
+                <androidx.appcompat.widget.AppCompatSpinner
+                    android:id="@+id/sp_tipodescuento"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/spinner"
+                    android:layout_marginBottom="12dp"
+                    android:background="@drawable/bg_dropdown" />
+
+                <androidx.appcompat.widget.AppCompatSpinner
+                    android:id="@+id/sp_tipocampana"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/spinner"
+                    android:layout_marginBottom="12dp"
+                    android:background="@drawable/bg_dropdown" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/placa"
+                    app:counterEnabled="true"
+                    app:counterMaxLength="7"
+                    app:startIconDrawable="@drawable/ic_directions_car_24">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/txtPlaca_desc"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textCapCharacters"
+                        android:maxLength="7"
+                        android:textAllCaps="true" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:hint="@string/valor"
+                    app:startIconDrawable="@drawable/ic_attach_money_24"
+                    app:suffixText="S/">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/txtMonto_desc"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="numberDecimal" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:hint="@string/motivo"
+                    app:helperText="Describe brevemente el motivo"
+                    app:helperTextEnabled="true"
+                    app:startIconDrawable="@drawable/ic_note_24">
+
+                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                        android:id="@+id/txtMotivo_desc"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textCapSentences|textMultiLine"
+                        android:minLines="2"
+                        android:maxLines="4"
+                        android:imeOptions="actionDone"/>
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <Spinner
+                    android:id="@+id/sp_autoriza_desc"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/spinner"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_dropdown" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Botones -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical">
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="16dp">
 
-            <TextView
+            <!-- OJO: estilo seguro (algunas versiones no tienen *.Filled) -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnGuardar_desc"
+                style="@style/Widget.Material3.Button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingBottom="50px"
-                android:text="DESCUENTOS"
-                android:textAlignment="center"
-                android:textColor="@color/fareazul"
-                android:textSize="30sp"
-                android:textStyle="bold" />
+                android:text="@string/agregar"
+                app:icon="@drawable/ic_save_24"
+                app:iconGravity="textStart"
+                app:cornerRadius="16dp" />
 
-            <Spinner
-                android:id="@+id/sp_planta_desc"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/spinner"
-                android:layout_margin="10dp"
-                android:layout_marginTop="5dp" />
-
-            <Spinner
-                android:id="@+id/sp_concepto_desc"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/spinner"
-                android:layout_margin="10dp"
-                android:layout_marginTop="5dp" />
-
-            <Spinner
-                android:id="@+id/sp_tipopago_desc"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/spinner"
-                android:layout_margin="10dp"
-                android:layout_marginTop="5dp" />
-
-            <androidx.appcompat.widget.AppCompatSpinner
-                android:id="@+id/sp_tipodescuento"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/spinner"
-                android:layout_margin="10dp"
-                android:layout_marginTop="5dp"
-                android:background="@drawable/bg_dropdown" />
-
-            <androidx.appcompat.widget.AppCompatSpinner
-                android:id="@+id/sp_tipocampana"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/spinner"
-                android:layout_margin="10dp"
-                android:layout_marginTop="5dp"
-                android:background="@drawable/bg_dropdown" />
-
-            <com.google.android.material.textfield.TextInputLayout
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLogout_desc"
+                style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_margin="5dp"
-                android:hint="@string/placa">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/txtPlaca_desc"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="textCapCharacters"
-                    android:textColor="@color/fareazul"
-                    android:textStyle="bold" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_margin="5dp"
-                android:hint="@string/valor">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/txtMonto_desc"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="numberDecimal"
-                    android:textColor="@color/fareazul"
-                    android:textStyle="bold" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.ExposedDropdownMenu"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_margin="5dp"
-                android:hint="@string/motivo">
-
-                <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                    android:id="@+id/txtMotivo_desc"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="textCapSentences|text"
-                    android:imeOptions="actionDone"/>
-            </com.google.android.material.textfield.TextInputLayout>
-
-
-            <Spinner
-                android:id="@+id/sp_autoriza_desc"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/spinner"
-                android:layout_margin="10dp"
-                android:layout_marginTop="5dp" />
-
+                android:text="Cerrar sesión"
+                android:layout_marginTop="8dp"
+                app:icon="@drawable/ic_logout_24"
+                app:iconGravity="textStart" />
         </LinearLayout>
-    </ScrollView>
 
-    <Button
-        android:id="@+id/btnGuardar_desc"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginLeft="50px"
-        android:layout_marginTop="24dp"
-        android:layout_marginRight="50px"
-        android:background="@drawable/border_btn"
-        android:text="@string/agregar"
-        android:textColor="@android:color/white"
-        android:textStyle="bold" />
-
-    <Button
-        android:id="@+id/btnLogout_desc"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="50px"
-        android:layout_marginTop="12dp"
-        android:layout_marginRight="50px"
-        android:text="Cerrar sesión"
-        android:textStyle="bold" />
-</LinearLayout>
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>
