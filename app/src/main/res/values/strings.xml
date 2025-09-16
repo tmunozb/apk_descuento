@@ -2,26 +2,48 @@
     <string name="app_name">Descuentos</string>
     <string name="placa">Placa</string>
     <string name="valor">Monto</string>
-    <string name="agregar">Agregar</string>
-    <string name="msjwhtsp">Se registro el descuento de placa</string>
-    <string name="msjwhtspcarta">Se registro la carta de placa</string>
-    <string name="msjwhtsp_corte">Se registro la cortesia de placa</string>
+    <string name="agregar">Agregar Descuento</string>
+
+    <!-- Placeholders:
+     %1$s -> placa
+     %2$s -> planta (nombre visible)
+     %3$s -> concepto (nombre visible)
+     %4$s -> motivo (texto ingresado)
+     %5$.2f -> monto (dos decimales)
+-->
+    <!-- Mensajes descuento -->
+    <string name="msjwhtsp">
+    ✅ Descuento registrado\n• 🚗 Placa: %1$s\n• 🏭 Planta: %2$s\n• 🚙 Concepto vehicular: %3$s\n• 📝 Motivo: %4$s\n• %5$s %6$.2f
+</string>
+
+    <string name="msjwhtspcarta">
+    ✅ Carta registrada\n• 🚗 Placa: %1$s\n• 🏭 Planta: %2$s\n• 🚙 Concepto vehicular: %3$s\n• 📝 Motivo: %4$s\n• %5$s %6$.2f
+</string>
+
+    <string name="msjwhtsp_campana">
+    ✅ Campaña registrada\n• 🚗 Placa: %1$s\n• 🏭 Planta: %2$s\n• 🚙 Concepto vehicular: %3$s\n• 📝 Motivo: %4$s\n• %5$s %6$.2f
+</string>
+
+    <!-- Mensaje cortesía -->
+    <string name="msjwhtsp_corte">
+    ✅️ Cortesía registrada\n• 🚗 Placa: %1$s\n• 📝 Motivo: %2$s
+</string>
+
+
+
     <string name="user">Usuario</string>
     <string name="pass">Contraseña</string>
-
     <string name="home_tittle">Login</string>
     <string name="btn_login">OK</string>
     <string name="msg_login">Datos no válidos</string>
     <string name="cerrarsesion">Cerrar Sesion</string>
-
     <string name="ingresar">Ingresar</string>
 
-    <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="autoriza">Autoriza</string>
     <string name="motivo">Motivo</string>
 
-    <array name="autoriza" >
+    <array name="autoriza">
         <item>PATRICIA FLORES</item>
         <item>JONATHAN TORRES</item>
         <item>DELFINA ELIAS</item>
@@ -29,4 +51,13 @@
         <item>JACK RODRICH</item>
     </array>
 
+    <string-array name="motivos_descuento">
+        <item>Retención de Cliente</item>
+        <item>Descuento Interseguro</item>
+        <item>Cliente Crítico</item>
+        <item>Alianza/Corporativo</item>
+        <item>Campaña vigente</item>
+        <item>Derivado por supervisor</item>
+        <item>Otro (especificar)</item>
+    </string-array>
 </resources>

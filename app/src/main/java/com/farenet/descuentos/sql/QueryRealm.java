@@ -17,6 +17,14 @@ public final class QueryRealm {
     private QueryRealm() {}
 
     // =========================
+    // 0) Callbacks
+    // =========================
+    public interface TxCallback {
+        void onSuccess();
+        void onError(Throwable error);
+    }
+
+    // =========================
     // 1) API "WITH REALM" (managed)
     // =========================
 
@@ -41,14 +49,8 @@ public final class QueryRealm {
     }
 
     // =========================
-    // 2) API "STANDALONE" (sin UI thread writes)
-    //    -> MÉTODOS ASYNC con callbacks
+    // 2) API ASYNC (no UI thread writes)
     // =========================
-
-    public interface TxCallback {
-        void onSuccess();
-        void onError(Throwable error);
-    }
 
     public static void savePlantaAsync(final List<Planta> plantas, final TxCallback cb) {
         if (plantas == null || plantas.isEmpty()) { if (cb != null) cb.onSuccess(); return; }
@@ -90,11 +92,21 @@ public final class QueryRealm {
         );
     }
 
+    /** Borra TODAS las tablas (caché de maestros, etc.). */
+    public static void wipeAllAsync(final TxCallback cb) {
+        final Realm realm = Realm.getDefaultInstance();
+        realm.executeTransactionAsync(
+                Realm::deleteAll,
+                () -> { if (cb != null) cb.onSuccess(); realm.close(); },
+                e -> { if (cb != null) cb.onError(e); realm.close(); }
+        );
+    }
+
     // =========================
     // 3) GETTERS
     // =========================
 
-    // Managed (caller mantiene Realm)
+    // Managed
     public static RealmResults<Planta> getAllPlantas(Realm realm) {
         return realm.where(Planta.class).findAll().sort("nombre", Sort.ASCENDING);
     }
@@ -111,12 +123,10 @@ public final class QueryRealm {
         return realm.where(Autorizadores.class).findAll().sort("nombre", Sort.ASCENDING);
     }
 
-    // Unmanaged (copias)
+    // Unmanaged
     public static List<Planta> copyAllPlantas() {
         try (Realm realm = Realm.getDefaultInstance()) {
-            RealmResults<Planta> res = realm.where(Planta.class)
-                    .findAll()
-                    .sort("nombre", Sort.ASCENDING);
+            RealmResults<Planta> res = realm.where(Planta.class).findAll().sort("nombre", Sort.ASCENDING);
             return realm.copyFromRealm(res);
         } catch (Throwable t) {
             return Collections.emptyList();
@@ -125,9 +135,7 @@ public final class QueryRealm {
 
     public static List<Conceptoinspeccion> copyAllConceptos() {
         try (Realm realm = Realm.getDefaultInstance()) {
-            RealmResults<Conceptoinspeccion> res = realm.where(Conceptoinspeccion.class)
-                    .findAll()
-                    .sort("abreviatura", Sort.ASCENDING);
+            RealmResults<Conceptoinspeccion> res = realm.where(Conceptoinspeccion.class).findAll().sort("abreviatura", Sort.ASCENDING);
             return realm.copyFromRealm(res);
         } catch (Throwable t) {
             return Collections.emptyList();
@@ -136,9 +144,7 @@ public final class QueryRealm {
 
     public static List<TipoPagoDescuento> copyAllTipoPagos() {
         try (Realm realm = Realm.getDefaultInstance()) {
-            RealmResults<TipoPagoDescuento> res = realm.where(TipoPagoDescuento.class)
-                    .findAll()
-                    .sort("nombre", Sort.ASCENDING);
+            RealmResults<TipoPagoDescuento> res = realm.where(TipoPagoDescuento.class).findAll().sort("nombre", Sort.ASCENDING);
             return realm.copyFromRealm(res);
         } catch (Throwable t) {
             return Collections.emptyList();
@@ -147,9 +153,7 @@ public final class QueryRealm {
 
     public static List<Autorizadores> copyAllAutorizadores() {
         try (Realm realm = Realm.getDefaultInstance()) {
-            RealmResults<Autorizadores> res = realm.where(Autorizadores.class)
-                    .findAll()
-                    .sort("nombre", Sort.ASCENDING);
+            RealmResults<Autorizadores> res = realm.where(Autorizadores.class).findAll().sort("nombre", Sort.ASCENDING);
             return realm.copyFromRealm(res);
         } catch (Throwable t) {
             return Collections.emptyList();

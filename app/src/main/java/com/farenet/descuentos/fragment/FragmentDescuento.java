@@ -10,6 +10,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.ArrayAdapter; // <-- NUEVO
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
@@ -17,6 +18,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
 import com.farenet.descuentos.R;
@@ -30,10 +32,10 @@ import com.farenet.descuentos.domain.TipoPagoDescuento;
 import com.farenet.descuentos.repository.DescuentoRepository;
 import com.farenet.descuentos.repository.MaestroRepository;
 import com.farenet.descuentos.sql.QueryRealm;
+import com.google.android.material.textfield.MaterialAutoCompleteTextView; // <-- NUEVO
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays; // <-- NUEVO
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -45,8 +47,8 @@ import retrofit2.Response;
 public class FragmentDescuento extends Fragment {
 
     private Spinner spPlanta, spConcepto, spTipoPago, spTipoCampana, spTipoDescuento, spAutoriza;
-    private EditText txtPlaca, txtMonto, txtMotivo;
-    private Button btnGuardar;
+    private EditText txtPlaca, txtMonto, txtMotivo; // Mantengo EditText para no romper nada
+    private Button btnGuardar, btnLogout;
 
     private SpinerAdapter<Planta> spPlantaAdapter;
     private SpinerAdapter<Conceptoinspeccion> spConceptoAdapter;
@@ -74,8 +76,9 @@ public class FragmentDescuento extends Fragment {
         spTipoPago      = view.findViewById(R.id.sp_tipopago_desc);
         txtPlaca        = view.findViewById(R.id.txtPlaca_desc);
         txtMonto        = view.findViewById(R.id.txtMonto_desc);
-        txtMotivo       = view.findViewById(R.id.txtMotivo_desc);
+        txtMotivo       = view.findViewById(R.id.txtMotivo_desc); // puede ser EditText o MaterialAutoCompleteTextView
         btnGuardar      = view.findViewById(R.id.btnGuardar_desc);
+        btnLogout       = view.findViewById(R.id.btnLogout_desc);
         spTipoCampana   = view.findViewById(R.id.sp_tipocampana);
         spTipoDescuento = view.findViewById(R.id.sp_tipodescuento);
         spAutoriza      = view.findViewById(R.id.sp_autoriza_desc);
@@ -129,15 +132,36 @@ public class FragmentDescuento extends Fragment {
             @Override public void onNothingSelected(AdapterView<?> parent) {}
         });
 
+        // 4.1) MOTIVO como combo editable (si el layout usa MaterialAutoCompleteTextView)
+        if (txtMotivo instanceof MaterialAutoCompleteTextView) {
+            MaterialAutoCompleteTextView mac = (MaterialAutoCompleteTextView) txtMotivo;
+
+            String[] motivos = getResources().getStringArray(R.array.motivos_descuento);
+            ArrayAdapter<String> motivoAdapter = new ArrayAdapter<>(
+                    requireContext(),
+                    android.R.layout.simple_list_item_1,
+                    Arrays.asList(motivos)
+            );
+            mac.setAdapter(motivoAdapter);
+
+            mac.setOnFocusChangeListener((v, hasFocus) -> { if (hasFocus) mac.showDropDown(); });
+            mac.setOnItemClickListener((parent, v, pos, id) -> {
+                String sel = (String) parent.getItemAtPosition(pos);
+                if ("Otro (especificar)".equalsIgnoreCase(sel)) {
+                    mac.setText("");
+                    mac.requestFocus();
+                }
+            });
+        }
+
         btnGuardar.setOnClickListener(v -> onGuardarClicked());
+        btnLogout.setOnClickListener(v -> confirmarCerrarSesion());
 
         // 5) Re-sync si local vacío
         ensureMaestrosDesdeApiSiHaceFalta();
     }
 
-    private <T> List<T> safe(List<T> list) {
-        return list != null ? list : Collections.emptyList();
-    }
+    private <T> List<T> safe(List<T> list) { return list != null ? list : Collections.emptyList(); }
 
     private void toggleCampanaVisibility() {
         String tipo = (spTipoDescuento.getSelectedItem() != null)
@@ -146,28 +170,74 @@ public class FragmentDescuento extends Fragment {
         spTipoCampana.setVisibility("CAMPAÑA".equalsIgnoreCase(tipo) ? View.VISIBLE : View.GONE);
     }
 
+    /** Muestra diálogo y, si acepta, borra token + Realm y navega a Login. */
+    private void confirmarCerrarSesion() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Cerrar sesión")
+                .setMessage("¿Desea cerrar sesión y borrar el caché local?")
+                .setPositiveButton("Sí", (d, w) -> cerrarSesionYBorrarCache())
+                .setNegativeButton("No", null)
+                .show();
+    }
+
+    private void cerrarSesionYBorrarCache() {
+        btnGuardar.setEnabled(false);
+        btnLogout.setEnabled(false);
+
+        sharedPreferences.edit().clear().apply();
+
+        QueryRealm.wipeAllAsync(new QueryRealm.TxCallback() {
+            @Override public void onSuccess() {
+                spPlantaAdapter.setItems(Collections.emptyList());
+                spAutorizadoresAdapter.setItems(Collections.emptyList());
+                spConceptoAdapter.setItems(Collections.emptyList());
+                spTipoPagoAdapter.setItems(Collections.emptyList());
+                limpiar();
+
+                try {
+                    Class<?> loginClass = Class.forName("com.farenet.descuentos.LoginActivity");
+                    Intent i = new Intent(requireContext(), loginClass);
+                    i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
+                            | Intent.FLAG_ACTIVITY_NEW_TASK
+                            | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(i);
+                    requireActivity().finish();
+                } catch (ClassNotFoundException e) {
+                    Toast.makeText(requireContext(), "No se encontró LoginActivity", Toast.LENGTH_LONG).show();
+                    btnGuardar.setEnabled(true);
+                    btnLogout.setEnabled(true);
+                }
+            }
+
+            @Override public void onError(Throwable error) {
+                Toast.makeText(requireContext(), "Error limpiando caché: " +
+                                (error != null && error.getMessage()!=null ? error.getMessage() : "desconocido"),
+                        Toast.LENGTH_LONG).show();
+                btnGuardar.setEnabled(true);
+                btnLogout.setEnabled(true);
+            }
+        });
+    }
+
     private void ensureMaestrosDesdeApiSiHaceFalta() {
         boolean needPlantas       = spPlantaAdapter.getCount() == 0;
         boolean needAutorizadores = spAutorizadoresAdapter.getCount() == 0;
         boolean needConceptos     = spConceptoAdapter.getCount() == 0;
         boolean needTipoPago      = spTipoPagoAdapter.getCount() == 0;
 
-        if (!(needPlantas || needAutorizadores || needConceptos || needTipoPago)) {
-            return; // ya hay data local
-        }
+        if (!(needPlantas || needAutorizadores || needConceptos || needTipoPago)) return;
 
         String token = sharedPreferences.getString("token", null);
         if (TextUtils.isEmpty(token)) {
-            Toast.makeText(requireContext(), "Sesión no válida. Inicie sesión nuevamente.", Toast.LENGTH_LONG).show();
+            Toast.makeText(requireContext(), "Sesión no válida. Inicie sesión.", Toast.LENGTH_LONG).show();
             return;
         }
 
         btnGuardar.setEnabled(false);
-        AtomicInteger pending = new AtomicInteger(0);
+        final AtomicInteger pending = new AtomicInteger(0);
 
         Runnable refreshUiIfDone = () -> {
             if (pending.decrementAndGet() == 0) {
-                // Releer de Realm y refrescar adapters
                 spPlantaAdapter.setItems(QueryRealm.copyAllPlantas());
                 spAutorizadoresAdapter.setItems(QueryRealm.copyAllAutorizadores());
                 spConceptoAdapter.setItems(QueryRealm.copyAllConceptos());
@@ -352,7 +422,30 @@ public class FragmentDescuento extends Fragment {
                 btnGuardar.setEnabled(true);
                 if (response.isSuccessful() && response.code() == 200) {
                     Toast.makeText(requireContext(), "Se agregó el descuento", Toast.LENGTH_LONG).show();
-                    abrirWhatsappYLimpiar(placa);
+
+                    // WhatsApp con placa + planta + concepto + motivo + etiqueta monto + valor
+                    String plantaNombre   = planta.getNombre() != null ? planta.getNombre() : String.valueOf(planta);
+                    String conceptoNombre = (concepto.getAbreviatura() != null && !concepto.getAbreviatura().isEmpty())
+                            ? concepto.getAbreviatura() : String.valueOf(concepto);
+
+                    // === NUEVO: etiqueta dinámica según TipoPagoDescuento ===
+                    String pagoNameOrKey = (tipoPago.getNombre() != null ? tipoPago.getNombre() : "") +
+                            " " +
+                            (tipoPago.getKey() != null ? tipoPago.getKey() : "");
+                    String montoLabel;
+                    String lower = pagoNameOrKey.toLowerCase();
+                    if (lower.contains("flat")) {
+                        montoLabel = "💰 Monto a pagar:";
+                    } else if (lower.contains("porcentaje") || lower.contains("%")) {
+                        montoLabel = "💰 % de descuento:";
+                    } else if (lower.contains("monto")) {
+                        montoLabel = "💰 Monto de descuento:";
+                    } else {
+                        montoLabel = "💰 Monto:"; // fallback
+                    }
+
+                    abrirWhatsappYLimpiar(placa, plantaNombre, tipoSelec, conceptoNombre, motivo, montoLabel, monto);
+
                 } else {
                     if (response.code() == 401 || response.code() == 403) {
                         Toast.makeText(requireContext(), "Sesión expirada. Inicie sesión.", Toast.LENGTH_LONG).show();
@@ -423,23 +516,53 @@ public class FragmentDescuento extends Fragment {
         return ok;
     }
 
-    private void abrirWhatsappYLimpiar(String placa) {
-        String msg = getString(R.string.msjwhtsp) + " " + placa;
-        String encoded = URLEncoder.encode(msg, StandardCharsets.UTF_8);
-        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("whatsapp://send?text=" + encoded));
-
-        if (intent.resolveActivity(requireContext().getPackageManager()) != null) {
-            startActivity(intent);
+    /** Arma el texto según el tipo de descuento y abre WhatsApp; luego limpia el formulario. */
+    private void abrirWhatsappYLimpiar(String placa,
+                                       String plantaNombre,
+                                       String tipoSelec,
+                                       String conceptoNombre,
+                                       String motivo,
+                                       String montoLabel,   // <-- NUEVO
+                                       double monto) {      // <-- NUEVO
+        String msg;
+        if ("CARTA".equalsIgnoreCase(tipoSelec)) {
+            msg = getString(R.string.msjwhtspcarta,  placa, plantaNombre, conceptoNombre, motivo, montoLabel, monto);
+        } else if ("CAMPAÑA".equalsIgnoreCase(tipoSelec)) {
+            msg = getString(R.string.msjwhtsp_campana, placa, plantaNombre, conceptoNombre, motivo, montoLabel, monto);
         } else {
-            Intent web = new Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/?text=" + encoded));
-            if (web.resolveActivity(requireContext().getPackageManager()) != null) {
-                startActivity(web);
-            } else {
-                Toast.makeText(requireContext(), "No se encontró WhatsApp", Toast.LENGTH_SHORT).show();
+            msg = getString(R.string.msjwhtsp,       placa, plantaNombre, conceptoNombre, motivo, montoLabel, monto); // AUTORIZADO
+        }
+
+        Intent send = new Intent(Intent.ACTION_SEND);
+        send.setType("text/plain");
+        send.putExtra(Intent.EXTRA_TEXT, msg);
+
+        boolean launched = tryStartActivityWithPackage(send, "com.whatsapp");
+        if (!launched) launched = tryStartActivityWithPackage(send, "com.whatsapp.w4b");
+
+        if (!launched) {
+            String url = "https://wa.me/?text=" + Uri.encode(msg);
+            try {
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+            } catch (Exception e) {
+                Toast.makeText(requireContext(), "No se encontró WhatsApp ni navegador disponible", Toast.LENGTH_SHORT).show();
             }
         }
 
         limpiar();
+    }
+
+    /** Intenta lanzar un ACTION_SEND con un paquete específico. Devuelve true si se lanzó. */
+    private boolean tryStartActivityWithPackage(Intent base, String packageName) {
+        try {
+            Intent i = new Intent(base);
+            i.setPackage(packageName);
+            if (i.resolveActivity(requireContext().getPackageManager()) != null) {
+                startActivity(i);
+                return true;
+            }
+        } catch (Exception ignored) {}
+        return false;
     }
 
     private void limpiar() {

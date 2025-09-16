@@ -25,12 +25,12 @@ import com.farenet.descuentos.domain.Autorizadores;
 import com.farenet.descuentos.domain.Cortesia;
 import com.farenet.descuentos.domain.Planta;
 import com.farenet.descuentos.repository.DescuentoRepository;
+import com.farenet.descuentos.repository.MaestroRepository;
 import com.farenet.descuentos.sql.QueryRealm;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -46,6 +46,7 @@ public class FragmentCortesia extends Fragment {
     private SpinerAdapter<Autorizadores> spAutorizaAdapter;
 
     private DescuentoRepository descuentoRepository;
+    private MaestroRepository maestroRepository;
     private SharedPreferences sharedPreferences;
 
     @Nullable
@@ -64,9 +65,10 @@ public class FragmentCortesia extends Fragment {
         btnGuardar = view.findViewById(R.id.btnGuardar_cort);
 
         descuentoRepository = Constante.getDescuentoRepository();
-        sharedPreferences = requireActivity().getSharedPreferences(Constante.TOKEN, Context.MODE_PRIVATE);
+        maestroRepository   = Constante.getMaestroRespository();
+        sharedPreferences   = requireActivity().getSharedPreferences(Constante.TOKEN, Context.MODE_PRIVATE);
 
-        // Cargar COPIAS (unmanaged) desde Realm (no deja instancias abiertas)
+        // Cargar COPIAS (unmanaged) desde Realm
         List<Planta> plantas = safe(QueryRealm.copyAllPlantas());
         List<Autorizadores> autores = safe(QueryRealm.copyAllAutorizadores());
 
@@ -77,11 +79,12 @@ public class FragmentCortesia extends Fragment {
         spAutoriza.setAdapter(spAutorizaAdapter);
 
         btnGuardar.setOnClickListener(v -> onGuardarClicked());
+
+        // Re-sync desde API si el caché está vacío
+        ensureMaestrosDesdeApiSiHaceFalta();
     }
 
-    private <T> List<T> safe(List<T> list) {
-        return list != null ? list : Collections.emptyList();
-    }
+    private <T> List<T> safe(List<T> list) { return list != null ? list : Collections.emptyList(); }
 
     private void onGuardarClicked() {
         if (!validarCampos()) return;
@@ -104,8 +107,8 @@ public class FragmentCortesia extends Fragment {
             return;
         }
 
-        String placa  = txtPlaca.getText().toString().trim().toUpperCase();
-        String motivo = txtMotivo.getText().toString().trim();
+        String placa    = txtPlaca.getText().toString().trim().toUpperCase();
+        String motivo   = txtMotivo.getText().toString().trim();
         String autoriza = aut.getNombre() != null ? aut.getNombre() : aut.toString();
 
         Cortesia cortesia = new Cortesia();
@@ -122,9 +125,15 @@ public class FragmentCortesia extends Fragment {
                 btnGuardar.setEnabled(true);
                 if (response.isSuccessful() && response.code() == 200) {
                     Toast.makeText(requireContext(), "Se agregó la cortesía", Toast.LENGTH_LONG).show();
-                    abrirWhatsappYLimpiar(placa);
+                    // WhatsApp: solo placa + motivo
+                    abrirWhatsappYLimpiar(placa, motivo);
+
                 } else {
-                    Toast.makeText(requireContext(), "Error al registrar", Toast.LENGTH_LONG).show();
+                    if (response.code() == 401 || response.code() == 403) {
+                        Toast.makeText(requireContext(), "Sesión expirada. Inicie sesión.", Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(requireContext(), "Error al registrar (" + response.code() + ")", Toast.LENGTH_LONG).show();
+                    }
                 }
             }
 
@@ -140,16 +149,10 @@ public class FragmentCortesia extends Fragment {
         boolean ok = true;
 
         String placa = txtPlaca.getText() != null ? txtPlaca.getText().toString().trim() : "";
-        if (placa.isEmpty()) {
-            txtPlaca.setError("Ingrese placa");
-            ok = false;
-        }
+        if (placa.isEmpty()) { txtPlaca.setError("Ingrese placa"); ok = false; }
 
         String motivo = txtMotivo.getText() != null ? txtMotivo.getText().toString().trim() : "";
-        if (motivo.isEmpty()) {
-            txtMotivo.setError("Ingrese motivo");
-            ok = false;
-        }
+        if (motivo.isEmpty()) { txtMotivo.setError("Ingrese motivo"); ok = false; }
 
         if (spPlanta.getAdapter() == null || spPlanta.getAdapter().getCount() == 0) {
             Toast.makeText(requireContext(), "No hay plantas disponibles", Toast.LENGTH_SHORT).show();
@@ -163,29 +166,139 @@ public class FragmentCortesia extends Fragment {
         return ok;
     }
 
-    private void abrirWhatsappYLimpiar(String placa) {
-        String msg = getString(R.string.msjwhtsp_corte) + " " + placa;
-        String encoded = URLEncoder.encode(msg, StandardCharsets.UTF_8);
-        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("whatsapp://send?text=" + encoded));
+    /**
+     * Envia el mensaje a WhatsApp con solamente la placa y el motivo.
+     * Evita "whatsapp://" y prueba WhatsApp normal, Business y por último wa.me.
+     */
+    private void abrirWhatsappYLimpiar(String placa, String motivo) {
+        // Usar string con placeholders: %1$s = placa, %2$s = motivo
+        String msg = getString(R.string.msjwhtsp_corte, placa, motivo);
 
-        if (intent.resolveActivity(requireContext().getPackageManager()) != null) {
-            startActivity(intent);
-        } else {
-            Intent web = new Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/?text=" + encoded));
-            if (web.resolveActivity(requireContext().getPackageManager()) != null) {
-                startActivity(web);
-            } else {
-                Toast.makeText(requireContext(), "No se encontró WhatsApp", Toast.LENGTH_SHORT).show();
+        Intent send = new Intent(Intent.ACTION_SEND);
+        send.setType("text/plain");
+        send.putExtra(Intent.EXTRA_TEXT, msg);
+
+        boolean launched = tryStartActivityWithPackage(send, "com.whatsapp");
+        if (!launched) launched = tryStartActivityWithPackage(send, "com.whatsapp.w4b");
+
+        if (!launched) {
+            String url = "https://wa.me/?text=" + Uri.encode(msg);
+            try {
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+            } catch (Exception e) {
+                Toast.makeText(requireContext(), "No se encontró WhatsApp ni navegador disponible", Toast.LENGTH_SHORT).show();
             }
         }
 
         limpiar();
     }
 
+
+
+    private boolean tryStartActivityWithPackage(Intent base, String packageName) {
+        try {
+            Intent i = new Intent(base);
+            i.setPackage(packageName);
+            if (i.resolveActivity(requireContext().getPackageManager()) != null) {
+                startActivity(i);
+                return true;
+            }
+        } catch (Exception ignored) {}
+        return false;
+    }
+
     private void limpiar() {
-        spPlanta.setSelection(0);
-        spAutoriza.setSelection(0);
+        if (spPlanta.getAdapter() != null && spPlanta.getAdapter().getCount() > 0) spPlanta.setSelection(0);
+        if (spAutoriza.getAdapter() != null && spAutoriza.getAdapter().getCount() > 0) spAutoriza.setSelection(0);
         txtPlaca.setText("");
         txtMotivo.setText("");
+    }
+
+    /** Si los spinners están vacíos, baja maestros desde API, guarda en Realm y refresca adapters. */
+    private void ensureMaestrosDesdeApiSiHaceFalta() {
+        boolean needPlantas       = spPlantaAdapter.getCount() == 0;
+        boolean needAutorizadores = spAutorizaAdapter.getCount() == 0;
+
+        if (!(needPlantas || needAutorizadores)) return;
+
+        String token = sharedPreferences.getString("token", null);
+        if (TextUtils.isEmpty(token)) {
+            Toast.makeText(requireContext(), "Sesión no válida. Inicie sesión.", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        btnGuardar.setEnabled(false);
+        final AtomicInteger pending = new AtomicInteger(0);
+
+        Runnable refreshUiIfDone = () -> {
+            if (pending.decrementAndGet() == 0) {
+                spPlantaAdapter.setItems(QueryRealm.copyAllPlantas());
+                spAutorizaAdapter.setItems(QueryRealm.copyAllAutorizadores());
+                btnGuardar.setEnabled(true);
+            }
+        };
+
+        if (needPlantas) {
+            pending.incrementAndGet();
+            maestroRepository.getPlantas(token).enqueue(new Callback<List<Planta>>() {
+                @Override public void onResponse(Call<List<Planta>> call, Response<List<Planta>> rsp) {
+                    if (rsp.isSuccessful() && rsp.body() != null) {
+                        // Método async para guardar en Realm (debes tenerlo como en FragmentDescuento)
+                        QueryRealm.savePlantaAsync(rsp.body(), new QueryRealm.TxCallback() {
+                            @Override public void onSuccess() { refreshUiIfDone.run(); }
+                            @Override public void onError(Throwable error) {
+                                Toast.makeText(requireContext(), "Guardar plantas: " + safeMsg(error), Toast.LENGTH_SHORT).show();
+                                refreshUiIfDone.run();
+                            }
+                        });
+                    } else {
+                        handleHttpError("Plantas", rsp.code(), rsp.message());
+                        refreshUiIfDone.run();
+                    }
+                }
+                @Override public void onFailure(Call<List<Planta>> call, Throwable t) {
+                    Toast.makeText(requireContext(), "Error plantas: " + safeMsg(t), Toast.LENGTH_SHORT).show();
+                    refreshUiIfDone.run();
+                }
+            });
+        }
+
+        if (needAutorizadores) {
+            pending.incrementAndGet();
+            maestroRepository.getAutorizadores(token).enqueue(new Callback<List<Autorizadores>>() {
+                @Override public void onResponse(Call<List<Autorizadores>> call, Response<List<Autorizadores>> rsp) {
+                    if (rsp.isSuccessful() && rsp.body() != null) {
+                        QueryRealm.saveAutorizadoresAsync(rsp.body(), new QueryRealm.TxCallback() {
+                            @Override public void onSuccess() { refreshUiIfDone.run(); }
+                            @Override public void onError(Throwable error) {
+                                Toast.makeText(requireContext(), "Guardar autorizadores: " + safeMsg(error), Toast.LENGTH_SHORT).show();
+                                refreshUiIfDone.run();
+                            }
+                        });
+                    } else {
+                        handleHttpError("Autorizadores", rsp.code(), rsp.message());
+                        refreshUiIfDone.run();
+                    }
+                }
+                @Override public void onFailure(Call<List<Autorizadores>> call, Throwable t) {
+                    Toast.makeText(requireContext(), "Error autorizadores: " + safeMsg(t), Toast.LENGTH_SHORT).show();
+                    refreshUiIfDone.run();
+                }
+            });
+        }
+
+        if (pending.get() == 0) btnGuardar.setEnabled(true);
+    }
+
+    private void handleHttpError(String tag, int code, String msg) {
+        if (code == 401 || code == 403) {
+            Toast.makeText(requireContext(), tag + ": sesión expirada. Inicie sesión.", Toast.LENGTH_LONG).show();
+        } else {
+            Toast.makeText(requireContext(), tag + " HTTP " + code + " - " + msg, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private String safeMsg(Throwable t) {
+        return t != null && t.getMessage() != null ? t.getMessage() : "desconocido";
     }
 }

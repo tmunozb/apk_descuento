@@ -28,4 +28,16 @@
             </intent-filter>
         </activity>
     </application>
+    <queries>
+        <!-- Ver apps que manejan ACTION_SEND text/plain -->
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="text/plain" />
+        </intent>
+
+        <!-- Paquetes específicos de WhatsApp -->
+        <package android:name="com.whatsapp" />
+        <package android:name="com.whatsapp.w4b" />
+    </queries>
+
 </manifest>

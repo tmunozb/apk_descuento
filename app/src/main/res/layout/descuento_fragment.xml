@@ -4,17 +4,16 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="10px">
+
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0px"
-        android:layout_weight="1"
-        >
+        android:layout_weight="1">
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical"
-            >
-
+            android:orientation="vertical">
 
             <TextView
                 android:layout_width="match_parent"
@@ -31,24 +30,21 @@
                 android:layout_width="match_parent"
                 android:layout_height="@dimen/spinner"
                 android:layout_margin="10dp"
-                android:layout_marginTop="5dp"
-                />
+                android:layout_marginTop="5dp" />
 
             <Spinner
                 android:id="@+id/sp_concepto_desc"
                 android:layout_width="match_parent"
                 android:layout_height="@dimen/spinner"
                 android:layout_margin="10dp"
-                android:layout_marginTop="5dp"
-                />
+                android:layout_marginTop="5dp" />
 
             <Spinner
                 android:id="@+id/sp_tipopago_desc"
                 android:layout_width="match_parent"
                 android:layout_height="@dimen/spinner"
                 android:layout_margin="10dp"
-                android:layout_marginTop="5dp"
-                />
+                android:layout_marginTop="5dp" />
 
             <androidx.appcompat.widget.AppCompatSpinner
                 android:id="@+id/sp_tipodescuento"
@@ -97,19 +93,20 @@
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.ExposedDropdownMenu"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_margin="5dp"
                 android:hint="@string/motivo">
 
-                <com.google.android.material.textfield.TextInputEditText
+                <com.google.android.material.textfield.MaterialAutoCompleteTextView
                     android:id="@+id/txtMotivo_desc"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textCapCharacters"
-                    android:textColor="@color/fareazul"
-                    android:textStyle="bold" />
+                    android:inputType="textCapSentences|text"
+                    android:imeOptions="actionDone"/>
             </com.google.android.material.textfield.TextInputLayout>
+
 
             <Spinner
                 android:id="@+id/sp_autoriza_desc"
@@ -117,10 +114,9 @@
                 android:layout_height="@dimen/spinner"
                 android:layout_margin="10dp"
                 android:layout_marginTop="5dp" />
+
         </LinearLayout>
-
     </ScrollView>
-
 
     <Button
         android:id="@+id/btnGuardar_desc"
@@ -128,12 +124,20 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:layout_marginLeft="50px"
-        android:layout_marginTop="50dp"
+        android:layout_marginTop="24dp"
         android:layout_marginRight="50px"
         android:background="@drawable/border_btn"
         android:text="@string/agregar"
         android:textColor="@android:color/white"
         android:textStyle="bold" />
 
-
+    <Button
+        android:id="@+id/btnLogout_desc"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="50px"
+        android:layout_marginTop="12dp"
+        android:layout_marginRight="50px"
+        android:text="Cerrar sesión"
+        android:textStyle="bold" />
 </LinearLayout>
