@@ -1,11 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
+
     <item
-        android:id="@+id/action_settings"
-        android:icon="@drawable/ic_cerrar"
-        android:orderInCategory="100"
-        android:title="@string/cerrarsesion"
+        android:id="@+id/action_search"
+        android:title="Buscar"
+        android:icon="@drawable/ic_search"
+        app:showAsAction="ifRoom|collapseActionView"
+        app:actionViewClass="androidx.appcompat.widget.SearchView" />
+
+    <item
+        android:id="@+id/action_notifications"
+        android:title="Notificaciones"
+        android:icon="@drawable/ic_notifications"
         app:showAsAction="ifRoom" />
 
+    <!-- Submenú dinámico “Cambiar planta” (se llena en onPrepareOptionsMenu) -->
+    <item
+        android:id="@+id/action_change_plant_parent"
+        android:title="Cambiar planta"
+        app:showAsAction="never">
+        <menu>
+            <!-- Aquí se inyectan las plantas con add() -->
+        </menu>
+    </item>
+
+    <item
+        android:id="@+id/action_help"
+        android:title="Ayuda"
+        android:icon="@drawable/ic_help"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_logout"
+        android:title="@string/cerrarsesion"
+        android:icon="@drawable/ic_login"
+        app:showAsAction="never" />
 </menu>

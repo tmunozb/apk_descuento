@@ -158,16 +158,6 @@
                 app:icon="@drawable/ic_save_24"
                 app:iconGravity="textStart"
                 app:cornerRadius="16dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnLogout_desc"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Cerrar sesión"
-                android:layout_marginTop="8dp"
-                app:icon="@drawable/ic_logout_24"
-                app:iconGravity="textStart" />
         </LinearLayout>
 
     </LinearLayout>

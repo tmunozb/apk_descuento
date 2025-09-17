@@ -48,7 +48,7 @@ public class FragmentDescuento extends Fragment {
 
     private Spinner spPlanta, spConcepto, spTipoPago, spTipoCampana, spTipoDescuento, spAutoriza;
     private EditText txtPlaca, txtMonto, txtMotivo; // Mantengo EditText para no romper nada
-    private Button btnGuardar, btnLogout;
+    private Button btnGuardar;
 
     private SpinerAdapter<Planta> spPlantaAdapter;
     private SpinerAdapter<Conceptoinspeccion> spConceptoAdapter;
@@ -78,7 +78,6 @@ public class FragmentDescuento extends Fragment {
         txtMonto        = view.findViewById(R.id.txtMonto_desc);
         txtMotivo       = view.findViewById(R.id.txtMotivo_desc); // puede ser EditText o MaterialAutoCompleteTextView
         btnGuardar      = view.findViewById(R.id.btnGuardar_desc);
-        btnLogout       = view.findViewById(R.id.btnLogout_desc);
         spTipoCampana   = view.findViewById(R.id.sp_tipocampana);
         spTipoDescuento = view.findViewById(R.id.sp_tipodescuento);
         spAutoriza      = view.findViewById(R.id.sp_autoriza_desc);
@@ -155,7 +154,7 @@ public class FragmentDescuento extends Fragment {
         }
 
         btnGuardar.setOnClickListener(v -> onGuardarClicked());
-        btnLogout.setOnClickListener(v -> confirmarCerrarSesion());
+
 
         // 5) Re-sync si local vacío
         ensureMaestrosDesdeApiSiHaceFalta();
@@ -182,7 +181,7 @@ public class FragmentDescuento extends Fragment {
 
     private void cerrarSesionYBorrarCache() {
         btnGuardar.setEnabled(false);
-        btnLogout.setEnabled(false);
+
 
         sharedPreferences.edit().clear().apply();
 
@@ -205,7 +204,7 @@ public class FragmentDescuento extends Fragment {
                 } catch (ClassNotFoundException e) {
                     Toast.makeText(requireContext(), "No se encontró LoginActivity", Toast.LENGTH_LONG).show();
                     btnGuardar.setEnabled(true);
-                    btnLogout.setEnabled(true);
+
                 }
             }
 
@@ -214,7 +213,7 @@ public class FragmentDescuento extends Fragment {
                                 (error != null && error.getMessage()!=null ? error.getMessage() : "desconocido"),
                         Toast.LENGTH_LONG).show();
                 btnGuardar.setEnabled(true);
-                btnLogout.setEnabled(true);
+
             }
         });
     }

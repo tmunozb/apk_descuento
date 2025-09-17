@@ -55,9 +55,9 @@
         <item>Retención de Cliente</item>
         <item>Descuento Interseguro</item>
         <item>Cliente Crítico</item>
-        <item>Alianza/Corporativo</item>
+        <item>Cupón Vencido</item>
         <item>Campaña vigente</item>
-        <item>Derivado por supervisor</item>
+        <item>Derivado por Gerencia</item>
         <item>Otro (especificar)</item>
     </string-array>
 </resources>
