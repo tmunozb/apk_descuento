@@ -5,14 +5,18 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.farenet.descuentos.config.Constante;
+import com.farenet.descuentos.fragment.FragmentDescuento;
 import com.farenet.descuentos.models.newapi.UsuarioPerfil;
 import com.farenet.descuentos.repository.SessionManager;
 import com.farenet.descuentos.sql.QueryRealm;
@@ -65,6 +69,24 @@ public class SelectionActivity extends AppCompatActivity
 
         navView.setNavigationItemSelectedListener(this);
 
+        // Poblar header de forma segura
+        if (navView.getHeaderCount() > 0) {
+            View header = navView.getHeaderView(0);
+            TextView tvName = header.findViewById(R.id.tvHeaderName);
+            TextView tvRole = header.findViewById(R.id.tvHeaderRole);
+            if (up != null) {
+                if (tvName != null) tvName.setText(up.username != null ? up.username : "Usuario");
+                if (tvRole != null) tvRole.setText(up.perfilId != null ? up.perfilId : "Perfil");
+            }
+        }
+
+        // (OPCIONAL) Card "Descuentos" en el dashboard
+        View cardDescuentos = findViewById(R.id.card_descuentos);
+        if (cardDescuentos != null) {
+            cardDescuentos.setOnClickListener(v ->
+                    startActivity(new Intent(this, DescuentoActivity.class)));
+        }
+
         // Control de visibilidad por perfil
         aplicarVisibilidadPorPerfil();
     }
@@ -72,7 +94,6 @@ public class SelectionActivity extends AppCompatActivity
     @Override
     protected void onResume() {
         super.onResume();
-        // Por si cambió el perfil mientras la activity no estaba al frente
         aplicarVisibilidadPorPerfil();
     }
 
@@ -95,8 +116,6 @@ public class SelectionActivity extends AppCompatActivity
         boolean puedePlantas          = any(perfilId, "sistemas","administrador","planta");
 
         setVisible(menu, R.id.nav_descuento_cortesia, puedeDescuentoCortesia);
-        setVisible(menu, R.id.nav_descuento_cortesia,         puedeDescuentoCortesia);
-        setVisible(menu, R.id.nav_descuento_cortesia,          puedeDescuentoCortesia);
         setVisible(menu, R.id.nav_reportes,           puedeReportes);
         setVisible(menu, R.id.nav_datos_vehiculares,  puedeDatosVehiculares);
         setVisible(menu, R.id.nav_plantas,            puedePlantas);
@@ -114,7 +133,6 @@ public class SelectionActivity extends AppCompatActivity
         if (it != null) it.setVisible(visible);
     }
 
-
     private boolean any(String perfilId, String... allowed) {
         if (perfilId == null) return false;
         for (String a : allowed) {
@@ -128,33 +146,17 @@ public class SelectionActivity extends AppCompatActivity
         final int id = item.getItemId();
 
         if (id == R.id.nav_soporte) {
-            // TODO: abre tu Activity de soporte
             showInfo("Soporte", "Abrir herramientas de soporte.");
         }
-        // Ítem combinado -> abre MainActivity con el tab por defecto (0 = Descuentos)
-        else if (id == R.id.nav_descuento_cortesia) {
-            Intent i = new Intent(this, MainActivity.class);
-            i.putExtra("start_tab", 0);
-            startActivity(i);
-        }
-        // Ítems separados (si usas dos opciones en el menú)
-        else if (id == R.id.navigationView) {
-            Intent i = new Intent(this, MainActivity.class);
-            i.putExtra("start_tab", 0);
-            startActivity(i);
-        } else if (id == R.id.navigationView) {
-            Intent i = new Intent(this, MainActivity.class);
-            i.putExtra("start_tab", 1);
-            startActivity(i);
+        // ✅ Abrir la pantalla de Descuentos (ya no MainActivity)
+        else if (id == R.id.nav_descuento_cortesia /* o nav_descuentos si lo tienes separado */) {
+            startActivity(new Intent(this, FragmentDescuento.class));
         }
         else if (id == R.id.nav_reportes) {
-            // TODO: abre tu Activity de reportes
             showInfo("Reportes", "Abrir módulo de reportes.");
         } else if (id == R.id.nav_datos_vehiculares) {
-            // TODO: abre tu Activity de datos vehiculares
             showInfo("Datos vehiculares", "Abrir módulo de datos vehiculares.");
         } else if (id == R.id.nav_plantas) {
-            // TODO: abre tu Activity de plantas
             showInfo("Plantas", "Abrir administración de plantas.");
         } else if (id == R.id.nav_logout) {
             confirmarLogout();
@@ -182,11 +184,8 @@ public class SelectionActivity extends AppCompatActivity
     }
 
     private void cerrarSesionYBorrarCache() {
-        // Limpia legacy + nueva sesión
         legacyPrefs.edit().clear().apply();
         session.clear();
-
-        // Limpia Realm
         QueryRealm.wipeAllAsync(new QueryRealm.TxCallback() {
             @Override public void onSuccess() { goToLogin(); }
             @Override public void onError(Throwable error) { goToLogin(); }
@@ -200,5 +199,14 @@ public class SelectionActivity extends AppCompatActivity
                 | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(i);
         finish();
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START);
+        } else {
+            super.onBackPressed();
+        }
     }
 }
