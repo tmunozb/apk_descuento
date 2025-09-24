@@ -23,7 +23,7 @@
                 android:layout_height="?attr/actionBarSize"
                 android:background="?attr/colorPrimary"
                 android:theme="@style/ThemeOverlay.MaterialComponents.ActionBar"
-                app:title="@string/app_name" />
+                app:title="Soporte Farenet" />
         </com.google.android.material.appbar.AppBarLayout>
 
         <!-- Scroll principal con el dashboard -->

@@ -9,8 +9,13 @@
             android:icon="@drawable/ic_support_agent" />
 
         <item
-            android:id="@+id/nav_descuento_cortesia"
-            android:title="Descuento / Cortesía"
+            android:id="@+id/nav_descuento"
+            android:title="Descuento"
+            android:icon="@drawable/ic_discount" />
+
+        <item
+            android:id="@+id/nav_cortesia"
+            android:title="Cortesía"
             android:icon="@drawable/ic_discount" />
 
         <item

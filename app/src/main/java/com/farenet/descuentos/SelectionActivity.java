@@ -87,6 +87,14 @@ public class SelectionActivity extends AppCompatActivity
                     startActivity(new Intent(this, DescuentoActivity.class)));
         }
 
+        // Card "Cortesías" en el dashboard
+        View cardCortesias = findViewById(R.id.card_cortesias);
+        if (cardCortesias != null) {
+            cardCortesias.setOnClickListener(v ->
+                    startActivity(new Intent(this, CortesiaActivity.class)));
+        }
+
+
         // Control de visibilidad por perfil
         aplicarVisibilidadPorPerfil();
     }
@@ -111,11 +119,13 @@ public class SelectionActivity extends AppCompatActivity
         String perfilId = up.perfilId.toLowerCase();
 
         boolean puedeDescuentoCortesia = any(perfilId, "sistemas","administrador","ventas","supervisor");
+        boolean puedeDescuento = any(perfilId, "sistemas","administrador","ventas","supervisor");
         boolean puedeReportes         = any(perfilId, "sistemas","administrador","reportes");
         boolean puedeDatosVehiculares = any(perfilId, "sistemas","administrador","soporte","datos");
         boolean puedePlantas          = any(perfilId, "sistemas","administrador","planta");
 
-        setVisible(menu, R.id.nav_descuento_cortesia, puedeDescuentoCortesia);
+        setVisible(menu, R.id.nav_descuento, puedeDescuento);
+        setVisible(menu, R.id.nav_cortesia, puedeDescuentoCortesia);
         setVisible(menu, R.id.nav_reportes,           puedeReportes);
         setVisible(menu, R.id.nav_datos_vehiculares,  puedeDatosVehiculares);
         setVisible(menu, R.id.nav_plantas,            puedePlantas);
@@ -149,8 +159,11 @@ public class SelectionActivity extends AppCompatActivity
             showInfo("Soporte", "Abrir herramientas de soporte.");
         }
         // ✅ Abrir la pantalla de Descuentos (ya no MainActivity)
-        else if (id == R.id.nav_descuento_cortesia /* o nav_descuentos si lo tienes separado */) {
-            startActivity(new Intent(this, FragmentDescuento.class));
+        else if (id == R.id.nav_descuento /* o nav_descuentos si lo tienes separado */) {
+            startActivity(new Intent(this, DescuentoActivity.class));
+        }
+        else if (id == R.id.nav_cortesia /* o nav_descuentos si lo tienes separado */) {
+            startActivity(new Intent(this, CortesiaActivity.class));
         }
         else if (id == R.id.nav_reportes) {
             showInfo("Reportes", "Abrir módulo de reportes.");
