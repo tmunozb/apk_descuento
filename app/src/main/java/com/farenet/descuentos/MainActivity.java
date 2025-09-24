@@ -33,11 +33,6 @@ import com.google.android.material.tabs.TabLayout;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Author by Alexis Pumayalla on 28/08/19.
- * Email apumayallag@gmail.com
- * Phone 961778965
- */
 public class MainActivity extends AppCompatActivity {
 
     private static final int GROUP_PLANTAS = 1001;
@@ -51,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
     private SharedPreferences sharedPreferences;
 
     private List<Planta> plantas = new ArrayList<>();
-    private String plantaSeleccionadaId; // persistimos aquí la selección actual
+    private String plantaSeleccionadaId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,80 +57,48 @@ public class MainActivity extends AppCompatActivity {
         maestroRepository = Constante.getMaestroRespository();
         sharedPreferences = getSharedPreferences(Constante.TOKEN, MODE_PRIVATE);
 
-        // 1) Toolbar como ActionBar
+        // Toolbar
         toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        // Tabs + ViewPager
+        tabLayout = findViewById(R.id.tabLayout);
+        viewPager = findViewById(R.id.viewPager);
+        setupViewPager();
+        tabLayout.setupWithViewPager(viewPager);
+        setupTabIcons();
+        setupTabSelectionColors();
+
+        // Cargar plantas de Realm (unmanaged)
+        plantas = QueryRealm.copyAllPlantas();
+
+        // Cargar selección previa o establecer una por defecto
+        plantaSeleccionadaId = sharedPreferences.getString("planta_id", null);
+        if (plantaSeleccionadaId == null) {
+            if (plantas != null && !plantas.isEmpty()) {
+                Planta primera = plantas.get(0);
+                plantaSeleccionadaId = primera.getKey();
+                sharedPreferences.edit()
+                        .putString("planta_id", primera.getKey())
+                        .putString("planta_nombre", primera.getNombre())
+                        .apply();
+            }
+        }
+
+        // Título/subtítulo
         if (getSupportActionBar() != null) {
             getSupportActionBar().setTitle(getString(R.string.app_name));
-            // Subtítulo opcional con usuario/planta
             String plantaNombre = sharedPreferences.getString("planta_nombre", null);
             if (plantaNombre != null) {
                 getSupportActionBar().setSubtitle("Planta: " + plantaNombre);
             }
         }
-
-        // 2) Tabs + ViewPager
-        tabLayout = findViewById(R.id.tabLayout);
-        viewPager = findViewById(R.id.viewPager);
-
-        setupViewPager();
-        tabLayout.setupWithViewPager(viewPager);
-        setupTabIcons();
-
-        // 3) Cargar plantas desde Realm (unmanaged)
-        plantas = QueryRealm.copyAllPlantas();
-        plantaSeleccionadaId = sharedPreferences.getString("planta_id", null);
-
-        // 4) Listener visual de tabs (igual que tu código original)
-        tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
-            @Override public void onTabSelected(TabLayout.Tab tab) {
-                if (tab.getPosition() == 0) {
-                    View v = tabLayout.getTabAt(0).getCustomView();
-                    TextView txt = v.findViewById(R.id.txt);
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        txt.setTextColor(getColor(R.color.selected));
-                        txt.setTypeface(null, Typeface.BOLD);
-                    }
-                    tabLayout.getTabAt(0).setCustomView(v);
-                } else if (tab.getPosition() == 1) {
-                    View v = tabLayout.getTabAt(1).getCustomView();
-                    TextView txt = v.findViewById(R.id.txt);
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        txt.setTextColor(getColor(R.color.selected));
-                        txt.setTypeface(null, Typeface.BOLD);
-                    }
-                    tabLayout.getTabAt(1).setCustomView(v);
-                }
-            }
-
-            @Override public void onTabUnselected(TabLayout.Tab tab) {
-                if (tab.getPosition() == 0) {
-                    View v = tabLayout.getTabAt(0).getCustomView();
-                    TextView txt = v.findViewById(R.id.txt);
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        txt.setTextColor(getColor(R.color.unselected));
-                        txt.setTypeface(null, Typeface.NORMAL);
-                    }
-                    tabLayout.getTabAt(0).setCustomView(v);
-                } else if (tab.getPosition() == 1) {
-                    View v = tabLayout.getTabAt(1).getCustomView();
-                    TextView txt = v.findViewById(R.id.txt);
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        txt.setTextColor(getColor(R.color.unselected));
-                        txt.setTypeface(null, Typeface.NORMAL);
-                    }
-                    tabLayout.getTabAt(1).setCustomView(v);
-                }
-            }
-
-            @Override public void onTabReselected(TabLayout.Tab tab) { }
-        });
     }
 
     private void setupViewPager() {
         FragmentPageAdapter pagerAdapter = new FragmentPageAdapter(getSupportFragmentManager());
         pagerAdapter.addFragment(new FragmentDescuento(), "Descuento");
-        pagerAdapter.addFragment(new FragmentCortesia(), "Cortesia");
+        pagerAdapter.addFragment(new FragmentCortesia(), "Cortesía");
         viewPager.setAdapter(pagerAdapter);
     }
 
@@ -155,39 +118,61 @@ public class MainActivity extends AppCompatActivity {
         tabLayout.getTabAt(1).setCustomView(v);
     }
 
+    private void setupTabSelectionColors() {
+        tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override public void onTabSelected(TabLayout.Tab tab) {
+                View v = tab.getCustomView();
+                if (v == null) return;
+                TextView txt = v.findViewById(R.id.txt);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    txt.setTextColor(getColor(R.color.selected));
+                    txt.setTypeface(null, Typeface.BOLD);
+                }
+                tab.setCustomView(v);
+            }
+            @Override public void onTabUnselected(TabLayout.Tab tab) {
+                View v = tab.getCustomView();
+                if (v == null) return;
+                TextView txt = v.findViewById(R.id.txt);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    txt.setTextColor(getColor(R.color.unselected));
+                    txt.setTypeface(null, Typeface.NORMAL);
+                }
+                tab.setCustomView(v);
+            }
+            @Override public void onTabReselected(TabLayout.Tab tab) { }
+        });
+    }
+
     // ===== Menú =====
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_toolbar, menu);
 
-        // Configurar SearchView
+        // Search
         MenuItem searchItem = menu.findItem(R.id.action_search);
         SearchView sv = (SearchView) searchItem.getActionView();
         if (sv != null) {
             sv.setQueryHint("Buscar…");
             sv.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
                 @Override public boolean onQueryTextSubmit(String query) {
-                    // TODO: aplica la búsqueda (por placa, autorizador, etc.)
                     Toast.makeText(MainActivity.this, "Buscar: " + query, Toast.LENGTH_SHORT).show();
                     return true;
                 }
-                @Override public boolean onQueryTextChange(String newText) {
-                    return false;
-                }
+                @Override public boolean onQueryTextChange(String newText) { return false; }
             });
         }
         return true;
     }
 
-    // Llenamos el submenú “Cambiar planta” dinámicamente
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         MenuItem parent = menu.findItem(R.id.action_change_plant_parent);
         if (parent != null) {
             SubMenu sub = parent.getSubMenu();
             if (sub != null) {
-                sub.clear(); // evita duplicados
+                sub.clear();
                 if (plantas != null && !plantas.isEmpty()) {
                     int order = 0;
                     for (Planta p : plantas) {
@@ -215,9 +200,7 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         final int id = item.getItemId();
 
-        // Acciones fijas
         if (id == R.id.action_notifications) {
-            // TODO: abre Activity/Fragment de notificaciones
             Toast.makeText(this, "Notificaciones", Toast.LENGTH_SHORT).show();
             return true;
         } else if (id == R.id.action_help) {
@@ -237,8 +220,7 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
 
-
-        // Ítems del grupo dinámico “Cambiar planta”
+        // Cambiar planta
         if (item.getGroupId() == GROUP_PLANTAS) {
             item.setChecked(true);
             String nombrePlanta = item.getTitle().toString();
@@ -262,7 +244,7 @@ public class MainActivity extends AppCompatActivity {
                     getSupportActionBar().setSubtitle("Planta: " + seleccion.getNombre());
                 }
 
-                // TODO: notificar a fragments si filtran por planta (SharedViewModel / callback)
+                // TODO: notificar a fragments si filtran por planta
                 Toast.makeText(this, "Planta: " + seleccion.getNombre(), Toast.LENGTH_SHORT).show();
             }
             return true;
@@ -272,14 +254,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void cerrarSesionYBorrarCache() {
-        // 1) Deshabilita interacciones si quieres (opcional)
-        // 2) Limpia SharedPreferences
         sharedPreferences.edit().clear().apply();
 
-        // 3) Limpia Realm (caché de maestros, etc.)
-        com.farenet.descuentos.sql.QueryRealm.wipeAllAsync(new com.farenet.descuentos.sql.QueryRealm.TxCallback() {
+        QueryRealm.wipeAllAsync(new QueryRealm.TxCallback() {
             @Override public void onSuccess() {
-                // 4) Navega a Login y limpia backstack
                 Intent i = new Intent(MainActivity.this, LoginActivity.class);
                 i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
                         | Intent.FLAG_ACTIVITY_NEW_TASK
@@ -288,7 +266,6 @@ public class MainActivity extends AppCompatActivity {
                 finish();
             }
             @Override public void onError(Throwable error) {
-                // Si algo va mal limpiando, igual permite salir para no bloquear al usuario
                 Toast.makeText(MainActivity.this,
                         "Error limpiando caché: " + (error != null && error.getMessage()!=null ? error.getMessage() : "desconocido"),
                         Toast.LENGTH_LONG).show();
@@ -302,5 +279,4 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-
 }

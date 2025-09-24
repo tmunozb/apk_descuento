@@ -126,7 +126,7 @@ public class FragmentCortesia extends Fragment {
                 if (response.isSuccessful() && response.code() == 200) {
                     Toast.makeText(requireContext(), "Se agregó la cortesía", Toast.LENGTH_LONG).show();
                     // WhatsApp: solo placa + motivo
-                    abrirWhatsappYLimpiar(placa, motivo);
+                    abrirWhatsappYLimpiar(placa);
 
                 } else {
                     if (response.code() == 401 || response.code() == 403) {
@@ -170,9 +170,9 @@ public class FragmentCortesia extends Fragment {
      * Envia el mensaje a WhatsApp con solamente la placa y el motivo.
      * Evita "whatsapp://" y prueba WhatsApp normal, Business y por último wa.me.
      */
-    private void abrirWhatsappYLimpiar(String placa, String motivo) {
+    private void abrirWhatsappYLimpiar(String placa) {
         // Usar string con placeholders: %1$s = placa, %2$s = motivo
-        String msg = getString(R.string.msjwhtsp_corte, placa, motivo);
+        String msg = getString(R.string.msjwhtsp_corte, placa);
 
         Intent send = new Intent(Intent.ACTION_SEND);
         send.setType("text/plain");
