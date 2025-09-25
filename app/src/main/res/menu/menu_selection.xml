@@ -33,6 +33,24 @@
             android:title="Plantas"
             android:icon="@drawable/ic_factory" />
 
+        <item
+            android:id="@+id/nav_nueva_solicitud"
+            android:title="Nueva solicitud"
+            android:icon="@drawable/ic_add_circle_24"/>
+        <item
+            android:id="@+id/nav_mis_solicitudes"
+            android:title="Mis solicitudes"
+            android:icon="@drawable/ic_assignment_24"/>
+        <item
+            android:id="@+id/nav_pendientes"
+            android:title="Pendientes por aprobar"
+            android:icon="@drawable/ic_pending_actions_24"/>
+        <item
+            android:id="@+id/nav_historial"
+            android:title="Historial"
+            android:icon="@drawable/ic_history_24"/>
+
+
     </group>
 
     <item

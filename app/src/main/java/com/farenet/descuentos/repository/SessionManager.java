@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 import com.farenet.descuentos.config.Constante;
+import com.farenet.descuentos.models.newapi.AccesoPlantaDto;
 import com.farenet.descuentos.models.newapi.LoginRsp;
 import com.farenet.descuentos.models.newapi.UsuarioPerfil;
 import com.google.gson.Gson;
@@ -13,15 +14,20 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.util.*;
 
+/**
+ * Manejo de sesión para las pantallas nuevas.
+ * - Guarda usuario, perfil y accesos de planta.
+ * - Incluye migración suave desde el formato antiguo (key/planta).
+ */
 public class SessionManager {
+
     private final SharedPreferences sp;
     private final Gson gson = new Gson();
 
-    private static final String K_USER = "user";
-    private static final String K_PERFIL = "perfil_json";
-    private static final String K_ACCESOS = "accesos_json";
-    private static final String K_LOGIN_RAW = "login_raw_json"; // opcional: para debug
-
+    private static final String K_USER       = "user";
+    private static final String K_PERFIL     = "perfil_json";
+    private static final String K_ACCESOS    = "accesos_json";
+    private static final String K_LOGIN_RAW  = "login_raw_json"; // opcional: debug
 
     public SessionManager(Context ctx) {
         Context app = (ctx != null) ? ctx.getApplicationContext() : null;
@@ -29,12 +35,15 @@ public class SessionManager {
         sp = app.getSharedPreferences(Constante.TOKEN, Context.MODE_PRIVATE);
     }
 
+    // ===== Username básico =====
+    public void saveUsername(String user) {
+        sp.edit().putString(K_USER, user).apply();
+    }
+    public String getUsername() {
+        return sp.getString(K_USER, null);
+    }
 
-    // ===== username básico =====
-    public void saveUsername(String user) { sp.edit().putString(K_USER, user).apply(); }
-    public String getUsername() { return sp.getString(K_USER, null); }
-
-    // ===== perfil =====
+    // ===== Perfil =====
     public void savePerfil(UsuarioPerfil perfil) {
         sp.edit().putString(K_PERFIL, gson.toJson(perfil)).apply();
     }
@@ -43,29 +52,59 @@ public class SessionManager {
         return json == null ? null : gson.fromJson(json, UsuarioPerfil.class);
     }
 
-    // ===== accesos (lista) =====
-    public void saveAccesos(List<LoginRsp.PlantaAcceso> accesos) {
-        // De-dup por (key, planta) manteniendo orden
+    // ===== Accesos (lista) =====
+    /** Guarda accesos con de-dup por (key|planta) manteniendo orden de llegada. */
+    public void saveAccesos(List<AccesoPlantaDto> accesos) {
         if (accesos == null) accesos = Collections.emptyList();
-        LinkedHashMap<String, LoginRsp.PlantaAcceso> map = new LinkedHashMap<>();
-        for (LoginRsp.PlantaAcceso a : accesos) {
+        LinkedHashMap<String, AccesoPlantaDto> map = new LinkedHashMap<>();
+        for (AccesoPlantaDto a : accesos) {
             if (a == null) continue;
-            String k = (a.key == null ? "" : a.key.trim()) + "|" + (a.planta == null ? "" : a.planta.trim());
+            String k = safe(a.key) + "|" + safe(a.planta);
             map.put(k, a);
         }
-        List<LoginRsp.PlantaAcceso> dedup = new ArrayList<>(map.values());
+        List<AccesoPlantaDto> dedup = new ArrayList<>(map.values());
         sp.edit().putString(K_ACCESOS, gson.toJson(dedup)).apply();
     }
 
-    public List<LoginRsp.PlantaAcceso> getAccesos() {
+    /**
+     * Lee accesos. Intenta parsear el formato actual y, si falla, migra desde un formato antiguo
+     * equivalente (key/planta) usando una clase interna local.
+     */
+    public List<AccesoPlantaDto> getAccesos() {
         String json = sp.getString(K_ACCESOS, null);
         if (json == null) return Collections.emptyList();
-        Type t = new TypeToken<List<LoginRsp.PlantaAcceso>>(){}.getType();
-        List<LoginRsp.PlantaAcceso> list = gson.fromJson(json, t);
-        return (list == null) ? Collections.emptyList() : list;
+
+        // Intento principal: formato actual (AccesoPlantaDto)
+        try {
+            Type tDto = new TypeToken<List<AccesoPlantaDto>>() {}.getType();
+            List<AccesoPlantaDto> list = gson.fromJson(json, tDto);
+            if (list != null) return list;
+        } catch (Throwable ignore) { /* fallback abajo */ }
+
+        // Fallback/migración: estructura simple con key/planta (ya no dependemos de clases antiguas)
+        try {
+            Type tOld = new TypeToken<List<OldPlantaAcceso>>() {}.getType();
+            List<OldPlantaAcceso> old = gson.fromJson(json, tOld);
+            if (old != null) {
+                List<AccesoPlantaDto> migrated = new ArrayList<>();
+                for (OldPlantaAcceso o : old) {
+                    if (o == null) continue;
+                    AccesoPlantaDto d = new AccesoPlantaDto();
+                    d.key = o.key;
+                    d.planta = o.planta;
+                    // d.usuario queda null (no existía antes)
+                    migrated.add(d);
+                }
+                // Persistir ya en el nuevo formato
+                saveAccesos(migrated);
+                return migrated;
+            }
+        } catch (Throwable ignore) { }
+
+        return Collections.emptyList();
     }
 
-    // ===== helpers de conveniencia =====
+    // ===== Helpers de conveniencia =====
     public boolean isPerfil(String... perfiles) {
         UsuarioPerfil p = getPerfil();
         if (p == null || p.perfilId == null) return false;
@@ -78,26 +117,24 @@ public class SessionManager {
 
     public String getNombreVisible() {
         UsuarioPerfil p = getPerfil();
-        return (p == null) ? (getUsername() != null ? getUsername() : "")
+        return (p == null)
+                ? (getUsername() != null ? getUsername() : "")
                 : p.getNombreCompleto();
     }
-
-
 
     public boolean isActivo() {
         UsuarioPerfil p = getPerfil();
         return p != null && p.isActivo();
     }
 
-    // ===== debug opcional: guardar respuesta cruda del login nuevo =====
+    // ===== Debug opcional =====
     public void saveLoginRaw(LoginRsp rsp) {
         sp.edit().putString(K_LOGIN_RAW, gson.toJson(rsp)).apply();
     }
 
-    // En SessionManager
     public String debugSnapshot() {
         UsuarioPerfil p = getPerfil();
-        List<com.farenet.descuentos.models.newapi.LoginRsp.PlantaAcceso> acc = getAccesos();
+        List<AccesoPlantaDto> acc = getAccesos();
         return "SessionSnapshot{"
                 + "user=" + getUsername()
                 + ", perfilId=" + (p != null ? p.perfilId : "null")
@@ -107,6 +144,17 @@ public class SessionManager {
                 + "}";
     }
 
+    // ===== Limpiar todo =====
+    public void clear() {
+        sp.edit().clear().apply();
+    }
 
-    public void clear() { sp.edit().clear().apply(); }
+    // ===== Util =====
+    private static String safe(String s) { return s == null ? "" : s.trim(); }
+
+    /** Clase interna mínima para migrar JSON antiguo (key/planta). */
+    private static class OldPlantaAcceso {
+        String key;
+        String planta;
+    }
 }

@@ -29,15 +29,34 @@
         android:theme="@style/Theme.App"
         android:usesCleartextTraffic="true">
         <activity
+            android:name=".HistorialSolicitudesActivity"
+            android:exported="false"
+            android:theme="@style/Theme.App" />
+        <activity
+            android:name=".SolicitudesPendientesActivity"
+            android:exported="false"
+            android:theme="@style/Theme.App" />
+        <activity
+            android:name=".SolicitudesListaActivity"
+            android:exported="false"
+            android:theme="@style/Theme.App" />
+        <activity
+            android:name=".SolicitudCrearActivity"
+            android:exported="false"
+            android:theme="@style/Theme.App" />
+        <activity
             android:name=".SelectionActivity"
             android:exported="false"
             android:theme="@style/Theme.App" />
         <activity
             android:name=".MainActivity"
             android:screenOrientation="portrait" />
-        <activity android:name=".DescuentoActivity" android:exported="false" />
-
-        <activity android:name=".CortesiaActivity" android:exported="false"/>
+        <activity
+            android:name=".DescuentoActivity"
+            android:exported="false" />
+        <activity
+            android:name=".CortesiaActivity"
+            android:exported="false" />
 
 
         <activity

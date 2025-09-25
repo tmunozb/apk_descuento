@@ -20,6 +20,9 @@ public interface NewApiService {
     @GET("/buscar_usuarios")
     Call<List<UsuarioResumenDto>> buscarUsuarios(@Query("filtro") String filtro);
 
+    @GET("login_perfiles")
+    Call<LoginRsp> loginPerfilesGet(@Query("username") String username);
+
     // GET /obtener_accesos_usuario?usuario=user
     @GET("/obtener_accesos_usuario")
     Call<List<AccesoPlantaDto>> obtenerAccesos(@Query("usuario") String usuario);

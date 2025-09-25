@@ -20,14 +20,12 @@ import com.farenet.descuentos.config.Constante;
 import com.farenet.descuentos.models.newapi.AccesoPlantaDto;
 import com.farenet.descuentos.models.newapi.LoginRsp;
 import com.farenet.descuentos.models.newapi.UsuarioPerfil;
-import com.farenet.descuentos.models.newapi.UsuarioResumenDto;
 import com.farenet.descuentos.network.newapi.NewApiClient;
 import com.farenet.descuentos.repository.SessionManager;
 import com.farenet.descuentos.sql.QueryRealm;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.navigation.NavigationView;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -49,6 +47,9 @@ public class SelectionActivity extends AppCompatActivity
 
     // refs de UI del dashboard
     private TextView tvWelcome;
+    // nuevas tarjetas
+    private View cardNuevaSolicitud, cardMisSolicitudes, cardPendientesAprobar, cardHistorial;
+    // existentes
     private View cardDescuentos, cardCortesias, cardReportes, cardDatos, cardFeed;
 
     @Override
@@ -91,18 +92,58 @@ public class SelectionActivity extends AppCompatActivity
         navView.setNavigationItemSelectedListener(this);
 
         // refs del dashboard
-        tvWelcome      = findViewById(R.id.tv_welcome);
+        tvWelcome            = findViewById(R.id.tv_welcome);
+        cardNuevaSolicitud   = findViewById(R.id.card_nueva_solicitud);
+        cardMisSolicitudes   = findViewById(R.id.card_mis_solicitudes);
+        cardPendientesAprobar= findViewById(R.id.card_pendientes_aprobar);
+        cardHistorial        = findViewById(R.id.card_historial);
+
         cardDescuentos = findViewById(R.id.card_descuentos);
         cardCortesias  = findViewById(R.id.card_cortesias);
         cardReportes   = findViewById(R.id.card_reportes);
         cardDatos      = findViewById(R.id.card_datos);
         cardFeed       = findViewById(R.id.card_feed);
 
-        // listeners de cards (los habilitamos solo si el perfil aplica)
+        // listeners
+        if (cardNuevaSolicitud != null) {
+            cardNuevaSolicitud.setOnClickListener(v -> {
+                if (tienePerfil("administrador") || tienePerfil("sistemas")) {
+                    startActivity(new Intent(this, SolicitudCrearActivity.class));
+                } else {
+                    showInfo("Acceso restringido", "Solo Administrador o Sistemas pueden crear solicitudes.");
+                }
+            });
+        }
+        if (cardMisSolicitudes != null) {
+            cardMisSolicitudes.setOnClickListener(v ->
+                    startActivity(new Intent(this, SolicitudesListaActivity.class))
+            );
+        }
+        if (cardPendientesAprobar != null) {
+            cardPendientesAprobar.setOnClickListener(v -> {
+                if (tienePerfil("operaciones") || tienePerfil("sistemas")) {
+                    startActivity(new Intent(this, SolicitudesPendientesActivity.class));
+                } else {
+                    showInfo("Acceso restringido", "Solo Operaciones o Sistemas pueden aprobar.");
+                }
+            });
+        }
+        if (cardHistorial != null) {
+            cardHistorial.setOnClickListener(v ->{
+                if (tienePerfil("sistemas")) {
+                    startActivity(new Intent(this, HistorialSolicitudesActivity.class));
+                } else {
+                    showInfo("Acceso restringido", "Solo Sistemas gestiona descuentos directamente.");
+                }
+            });
+        }
+
         if (cardDescuentos != null) {
             cardDescuentos.setOnClickListener(v -> {
                 if (tienePerfil("sistemas")) {
                     startActivity(new Intent(this, DescuentoActivity.class));
+                } else {
+                    showInfo("Acceso restringido", "Solo Sistemas gestiona descuentos directamente.");
                 }
             });
         }
@@ -110,17 +151,18 @@ public class SelectionActivity extends AppCompatActivity
             cardCortesias.setOnClickListener(v -> {
                 if (tienePerfil("sistemas")) {
                     startActivity(new Intent(this, CortesiaActivity.class));
+                } else {
+                    showInfo("Acceso restringido", "Solo Sistemas gestiona cortesías directamente.");
                 }
             });
         }
 
         updateHeader();
-        aplicarVisibilidadPorPerfil(); // menú lateral
+        aplicarVisibilidadPorPerfil();      // menú lateral
         aplicarSaludoYVisibilidadDeCards(); // saludo + cards del dashboard
 
-        // Si falta perfil/accesos, intenta bootstrap
         if (needsBootstrap(up)) {
-            tryBootstrapPerfilPorServicios();
+            tryBootstrapPerfilPorServicios(); // ahora usa GET /login_perfiles
         }
     }
 
@@ -133,7 +175,7 @@ public class SelectionActivity extends AppCompatActivity
         aplicarSaludoYVisibilidadDeCards();
     }
 
-    /** Saludo “Hola, {Nombre}” y visibilidad/uso de cards según perfil */
+    /** Saludo y visibilidad de cards según perfil */
     private void aplicarSaludoYVisibilidadDeCards() {
         UsuarioPerfil up = session.getPerfil();
         String nombre = (up != null) ? up.getNombreCompleto() : session.getUsername();
@@ -141,13 +183,16 @@ public class SelectionActivity extends AppCompatActivity
             tvWelcome.setText("¡Hola, " + (nombre != null && !nombre.isEmpty() ? nombre : "Usuario") + "!");
         }
 
-        boolean isSistemas = tienePerfil("sistemas");
+        boolean isSistemas     = tienePerfil("sistemas");
+        boolean isAdmin        = tienePerfil("administrador");
+        boolean isOperaciones  = tienePerfil("operaciones");
 
-        // Solo “sistemas” ve y puede entrar a Descuentos/Cortesías.
-        setVisible(cardDescuentos, isSistemas);
-        setVisible(cardCortesias,  isSistemas);
-
-        // El resto de cards pueden quedarse visibles (ajusta a gusto)
+        setVisible(cardNuevaSolicitud,  isAdmin || isSistemas);
+        setVisible(cardMisSolicitudes,  true);
+        setVisible(cardHistorial,       isAdmin || isOperaciones || isSistemas);
+        setVisible(cardPendientesAprobar, isOperaciones || isSistemas);
+        setVisible(cardDescuentos, isSistemas );
+        setVisible(cardCortesias,  isSistemas || isOperaciones);
         setVisible(cardReportes, true);
         setVisible(cardDatos,    true);
         setVisible(cardFeed,     true);
@@ -177,10 +222,11 @@ public class SelectionActivity extends AppCompatActivity
         if (tvName != null) tvName.setText(nombre != null && !nombre.isEmpty() ? nombre : "Usuario");
         if (tvRole != null) tvRole.setText(perfil);
 
-        List<LoginRsp.PlantaAcceso> acc = session.getAccesos();
+        List<AccesoPlantaDto> acc = session.getAccesos();
         Log.d(TAG, "updateHeader() -> accesos=" + (acc != null ? acc.size() : 0));
     }
 
+    /** Visibilidad del menú lateral (si agregas entradas nuevas, mapéalas aquí) */
     private void aplicarVisibilidadPorPerfil() {
         if (navView == null || navView.getMenu() == null) return;
         Menu menu = navView.getMenu();
@@ -194,17 +240,15 @@ public class SelectionActivity extends AppCompatActivity
 
         String perfilId = up.perfilId.toLowerCase(Locale.ROOT);
 
-        boolean puedeDescuentoCortesia = any(perfilId, "sistemas","administrador","ventas","supervisor");
-        boolean puedeDescuento         = any(perfilId, "sistemas","administrador","ventas","supervisor");
-        boolean puedeReportes          = any(perfilId, "sistemas","administrador","reportes");
-        boolean puedeDatosVehiculares  = any(perfilId, "sistemas","administrador","soporte","datos");
-        boolean puedePlantas           = any(perfilId, "sistemas","administrador","planta");
+        boolean puedeDescuento         = any(perfilId, "sistemas");
+        boolean puedeCortesia          = any(perfilId, "sistemas");
+        boolean puedeReportes          = any(perfilId, "sistemas","administrador","operaciones");
+        boolean puedeDatosVehiculares  = any(perfilId, "sistemas","administrador","operaciones");
 
         setVisible(menu, R.id.nav_descuento,         puedeDescuento);
-        setVisible(menu, R.id.nav_cortesia,          puedeDescuentoCortesia);
+        setVisible(menu, R.id.nav_cortesia,          puedeCortesia);
         setVisible(menu, R.id.nav_reportes,          puedeReportes);
         setVisible(menu, R.id.nav_datos_vehiculares, puedeDatosVehiculares);
-        setVisible(menu, R.id.nav_plantas,           puedePlantas);
         setVisible(menu, R.id.nav_soporte,           true);
         setVisible(menu, R.id.nav_logout,            true);
 
@@ -236,113 +280,64 @@ public class SelectionActivity extends AppCompatActivity
         return perfilVacio || accesosVacios;
     }
 
+    private String resolveUsername() {
+        String u = session.getUsername();
+        if (u != null && !u.trim().isEmpty()) return u.trim();
+        if (legacyPrefs != null) {
+            String legacyUser = legacyPrefs.getString("user", null);
+            if (legacyUser != null && !legacyUser.trim().isEmpty()) return legacyUser.trim();
+        }
+        UsuarioPerfil up = session.getPerfil();
+        if (up != null && up.username != null && !up.username.trim().isEmpty()) return up.username.trim();
+        return null;
+    }
+
+    /** Bootstrap usando GET /login_perfiles?username=... (no requiere password) */
     private void tryBootstrapPerfilPorServicios() {
-        final String user = session.getUsername();
-        if (user == null || user.trim().isEmpty()) {
+        final String user = resolveUsername();
+        if (user == null) {
             Log.w(TAG, "Bootstrap cancelado: username vacío.");
             return;
         }
-        Log.d(TAG, "Bootstrap -> buscar_usuarios(filtro=" + user + ")");
+        Log.d(TAG, "Bootstrap -> login_perfiles(GET) username=" + user);
 
-        NewApiClient.get().buscarUsuarios(user).enqueue(new Callback<List<UsuarioResumenDto>>() {
+        NewApiClient.get().loginPerfilesGet(user).enqueue(new Callback<LoginRsp>() {
             @Override
-            public void onResponse(Call<List<UsuarioResumenDto>> call, Response<List<UsuarioResumenDto>> response) {
+            public void onResponse(Call<LoginRsp> call, Response<LoginRsp> response) {
                 if (!response.isSuccessful() || response.body() == null) {
-                    Log.w(TAG, "buscar_usuarios sin datos (" + response.code() + ")");
-                    cargarAccesosSolo(user);
+                    Log.w(TAG, "login_perfiles(GET) code=" + response.code() + " – sin bootstrap");
                     return;
                 }
-                UsuarioResumenDto elegido = null;
-                for (UsuarioResumenDto u : response.body()) {
-                    if (u != null && u.username != null && u.username.equalsIgnoreCase(user)) {
-                        elegido = u; break;
-                    }
-                }
-                if (elegido != null) {
-                    UsuarioPerfil p = new UsuarioPerfil();
-                    p.username     = elegido.username;
-                    p.perfilId     = elegido.perfilId; // String
-                    p.estado       = elegido.estado;
-                    p.nroDocumento = elegido.dni;
-                    p.nombres      = elegido.nombres;
-                    p.apellidos    = elegido.apellidos;
-                    session.savePerfil(p);
+                LoginRsp body = response.body();
 
-                    Log.d(TAG, "Bootstrap perfil OK -> " + session.debugSnapshot());
-                    updateHeader();
-                    aplicarVisibilidadPorPerfil();
-                    aplicarSaludoYVisibilidadDeCards();
-                } else {
-                    Log.w(TAG, "No se encontró usuario exacto en buscar_usuarios (filtro=" + user + ")");
+                // Guardar username y perfil
+                session.saveUsername(body.username);
+
+                UsuarioPerfil p = new UsuarioPerfil();
+                p.username     = body.username;
+                p.perfilId     = body.perfilId;
+                p.estado       = body.estado;
+                p.nroDocumento = body.nroDocumento;
+                p.nombres      = body.nombres;
+                p.apellidos    = body.apellidos;
+                session.savePerfil(p);
+
+                // Guardar accesos del payload
+                if (body.accesos != null && !body.accesos.isEmpty()) {
+                    session.saveAccesos(body.accesos);
                 }
-                cargarAccesosSolo(user);
+
+                Log.d(TAG, "Bootstrap GET OK -> " + session.debugSnapshot());
+                updateHeader();
+                aplicarVisibilidadPorPerfil();
+                aplicarSaludoYVisibilidadDeCards();
             }
 
             @Override
-            public void onFailure(Call<List<UsuarioResumenDto>> call, Throwable t) {
-                Log.e(TAG, "buscar_usuarios error", t);
-                cargarAccesosSolo(user);
+            public void onFailure(Call<LoginRsp> call, Throwable t) {
+                Log.e(TAG, "login_perfiles(GET) error", t);
             }
         });
-    }
-
-    private void cargarAccesosSolo(final String user) {
-        Log.d(TAG, "Bootstrap -> obtener_accesos_usuario(usuario=" + user + ")");
-        // Intento #1: ?usuario=
-        NewApiClient.get().obtenerAccesos(user).enqueue(new Callback<List<AccesoPlantaDto>>() {
-            @Override
-            public void onResponse(Call<List<AccesoPlantaDto>> call, Response<List<AccesoPlantaDto>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    guardarAccesosYRefrescar(response.body());
-                } else {
-                    Log.w(TAG, "obtener_accesos_usuario (?usuario) code=" + response.code() + " — probando ?user");
-                    obtenerAccesosFallbackUser(user);
-                }
-            }
-            @Override
-            public void onFailure(Call<List<AccesoPlantaDto>> call, Throwable t) {
-                Log.e(TAG, "obtener_accesos_usuario (?usuario) error", t);
-                obtenerAccesosFallbackUser(user);
-            }
-        });
-    }
-
-    private void obtenerAccesosFallbackUser(final String user) {
-        Log.d(TAG, "Fallback -> obtener_accesos_usuario(user=" + user + ")");
-        // Intento #2: ?user=
-        NewApiClient.get().obtenerAccesosPorUser(user).enqueue(new Callback<List<AccesoPlantaDto>>() {
-            @Override
-            public void onResponse(Call<List<AccesoPlantaDto>> call, Response<List<AccesoPlantaDto>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    guardarAccesosYRefrescar(response.body());
-                } else {
-                    Log.w(TAG, "Fallback ?user sin datos (" + response.code() + ")");
-                    logSession("post-bootstrap (sin accesos)");
-                }
-            }
-            @Override
-            public void onFailure(Call<List<AccesoPlantaDto>> call, Throwable t) {
-                Log.e(TAG, "Fallback ?user error", t);
-                logSession("post-bootstrap (onFailure accesos)");
-            }
-        });
-    }
-
-    private void guardarAccesosYRefrescar(List<AccesoPlantaDto> body) {
-        List<LoginRsp.PlantaAcceso> list = new ArrayList<>();
-        for (AccesoPlantaDto a : body) {
-            if (a == null) continue;
-            LoginRsp.PlantaAcceso pa = new LoginRsp.PlantaAcceso();
-            pa.key = a.key;
-            pa.planta = a.planta;
-            list.add(pa);
-        }
-        session.saveAccesos(list);
-        Log.d(TAG, "Bootstrap accesos OK -> accesos=" + list.size());
-        updateHeader();
-        aplicarVisibilidadPorPerfil();
-        aplicarSaludoYVisibilidadDeCards();
-        logSession("post-bootstrap OK");
     }
 
     // ====== Navegación ======

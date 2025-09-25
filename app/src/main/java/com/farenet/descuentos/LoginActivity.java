@@ -27,6 +27,7 @@ import java.util.List;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import com.farenet.descuentos.models.newapi.AccesoPlantaDto;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -145,6 +146,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     // ===== LOGIN NUEVO (fire & forget) =====
+    // ===== LOGIN NUEVO (fire & forget) =====
     private void doLoginNewFireAndForget(final String user, final String pw) {
         try {
             if (loginCallNew != null) loginCallNew.cancel();
@@ -157,36 +159,59 @@ public class LoginActivity extends AppCompatActivity {
                     LoginRsp body = response.body();
                     if (body == null || !body.isOk()) return;
 
-                    // Guarda perfil en SessionManager para las NUEVAS pantallas
+                    // 1) Guarda username y perfil primero (para snapshot consistente)
                     session.saveUsername(body.username);
 
-                    // ... (crear perfil y session.savePerfil(perfil))
-                    session.saveAccesos(body.accesos);
-
-                    // LEE DE NUEVO y LOGUEA (prueba de ida y vuelta)
-                    UsuarioPerfil p = session.getPerfil();
-                    List<LoginRsp.PlantaAcceso> acc = session.getAccesos();
-
-                    android.util.Log.d("SESSION_TEST",
-                            "username=" + session.getUsername()
-                                    + " perfilId=" + (p != null ? p.perfilId : "null")
-                                    + " activo=" + (p != null && p.isActivo())
-                                    + " nombre=" + (p != null ? p.getNombreCompleto() : "null")
-                                    + " accesos=" + (acc != null ? acc.size() : 0));
-
                     UsuarioPerfil perfil = new UsuarioPerfil();
-                    perfil.username = body.username;
-                    perfil.perfilId = body.perfilId;
-                    perfil.estado = body.estado;
+                    perfil.username     = body.username;
+                    perfil.perfilId     = body.perfilId;
+                    perfil.estado       = body.estado;
                     perfil.nroDocumento = body.nroDocumento;
-                    perfil.nombres = body.nombres;
-                    perfil.apellidos = body.apellidos;
+                    perfil.nombres      = body.nombres;
+                    perfil.apellidos    = body.apellidos;
                     session.savePerfil(perfil);
 
-                    // NUEVO: accesos (con de-dup interno)
-                    session.saveAccesos(body.accesos);
+                    // 2) Accesos del login (si vinieron)
+                    if (body.accesos != null && !body.accesos.isEmpty()) {
+                        session.saveAccesos(body.accesos);
+                        android.util.Log.d("SESSION_TEST",
+                                "Accesos guardados=" + body.accesos.size()
+                                        + " / Accesos leidos=" + session.getAccesos().size());
+                    } else {
+                        // 3) Fallback: obtener accesos por endpoint dedicado
+                        NewApiClient.get().obtenerAccesos(body.username)
+                                .enqueue(new Callback<List<AccesoPlantaDto>>() {
+                                    @Override
+                                    public void onResponse(Call<List<AccesoPlantaDto>> call,
+                                                           Response<List<AccesoPlantaDto>> rsp) {
+                                        if (!rsp.isSuccessful() || rsp.body() == null) {
+                                            // Segundo intento por si el backend espera ?user=
+                                            NewApiClient.get().obtenerAccesosPorUser(body.username)
+                                                    .enqueue(new Callback<List<AccesoPlantaDto>>() {
+                                                        @Override
+                                                        public void onResponse(Call<List<AccesoPlantaDto>> call2,
+                                                                               Response<List<AccesoPlantaDto>> rsp2) {
+                                                            if (!rsp2.isSuccessful() || rsp2.body() == null) return;
+                                                            session.saveAccesos(rsp2.body());
+                                                            android.util.Log.d("SESSION_TEST",
+                                                                    "Accesos por fetch(user)= " + session.getAccesos().size());
+                                                        }
+                                                        @Override public void onFailure(Call<List<AccesoPlantaDto>> call2, Throwable t2) { }
+                                                    });
+                                            return;
+                                        }
+                                        session.saveAccesos(rsp.body());
+                                        android.util.Log.d("SESSION_TEST",
+                                                "Accesos por fetch(usuario)= " + session.getAccesos().size());
+                                    }
+                                    @Override public void onFailure(Call<List<AccesoPlantaDto>> call, Throwable t) { }
+                                });
+                    }
 
-                    // opcional (útil para inspeccionar rápido en dev)
+                    // 4) (Opcional) snapshot compacto para tus logs
+                    android.util.Log.d("SESSION_TEST", "Snapshot -> " + session.debugSnapshot());
+
+                    // 5) (Opcional) guardar raw para inspección
                     session.saveLoginRaw(body);
                 }
 
@@ -197,6 +222,7 @@ public class LoginActivity extends AppCompatActivity {
             });
         } catch (Exception ignored) { }
     }
+
 
     // ===== (Opcional) Login nuevo “bloqueante”, ya no lo usamos como principal =====
     @SuppressWarnings("unused")
