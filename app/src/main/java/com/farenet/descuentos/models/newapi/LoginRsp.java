@@ -24,9 +24,10 @@ public class LoginRsp {
         return (error == null || error.isEmpty());
     }
 
-    // DTO de cada item de accesos
-    public static class PlantaAcceso {
-        @SerializedName("key")    public String key;
-        @SerializedName("planta") public String planta;
+    // LoginRsp.java
+    public static class PlantaAcceso implements java.io.Serializable {
+        @SerializedName("key")    public String key;     // id de planta (string en tu API)
+        @SerializedName("planta") public String planta;  // nombre
     }
+
 }

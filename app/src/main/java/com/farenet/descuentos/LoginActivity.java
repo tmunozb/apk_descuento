@@ -22,6 +22,8 @@ import com.farenet.descuentos.network.newapi.NewApiClient;
 import com.farenet.descuentos.repository.LoginRepository;
 import com.farenet.descuentos.repository.SessionManager;
 
+import java.util.List;
+
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -158,6 +160,20 @@ public class LoginActivity extends AppCompatActivity {
                     // Guarda perfil en SessionManager para las NUEVAS pantallas
                     session.saveUsername(body.username);
 
+                    // ... (crear perfil y session.savePerfil(perfil))
+                    session.saveAccesos(body.accesos);
+
+                    // LEE DE NUEVO y LOGUEA (prueba de ida y vuelta)
+                    UsuarioPerfil p = session.getPerfil();
+                    List<LoginRsp.PlantaAcceso> acc = session.getAccesos();
+
+                    android.util.Log.d("SESSION_TEST",
+                            "username=" + session.getUsername()
+                                    + " perfilId=" + (p != null ? p.perfilId : "null")
+                                    + " activo=" + (p != null && p.isActivo())
+                                    + " nombre=" + (p != null ? p.getNombreCompleto() : "null")
+                                    + " accesos=" + (acc != null ? acc.size() : 0));
+
                     UsuarioPerfil perfil = new UsuarioPerfil();
                     perfil.username = body.username;
                     perfil.perfilId = body.perfilId;
@@ -166,6 +182,12 @@ public class LoginActivity extends AppCompatActivity {
                     perfil.nombres = body.nombres;
                     perfil.apellidos = body.apellidos;
                     session.savePerfil(perfil);
+
+                    // NUEVO: accesos (con de-dup interno)
+                    session.saveAccesos(body.accesos);
+
+                    // opcional (útil para inspeccionar rápido en dev)
+                    session.saveLoginRaw(body);
                 }
 
                 @Override
