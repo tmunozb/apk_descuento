@@ -28,7 +28,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="center"
-            android:text="1. Selección &amp; configuración"
+            android:text="1. Selección"
             android:textStyle="bold" />
 
         <TextView
@@ -37,7 +37,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="center"
-            android:text="2. Datos del caso" />
+            android:text="2. Datos del cliente" />
 
         <TextView
             android:id="@+id/step3"
@@ -203,6 +203,7 @@
 
                 <!-- Monto -->
                 <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/til_monto"
                     style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -214,8 +215,11 @@
                         android:id="@+id/et_monto"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="numberDecimal" />
+                        android:inputType="numberDecimal"/>
                 </com.google.android.material.textfield.TextInputLayout>
+
+
+
 
                 <!-- Motivo -->
                 <com.google.android.material.textfield.TextInputLayout
@@ -234,25 +238,7 @@
                         android:maxLines="4" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Autoriza (ExposedDropdown) -->
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/til_autoriza"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:hint="Autoriza"
-                    app:endIconMode="dropdown_menu">
 
-                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                        android:id="@+id/act_autoriza"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="none"
-                        android:focusable="false"
-                        android:clickable="true"
-                        android:cursorVisible="false" />
-                </com.google.android.material.textfield.TextInputLayout>
 
             </LinearLayout>
 

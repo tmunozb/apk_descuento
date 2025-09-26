@@ -13,10 +13,10 @@ import com.farenet.descuentos.models.newapi.AccesoPlantaDto;
 import com.farenet.descuentos.models.newapi.ConceptoPlantaDto;
 import com.farenet.descuentos.models.newapi.ConceptosResponse;
 import com.farenet.descuentos.models.newapi.TipoPagoDto;
+import com.farenet.descuentos.models.newapi.UsuarioPerfil;
 import com.farenet.descuentos.models.req.SolicitudCrearReq;
 import com.farenet.descuentos.network.newapi.NewApiClient;
 import com.farenet.descuentos.repository.SessionManager;
-import com.farenet.descuentos.models.newapi.UsuarioPerfil;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
@@ -41,8 +41,8 @@ public class SolicitudCrearActivity extends AppCompatActivity {
     private TextInputLayout tilConcepto, tilTipoPago, tilTipoDescuento;
 
     // Paso 2
+    private TextInputLayout tilMonto;        // <- asegúrate que exista en layout con este id
     private TextInputEditText etPlaca, etMonto, etMotivo;
-    private AutoCompleteTextView actAutoriza;
 
     // Paso 3
     private android.widget.TextView tvResumen;
@@ -66,7 +66,6 @@ public class SolicitudCrearActivity extends AppCompatActivity {
 
     // Flags para selección diferida de FLAT
     private boolean pendingSelectFlat = false;
-    // Valor "Flat" que esperamos del API (por nombre)
     private static final String TIPO_PAGO_FLAT_KEY = "FLA";
     private static final String TIPO_PAGO_FLAT_NOMBRE = "Flat";
 
@@ -98,7 +97,7 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         etPlaca   = findViewById(R.id.et_placa);
         etMonto   = findViewById(R.id.et_monto);
         etMotivo  = findViewById(R.id.et_motivo);
-        actAutoriza = findViewById(R.id.act_autoriza);
+        tilMonto  = findViewById(R.id.til_monto); // <- importante que exista en el XML
 
         tvResumen = findViewById(R.id.tv_resumen);
 
@@ -111,7 +110,19 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         actTipo.setText("Descuento", false);
         actTipo.setOnClickListener(v -> actTipo.showDropDown());
         actTipo.setOnFocusChangeListener((v, f) -> { if (f) actTipo.showDropDown(); });
-        actTipo.setOnItemClickListener((p, v, pos, id) -> applyTipoSolicitudUI());
+        actTipo.setOnItemClickListener((p, v, pos, id) -> {
+            applyTipoSolicitudUI();
+            // Si cambió a Cortesía, limpia campos que dejan de aplicar
+            if (isCortesia()) {
+                actConcepto.setText("", false);
+                actTipoPago.setText("", false);
+                actTipoDescuento.setText("", false);
+            } else {
+                // volvió a Descuento: si ya hay planta, carga conceptos
+                String key = obtenerPlantaKeySeleccionada();
+                if (!TextUtils.isEmpty(key)) cargarConceptosPorPlanta(key);
+            }
+        });
 
         // Plantas
         cargarPlantasDesdeSesion();
@@ -123,7 +134,7 @@ public class SolicitudCrearActivity extends AppCompatActivity {
             String key = obtenerPlantaKeySeleccionada();
             if (TextUtils.isEmpty(key)) {
                 resetConceptos();
-            } else if (!isCortesia()) { // si es cortesía, no necesitamos conceptos
+            } else if (!isCortesia()) {
                 cargarConceptosPorPlanta(key);
             }
         });
@@ -158,12 +169,7 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         actConcepto.setOnFocusChangeListener((v, hasFocus) -> { if (hasFocus) actConcepto.showDropDown(); });
         actConcepto.setOnItemClickListener((p, v, pos, id) -> actConcepto.setError(null));
 
-        // Autoriza (fijo)
-        setAdapter(actAutoriza, new String[]{"Jefe Operaciones", "Gerente Operaciones", "Sistemas"});
-        actAutoriza.setOnClickListener(v -> actAutoriza.showDropDown());
-        actAutoriza.setOnFocusChangeListener((v, f) -> { if (f) actAutoriza.showDropDown(); });
-
-        // Aplicar reglas por rol iniciales
+        // Aplicar reglas por rol/tipo al inicio
         applyTipoSolicitudUI();
 
         // Nav
@@ -174,60 +180,52 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         render();
     }
 
-    /** UI y bloqueos según tipo de solicitud y rol */
+    /** Mostrar/ocultar controles según tipo (Cortesía/Descuento) y bloquear por rol */
     private void applyTipoSolicitudUI() {
         boolean cortesia = isCortesia();
 
-        // Mostrar/ocultar secciones
+        // Paso 1: ocultar Concepto / TipoPago / TipoDescuento en Cortesía
         setVisible(tilConcepto, !cortesia);
         setVisible(tilTipoPago, !cortesia);
         setVisible(tilTipoDescuento, !cortesia);
 
-        // Deshabilitar controles cuando no aplican
         actConcepto.setEnabled(!cortesia && !conceptosLabel.isEmpty());
         if (tilConcepto != null) tilConcepto.setEnabled(!cortesia && !conceptosLabel.isEmpty());
 
-        actTipoPago.setEnabled(!cortesia);
-        if (tilTipoPago != null) tilTipoPago.setEnabled(!cortesia);
+        enableTipoPago(!cortesia);
+        enableTipoDescuento(!cortesia);
 
-        actTipoDescuento.setEnabled(!cortesia);
-        if (tilTipoDescuento != null) tilTipoDescuento.setEnabled(!cortesia);
-
+        // Paso 2: ocultar Monto si es Cortesía
+        if (tilMonto != null) tilMonto.setVisibility(cortesia ? View.GONE : View.VISIBLE);
         if (cortesia) {
-            // Limpiar errores y valores secundarios si deseas (opcional):
-            actConcepto.setError(null);
-            actTipoPago.setError(null);
-            actTipoDescuento.setError(null);
-        } else {
-            // Descuento: aplicar defaults/bloqueos por rol
-            applyRoleDefaultsAndLocks();
+            etMonto.setText("");
+            etMonto.setError(null);
         }
+
+        // Defaults/bloqueos por rol (solo si es Descuento)
+        if (!cortesia) applyRoleDefaultsAndLocks();
     }
 
-    /** Aplica defaults/bloqueos cuando es Descuento y rol es admin/operaciones */
+    /** Defaults/bloqueos por rol cuando es Descuento */
     private void applyRoleDefaultsAndLocks() {
         if (!isAdminOrOps()) {
-            // Habilitar para otros perfiles
             enableTipoPago(true);
             enableTipoDescuento(true);
             return;
         }
-
         // Tipo de descuento = Autorizado (bloqueado)
         actTipoDescuento.setText("Autorizado", false);
         enableTipoDescuento(false);
 
-        // Tipo de pago = Flat (bloqueado). Si aún no cargó el API, marcamos pendiente.
+        // Tipo de pago = Flat (bloqueado)
         if (tiposPagoLabel.isEmpty()) {
             pendingSelectFlat = true;
-            cargarTiposPago(); // se seleccionará al llegar la data
+            cargarTiposPago();
         } else {
-            // Buscar por key FLA o por nombre Flat
             String labelToSet = findTipoPagoLabelByKeyOrNombre(TIPO_PAGO_FLAT_KEY, TIPO_PAGO_FLAT_NOMBRE);
             if (!TextUtils.isEmpty(labelToSet)) {
                 actTipoPago.setText(labelToSet, false);
             } else if (!tiposPagoLabel.isEmpty()) {
-                // fallback por si cambió el nombre: intenta primer ítem
                 actTipoPago.setText(tiposPagoLabel.get(0), false);
             }
             enableTipoPago(false);
@@ -244,9 +242,7 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         if (tilTipoDescuento != null) tilTipoDescuento.setEnabled(enable);
     }
 
-    private boolean isCortesia() {
-        return "Cortesía".equalsIgnoreCase(v(actTipo));
-    }
+    private boolean isCortesia() { return "Cortesía".equalsIgnoreCase(v(actTipo)); }
 
     private boolean isAdminOrOps() {
         UsuarioPerfil up = session.getPerfil();
@@ -260,6 +256,7 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         if (til != null) til.setVisibility(visible ? View.VISIBLE : View.GONE);
     }
 
+    /** Plantas desde sesión */
     private void cargarPlantasDesdeSesion() {
         plantasNombres.clear();
         plantaNombreToKey.clear();
@@ -277,6 +274,7 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         }
     }
 
+    /** Conceptos por planta */
     private void cargarConceptosPorPlanta(String plantaKey) {
         if (conceptosCall != null) conceptosCall.cancel();
         resetConceptos();
@@ -313,6 +311,7 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         });
     }
 
+    /** Tipos de pago */
     private void cargarTiposPago() {
         if (tiposPagoCall != null) tiposPagoCall.cancel();
 
@@ -336,14 +335,13 @@ public class SolicitudCrearActivity extends AppCompatActivity {
                 }
                 setAdapter(actTipoPago, tiposPagoLabel.toArray(new String[0]));
 
-                // Si está pendiente fijar FLAT por rol, hacerlo ahora
                 if (pendingSelectFlat) {
                     pendingSelectFlat = false;
                     String labelToSet = findTipoPagoLabelByKeyOrNombre(TIPO_PAGO_FLAT_KEY, TIPO_PAGO_FLAT_NOMBRE);
                     if (!TextUtils.isEmpty(labelToSet)) {
                         actTipoPago.setText(labelToSet, false);
                     }
-                    enableTipoPago(false); // bloquear
+                    enableTipoPago(false);
                 }
             }
 
@@ -356,14 +354,12 @@ public class SolicitudCrearActivity extends AppCompatActivity {
     }
 
     private String findTipoPagoLabelByKeyOrNombre(String key, String nombre) {
-        // Busca por nombre primero entre las labels cargadas
         for (String label : tiposPagoLabel) {
             if (label.equalsIgnoreCase(nombre)) return label;
         }
-        // Si no, busca en el mapa por key
         for (Map.Entry<String, TipoPagoDto> e : tipoPagoByLabel.entrySet()) {
             TipoPagoDto dto = e.getValue();
-            if (dto != null && key.equalsIgnoreCase(dto.key)) return e.getKey(); // label
+            if (dto != null && key.equalsIgnoreCase(dto.key)) return e.getKey();
         }
         return null;
     }
@@ -392,18 +388,24 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         btnEnviar.setVisibility(step == 3 ? View.VISIBLE : View.GONE);
 
         if (step == 3) {
-            String resumen = ""
-                    + "Tipo: " + v(actTipo) + "\n"
-                    + "Planta: " + v(actPlanta) + "\n"
-                    + (isCortesia() ? "" : ("Concepto: " + v(actConcepto) + "\n"))
-                    + (isCortesia() ? "" : ("Tipo de pago: " + v(actTipoPago) + "\n"))
-                    + (isCortesia() ? "" : ("Tipo de descuento: " + v(actTipoDescuento) + "\n"))
-                    + "Placa: " + t(etPlaca) + "\n"
-                    + "Monto: " + t(etMonto) + "\n"
-                    + "Motivo: " + t(etMotivo) + "\n"
-                    + "Autoriza: " + v(actAutoriza) + "\n"
-                    + "PlantaKey: " + obtenerPlantaKeySeleccionada();
-            tvResumen.setText(resumen);
+            StringBuilder sb = new StringBuilder();
+            sb.append("Tipo: ").append(v(actTipo)).append("\n");
+            sb.append("Planta: ").append(v(actPlanta)).append("\n");
+
+            if (!isCortesia()) {
+                sb.append("Concepto: ").append(v(actConcepto)).append("\n");
+                sb.append("Tipo de pago: ").append(v(actTipoPago)).append("\n");
+                sb.append("Tipo de descuento: ").append(v(actTipoDescuento)).append("\n");
+            }
+
+            sb.append("Placa: ").append(t(etPlaca)).append("\n");
+            if (!isCortesia()) {
+                sb.append("Monto: ").append(t(etMonto)).append("\n");
+            }
+            sb.append("Motivo: ").append(t(etMotivo)).append("\n");
+            sb.append("PlantaKey: ").append(obtenerPlantaKeySeleccionada());
+
+            tvResumen.setText(sb.toString());
         }
     }
 
@@ -446,26 +448,28 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         if (TextUtils.isEmpty(t(etPlaca))) {
             etPlaca.setError("Ingresa la placa"); etPlaca.requestFocus(); return false;
         }
-        if (TextUtils.isEmpty(t(etMonto))) {
-            etMonto.setError("Ingresa el monto"); etMonto.requestFocus(); return false;
-        }
-        try {
-            double val = Double.parseDouble(t(etMonto));
-            if (val <= 0) { etMonto.setError("Monto debe ser mayor a 0"); etMonto.requestFocus(); return false; }
-        } catch (Exception e) {
-            etMonto.setError("Monto inválido"); etMonto.requestFocus(); return false;
+        if (!isCortesia()) { // validar monto SOLO si NO es cortesía
+            if (TextUtils.isEmpty(t(etMonto))) {
+                etMonto.setError("Ingresa el monto"); etMonto.requestFocus(); return false;
+            }
+            try {
+                double val = Double.parseDouble(t(etMonto));
+                if (val <= 0) { etMonto.setError("Monto debe ser mayor a 0"); etMonto.requestFocus(); return false; }
+            } catch (Exception e) {
+                etMonto.setError("Monto inválido"); etMonto.requestFocus(); return false;
+            }
+        } else {
+            etMonto.setError(null);
         }
         if (TextUtils.isEmpty(t(etMotivo))) {
             etMotivo.setError("Ingresa el motivo"); etMotivo.requestFocus(); return false;
-        }
-        if (empty(actAutoriza)) {
-            actAutoriza.setError("Selecciona quién autoriza"); actAutoriza.requestFocus(); return false;
         }
         return true;
     }
 
     private void enviar() {
         SolicitudCrearReq req = new SolicitudCrearReq();
+
         // Paso 1
         req.tipoSolicitud = v(actTipo);
         req.planta        = v(actPlanta);
@@ -496,14 +500,14 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         }
 
         // Paso 2
-        req.placa    = t(etPlaca);
-        try {
-            req.monto = Double.parseDouble(t(etMonto));
-        } catch (Exception e) {
-            req.monto = null;
+        req.placa  = t(etPlaca);
+        req.motivo = t(etMotivo);
+        if (!isCortesia()) {
+            try { req.monto = Double.parseDouble(t(etMonto)); }
+            catch (Exception e) { req.monto = null; }
+        } else {
+            req.monto = null; // no aplica en cortesía
         }
-        req.motivo   = t(etMotivo);
-        req.autoriza = v(actAutoriza);
 
         // TODO: NewApiClient.get().crearSolicitud(req).enqueue(...)
 
@@ -512,7 +516,10 @@ public class SolicitudCrearActivity extends AppCompatActivity {
                         + "\nplantaKey=" + req.plantaKey
                         + (isCortesia() ? "" : ("\nconceptoKey=" + req.conceptoKey
                         + "\ntipoPago=" + req.tipoPago + " (" + req.tipoPagoKey + ")"
-                        + "\nTipoDesc=" + req.tipoDescuento)),
+                        + "\nTipoDesc=" + req.tipoDescuento
+                        + "\nMonto=" + req.monto))
+                        + "\nPlaca=" + req.placa
+                        + "\nMotivo=" + req.motivo,
                 Toast.LENGTH_LONG).show();
         finish();
     }
