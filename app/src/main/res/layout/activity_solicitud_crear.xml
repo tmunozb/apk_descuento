@@ -80,41 +80,56 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Tipo de solicitud">
+
                     <com.google.android.material.textfield.MaterialAutoCompleteTextView
                         android:id="@+id/act_tipo"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="none"/>
+                        android:inputType="none"
+                        android:focusable="false"
+                        android:clickable="true"
+                        android:cursorVisible="false" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Planta -->
+                <!-- Planta (ExposedDropdown) -->
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/til_planta"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:hint="Planta">
+                    android:hint="Planta"
+                    app:endIconMode="dropdown_menu">
+
                     <com.google.android.material.textfield.MaterialAutoCompleteTextView
                         android:id="@+id/act_planta"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="none"/>
+                        android:inputType="none"
+                        android:focusable="false"
+                        android:clickable="true"
+                        android:cursorVisible="false"
+                        android:completionThreshold="1" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Concepto -->
+                <!-- Concepto (ExposedDropdown) -->
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/til_concepto"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:hint="Concepto">
+                    android:hint="Concepto"
+                    app:endIconMode="dropdown_menu">
+
                     <com.google.android.material.textfield.MaterialAutoCompleteTextView
                         android:id="@+id/act_concepto"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="none"/>
+                        android:inputType="none"
+                        android:focusable="false"
+                        android:clickable="true"
+                        android:cursorVisible="false" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- Tipo de pago -->
@@ -125,11 +140,15 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:hint="Tipo de pago">
+
                     <com.google.android.material.textfield.MaterialAutoCompleteTextView
                         android:id="@+id/act_tipopago"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="none"/>
+                        android:inputType="none"
+                        android:focusable="false"
+                        android:clickable="true"
+                        android:cursorVisible="false" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- Tipo de descuento -->
@@ -140,11 +159,15 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:hint="Tipo de descuento">
+
                     <com.google.android.material.textfield.MaterialAutoCompleteTextView
                         android:id="@+id/act_tipodescuento"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="none"/>
+                        android:inputType="none"
+                        android:focusable="false"
+                        android:clickable="true"
+                        android:cursorVisible="false" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- Tipo de campaña -->
@@ -155,11 +178,15 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:hint="Tipo de campaña">
+
                     <com.google.android.material.textfield.MaterialAutoCompleteTextView
                         android:id="@+id/act_tipocampana"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="none"/>
+                        android:inputType="none"
+                        android:focusable="false"
+                        android:clickable="true"
+                        android:cursorVisible="false" />
                 </com.google.android.material.textfield.TextInputLayout>
 
             </LinearLayout>
@@ -178,13 +205,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Placa">
+
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_placa"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="textCapCharacters"
                         android:maxLength="17"
-                        android:textAllCaps="true"/>
+                        android:textAllCaps="true" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- Monto -->
@@ -195,11 +223,12 @@
                     android:layout_marginTop="8dp"
                     android:hint="Monto"
                     app:suffixText="S/">
+
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_monto"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="numberDecimal"/>
+                        android:inputType="numberDecimal" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- Motivo -->
@@ -209,28 +238,34 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:hint="Motivo (breve)">
+
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_motivo"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="textCapSentences|textMultiLine"
                         android:minLines="2"
-                        android:maxLines="4"/>
+                        android:maxLines="4" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Autoriza -->
+                <!-- Autoriza (ExposedDropdown) -->
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/til_autoriza"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:hint="Autoriza">
+                    android:hint="Autoriza"
+                    app:endIconMode="dropdown_menu">
+
                     <com.google.android.material.textfield.MaterialAutoCompleteTextView
                         android:id="@+id/act_autoriza"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="none"/>
+                        android:inputType="none"
+                        android:focusable="false"
+                        android:clickable="true"
+                        android:cursorVisible="false" />
                 </com.google.android.material.textfield.TextInputLayout>
 
             </LinearLayout>
@@ -248,7 +283,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textIsSelectable="true"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"/>
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
             </LinearLayout>
 
         </LinearLayout>
@@ -266,14 +301,14 @@
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Atrás"/>
+            android:text="Atrás" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_siguiente"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Siguiente"
-            android:layout_marginStart="8dp"/>
+            android:layout_marginStart="8dp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_enviar"
@@ -281,7 +316,7 @@
             android:layout_height="wrap_content"
             android:text="Enviar"
             android:visibility="gone"
-            android:layout_marginStart="8dp"/>
+            android:layout_marginStart="8dp" />
     </LinearLayout>
 
 </LinearLayout>

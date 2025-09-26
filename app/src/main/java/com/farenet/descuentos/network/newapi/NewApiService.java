@@ -30,4 +30,7 @@ public interface NewApiService {
     // 🔁 Fallback por si el backend espera "user" en lugar de "usuario"
     @GET("/obtener_accesos_usuario")
     Call<List<AccesoPlantaDto>> obtenerAccesosPorUser(@Query("user") String user);
+
+    @GET("conceptos_planta")
+    Call<ConceptosResponse> conceptosPorPlanta(@Query("planta_key") String plantaKeyCsv);
 }

@@ -9,20 +9,25 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.farenet.descuentos.models.newapi.LoginRsp;
+import com.farenet.descuentos.models.newapi.AccesoPlantaDto;
+import com.farenet.descuentos.models.newapi.ConceptoPlantaDto;
+import com.farenet.descuentos.models.newapi.ConceptosResponse;
 import com.farenet.descuentos.models.req.SolicitudCrearReq;
+import com.farenet.descuentos.network.newapi.NewApiClient;
 import com.farenet.descuentos.repository.SessionManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.farenet.descuentos.models.newapi.AccesoPlantaDto;
-
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class SolicitudCrearActivity extends AppCompatActivity {
 
@@ -31,6 +36,7 @@ public class SolicitudCrearActivity extends AppCompatActivity {
 
     // Paso 1
     private AutoCompleteTextView actTipo, actPlanta, actConcepto, actTipoCampania;
+    private TextInputLayout tilConcepto;
     // Paso 2
     private TextInputEditText etPlaca, etMonto, etMotivo;
     private AutoCompleteTextView actAutoriza;
@@ -43,6 +49,11 @@ public class SolicitudCrearActivity extends AppCompatActivity {
     private SessionManager session;
     private final List<String> plantasNombres = new ArrayList<>();
     private final Map<String, String> plantaNombreToKey = new LinkedHashMap<>(); // nombre -> key
+
+    // Conceptos
+    private final List<String> conceptosLabel = new ArrayList<>();
+    private final Map<String, ConceptoPlantaDto> conceptoByLabel = new LinkedHashMap<>();
+    private Call<ConceptosResponse> conceptosCall;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -63,6 +74,7 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         actPlanta       = findViewById(R.id.act_planta);
         actConcepto     = findViewById(R.id.act_concepto);
         actTipoCampania = findViewById(R.id.act_tipocampana);
+        tilConcepto     = findViewById(R.id.til_concepto);
 
         etPlaca   = findViewById(R.id.et_placa);
         etMonto   = findViewById(R.id.et_monto);
@@ -85,19 +97,40 @@ public class SolicitudCrearActivity extends AppCompatActivity {
             Toast.makeText(this, "No tienes plantas asignadas en tu sesión.", Toast.LENGTH_LONG).show();
         }
         setAdapter(actPlanta, plantasNombres.toArray(new String[0]));
-        // Autoselección si solo hay una planta
+
+        // UX: mostrar dropdown al tocar/enfocar
+        actPlanta.setOnClickListener(v -> actPlanta.showDropDown());
+        actPlanta.setOnFocusChangeListener((v, hasFocus) -> { if (hasFocus) actPlanta.showDropDown(); });
+        actPlanta.setOnItemClickListener((parent, view, position, id) -> {
+            actPlanta.setError(null);
+            String key = obtenerPlantaKeySeleccionada();
+            if (TextUtils.isEmpty(key)) {
+                resetConceptos();
+            } else {
+                cargarConceptosPorPlanta(key);
+            }
+        });
+
+        // Autoselección si solo hay una planta (y carga sus conceptos)
         if (plantasNombres.size() == 1) {
             actPlanta.setText(plantasNombres.get(0), false);
+            String key = obtenerPlantaKeySeleccionada();
+            if (!TextUtils.isEmpty(key)) cargarConceptosPorPlanta(key);
         }
 
-        // 3) Resto de combos (por ahora mock; reemplaza por tus catálogos/API)
-        setAdapter(actConcepto, new String[]{"Inspección CI", "Reinspección", "Revisión técnica", "Otros"});
+        // 3) Otros combos (puedes reemplazarlos por APIs reales cuando gustes)
         setAdapter(actTipoCampania, new String[]{"N/A", "Campaña XX", "Alianza Y"});
         actTipoCampania.setText("N/A", false);
-
         setAdapter(actAutoriza, new String[]{"Jefe Operaciones", "Gerente Operaciones", "Sistemas"});
 
-        // listeners
+        // Concepto deshabilitado hasta elegir planta
+        actConcepto.setEnabled(false);
+        if (tilConcepto != null) tilConcepto.setEnabled(false);
+        actConcepto.setOnClickListener(v -> actConcepto.showDropDown());
+        actConcepto.setOnFocusChangeListener((v, hasFocus) -> { if (hasFocus) actConcepto.showDropDown(); });
+        actConcepto.setOnItemClickListener((p, v, pos, id) -> actConcepto.setError(null));
+
+        // listeners navegación
         btnAtras.setOnClickListener(v -> goBack());
         btnSiguiente.setOnClickListener(v -> goNext());
         btnEnviar.setOnClickListener(v -> enviar());
@@ -105,8 +138,7 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         render();
     }
 
-    /** Usa accesos guardados en la sesión para poblar el combo de plantas. */
-    /** Usa accesos guardados en la sesión para poblar el combo de plantas. */
+    /** Pobla combo de plantas desde la sesión. */
     private void cargarPlantasDesdeSesion() {
         plantasNombres.clear();
         plantaNombreToKey.clear();
@@ -119,7 +151,6 @@ public class SolicitudCrearActivity extends AppCompatActivity {
             String nombre = safe(a.planta);
             String key    = safe(a.key);
             if (nombre.isEmpty()) continue;
-
             if (!plantaNombreToKey.containsKey(nombre)) {
                 plantaNombreToKey.put(nombre, key);
                 plantasNombres.add(nombre);
@@ -127,6 +158,63 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         }
     }
 
+    /** Llama API y pobla combo de conceptos según planta. */
+    private void cargarConceptosPorPlanta(String plantaKey) {
+        // Cancela llamadas previas
+        if (conceptosCall != null) conceptosCall.cancel();
+
+        // Limpia UI
+        resetConceptos();
+
+        conceptosCall = NewApiClient.get().conceptosPorPlanta(plantaKey);
+        conceptosCall.enqueue(new Callback<ConceptosResponse>() {
+            @Override
+            public void onResponse(Call<ConceptosResponse> call, Response<ConceptosResponse> response) {
+                if (!response.isSuccessful() || response.body() == null || response.body().items == null) {
+                    Toast.makeText(SolicitudCrearActivity.this, "No se pudieron cargar conceptos", Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                for (ConceptoPlantaDto dto : response.body().items) {
+                    if (dto == null) continue;
+                    // Etiqueta visible: "ABREVIATURA (S/ valor)"
+                    String label = (dto.abreviatura != null ? dto.abreviatura : dto.conceptoKey);
+                    if (dto.valor != null) {
+                        boolean entero = Math.abs(dto.valor - Math.rint(dto.valor)) < 1e-9;
+                        label += " (S/ " + (entero ? String.valueOf(dto.valor.intValue()) : String.valueOf(dto.valor)) + ")";
+                    }
+                    conceptosLabel.add(label);
+                    conceptoByLabel.put(label, dto);
+                }
+
+                setAdapter(actConcepto, conceptosLabel.toArray(new String[0]));
+                boolean habilitar = !conceptosLabel.isEmpty();
+                actConcepto.setEnabled(habilitar);
+                if (tilConcepto != null) tilConcepto.setEnabled(habilitar);
+
+                // Autoselección si hay uno solo
+                if (conceptosLabel.size() == 1) {
+                    actConcepto.setText(conceptosLabel.get(0), false);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ConceptosResponse> call, Throwable t) {
+                if (call.isCanceled()) return;
+                Toast.makeText(SolicitudCrearActivity.this, "Error al cargar conceptos", Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    /** Limpia y deshabilita el combo de conceptos. */
+    private void resetConceptos() {
+        actConcepto.setEnabled(false);
+        if (tilConcepto != null) tilConcepto.setEnabled(false);
+        actConcepto.setText("", false);
+        conceptosLabel.clear();
+        conceptoByLabel.clear();
+        setAdapter(actConcepto, new String[0]);
+    }
 
     private void setAdapter(AutoCompleteTextView view, String[] arr) {
         view.setAdapter(new android.widget.ArrayAdapter<>(this,
@@ -143,7 +231,6 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         btnEnviar.setVisibility(step == 3 ? View.VISIBLE : View.GONE);
 
         if (step == 3) {
-            // Armar resumen
             String resumen = ""
                     + "Tipo: " + v(actTipo) + "\n"
                     + "Planta: " + v(actPlanta) + "\n"
@@ -174,17 +261,23 @@ public class SolicitudCrearActivity extends AppCompatActivity {
     }
 
     private boolean validStep1() {
-        if (empty(actTipo))     { actTipo.setError("Selecciona el tipo"); actTipo.requestFocus(); return false; }
-        if (empty(actPlanta))   { actPlanta.setError("Selecciona la planta"); actPlanta.requestFocus(); return false; }
-        if (empty(actConcepto)) { actConcepto.setError("Selecciona el concepto"); actConcepto.requestFocus(); return false; }
-        if (empty(actTipoCampania)) { actTipoCampania.setError("Selecciona el tipo de campaña"); actTipoCampania.requestFocus(); return false; }
-        // Validar que la planta seleccionada exista en el mapa
+        if (empty(actTipo))         { actTipo.setError("Selecciona el tipo"); actTipo.requestFocus(); return false; }
+        if (empty(actPlanta))       { actPlanta.setError("Selecciona la planta"); actPlanta.requestFocus(); return false; }
+
         String key = obtenerPlantaKeySeleccionada();
         if (TextUtils.isEmpty(key)) {
             actPlanta.setError("Planta inválida para tu sesión");
             actPlanta.requestFocus();
             return false;
         }
+
+        if (!actConcepto.isEnabled() || empty(actConcepto)) {
+            actConcepto.setError("Selecciona el concepto");
+            actConcepto.requestFocus();
+            return false;
+        }
+
+        if (empty(actTipoCampania)) { actTipoCampania.setError("Selecciona el tipo de campaña"); actTipoCampania.requestFocus(); return false; }
         return true;
     }
 
@@ -211,12 +304,21 @@ public class SolicitudCrearActivity extends AppCompatActivity {
     }
 
     private void enviar() {
-        // Construye el DTO listo para Retrofit
         SolicitudCrearReq req = new SolicitudCrearReq();
         req.tipoSolicitud = v(actTipo);          // "Descuento" | "Cortesía"
         req.planta        = v(actPlanta);
         req.plantaKey     = obtenerPlantaKeySeleccionada(); // CLAVE real
-        req.concepto      = v(actConcepto);
+
+        String conceptoLabel = v(actConcepto);
+        req.concepto      = conceptoLabel;
+
+        // Recupera clave y valor del concepto seleccionado
+        ConceptoPlantaDto dtoSel = conceptoByLabel.get(conceptoLabel);
+        if (dtoSel != null) {
+            req.conceptoKey   = dtoSel.conceptoKey;
+            req.conceptoValor = dtoSel.valor;
+        }
+
         req.tipoCampania  = v(actTipoCampania);
         req.placa         = t(etPlaca);
         req.monto         = Double.parseDouble(t(etMonto));
@@ -224,7 +326,11 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         req.autoriza      = v(actAutoriza);
 
         // TODO: Retrofit -> NewApiClient.get().crearSolicitud(req).enqueue(...)
-        Toast.makeText(this, "Solicitud lista para enviar con plantaKey=" + req.plantaKey, Toast.LENGTH_LONG).show();
+        Toast.makeText(this,
+                "Solicitud lista: plantaKey=" + req.plantaKey
+                        + " conceptoKey=" + req.conceptoKey
+                        + " valor=" + req.conceptoValor,
+                Toast.LENGTH_LONG).show();
         finish();
     }
 
@@ -240,4 +346,10 @@ public class SolicitudCrearActivity extends AppCompatActivity {
     private String v(AutoCompleteTextView v) { return v.getText() == null ? "" : v.getText().toString().trim(); }
     private String t(TextInputEditText v) { return v.getText() == null ? "" : v.getText().toString().trim(); }
     private String safe(String s) { return s == null ? "" : s.trim(); }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (conceptosCall != null) conceptosCall.cancel();
+    }
 }

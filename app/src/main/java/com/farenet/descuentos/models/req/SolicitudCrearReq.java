@@ -4,7 +4,9 @@ public class SolicitudCrearReq {
     public String tipoSolicitud;   // "Descuento" | "Cortesía"
     public String planta;          // Nombre visible (opcional si backend no lo usa)
     public String plantaKey;       // <-- CLAVE REAL (de SessionManager.getAccesos())
-    public String concepto;
+    public String concepto;      // texto visible (abreviatura)
+    public String conceptoKey;   // 👈 NUEVO: clave real del concepto
+    public Double conceptoValor;
     public String tipoCampania;    // "N/A" si no aplica
     public String placa;
     public double monto;
