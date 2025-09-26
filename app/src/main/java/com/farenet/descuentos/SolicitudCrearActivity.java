@@ -1,10 +1,14 @@
 package com.farenet.descuentos;
 
+import android.animation.ValueAnimator;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.AutoCompleteTextView;
+import android.widget.TextView;
 import android.widget.Toast;
+import android.view.ViewGroup;
+
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -33,19 +37,25 @@ import retrofit2.Response;
 
 public class SolicitudCrearActivity extends AppCompatActivity {
 
+    // Panels
     private View step1, step2, step3;
     private MaterialButton btnAtras, btnSiguiente, btnEnviar;
+
+    // Stepper (círculos/labels/conectores)
+    private View step1Circle, step2Circle, step3Circle;
+    private TextView tvStep1Num, tvStep2Num, tvStep3Num;
+    private View line12Fg, line23Fg;
 
     // Paso 1
     private AutoCompleteTextView actTipo, actPlanta, actConcepto, actTipoPago, actTipoDescuento;
     private TextInputLayout tilConcepto, tilTipoPago, tilTipoDescuento;
 
     // Paso 2
-    private TextInputLayout tilMonto;        // <- asegúrate que exista en layout con este id
+    private TextInputLayout tilMonto;
     private TextInputEditText etPlaca, etMonto, etMotivo;
 
     // Paso 3
-    private android.widget.TextView tvResumen;
+    private TextView tvResumen;
 
     private int step = 1;
 
@@ -79,11 +89,23 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         MaterialToolbar tb = findViewById(R.id.toolbar);
         tb.setNavigationOnClickListener(v -> finish());
 
-        // refs
+        // Panels
         step1 = findViewById(R.id.panel_step1);
         step2 = findViewById(R.id.panel_step2);
         step3 = findViewById(R.id.panel_step3);
 
+        // Stepper refs (asegúrate que existan en el XML nuevo)
+        step1Circle = findViewById(R.id.step1_container) != null ? ((View)((android.view.ViewGroup)findViewById(R.id.step1_container)).getChildAt(0)) : null;
+        step2Circle = findViewById(R.id.step2_container) != null ? ((View)((android.view.ViewGroup)findViewById(R.id.step2_container)).getChildAt(0)) : null;
+        step3Circle = findViewById(R.id.step3_container) != null ? ((View)((android.view.ViewGroup)findViewById(R.id.step3_container)).getChildAt(0)) : null;
+
+        tvStep1Num = findViewById(R.id.tv_step1_num);
+        tvStep2Num = findViewById(R.id.tv_step2_num);
+        tvStep3Num = findViewById(R.id.tv_step3_num);
+        line12Fg   = findViewById(R.id.line_1_2_fg);
+        line23Fg   = findViewById(R.id.line_2_3_fg);
+
+        // Inputs
         actTipo          = findViewById(R.id.act_tipo);
         actPlanta        = findViewById(R.id.act_planta);
         actConcepto      = findViewById(R.id.act_concepto);
@@ -97,7 +119,7 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         etPlaca   = findViewById(R.id.et_placa);
         etMonto   = findViewById(R.id.et_monto);
         etMotivo  = findViewById(R.id.et_motivo);
-        tilMonto  = findViewById(R.id.til_monto); // <- importante que exista en el XML
+        tilMonto  = findViewById(R.id.til_monto);
 
         tvResumen = findViewById(R.id.tv_resumen);
 
@@ -112,13 +134,11 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         actTipo.setOnFocusChangeListener((v, f) -> { if (f) actTipo.showDropDown(); });
         actTipo.setOnItemClickListener((p, v, pos, id) -> {
             applyTipoSolicitudUI();
-            // Si cambió a Cortesía, limpia campos que dejan de aplicar
             if (isCortesia()) {
                 actConcepto.setText("", false);
                 actTipoPago.setText("", false);
                 actTipoDescuento.setText("", false);
             } else {
-                // volvió a Descuento: si ya hay planta, carga conceptos
                 String key = obtenerPlantaKeySeleccionada();
                 if (!TextUtils.isEmpty(key)) cargarConceptosPorPlanta(key);
             }
@@ -144,7 +164,7 @@ public class SolicitudCrearActivity extends AppCompatActivity {
             if (!TextUtils.isEmpty(key) && !isCortesia()) cargarConceptosPorPlanta(key);
         }
 
-        // Tipo de pago (API)
+        // Tipo de pago
         actTipoPago.setOnClickListener(v -> {
             if (tiposPagoLabel.isEmpty()) cargarTiposPago();
             actTipoPago.showDropDown();
@@ -157,28 +177,112 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         });
         actTipoPago.setOnItemClickListener((p, v, pos, id) -> actTipoPago.setError(null));
 
-        // Tipo de descuento (fijo)
+        // Tipo de descuento
         setAdapter(actTipoDescuento, new String[]{"Autorizado", "Carta", "Campaña"});
         actTipoDescuento.setOnClickListener(v -> actTipoDescuento.showDropDown());
         actTipoDescuento.setOnFocusChangeListener((v, f) -> { if (f) actTipoDescuento.showDropDown(); });
 
-        // Concepto deshabilitado hasta elegir planta (y no ser Cortesía)
+        // Concepto disabled hasta elegir planta (si no es cortesía)
         actConcepto.setEnabled(false);
         if (tilConcepto != null) tilConcepto.setEnabled(false);
         actConcepto.setOnClickListener(v -> actConcepto.showDropDown());
         actConcepto.setOnFocusChangeListener((v, hasFocus) -> { if (hasFocus) actConcepto.showDropDown(); });
         actConcepto.setOnItemClickListener((p, v, pos, id) -> actConcepto.setError(null));
 
-        // Aplicar reglas por rol/tipo al inicio
+        // UI inicial por tipo/rol
         applyTipoSolicitudUI();
 
-        // Nav
-        btnAtras.setOnClickListener(v -> goBack());
-        btnSiguiente.setOnClickListener(v -> goNext());
+        // Nav con stepper
+        btnAtras.setOnClickListener(v -> setStep(step - 1));
+        btnSiguiente.setOnClickListener(v -> {
+            if (step == 1 && !validStep1()) return;
+            if (step == 2 && !validStep2()) return;
+            setStep(step + 1);
+        });
         btnEnviar.setOnClickListener(v -> enviar());
+
+        // Estado inicial
+        setStep(1);
+    }
+
+    /* =========================
+            STEPPER UI
+       ========================= */
+
+    private void setStep(int target) {
+        step = Math.max(1, Math.min(3, target));
+        // Panels & botones
+        step1.setVisibility(step == 1 ? View.VISIBLE : View.GONE);
+        step2.setVisibility(step == 2 ? View.VISIBLE : View.GONE);
+        step3.setVisibility(step == 3 ? View.VISIBLE : View.GONE);
+
+        btnAtras.setEnabled(step > 1);
+        btnSiguiente.setVisibility(step < 3 ? View.VISIBLE : View.GONE);
+        btnEnviar.setVisibility(step == 3 ? View.VISIBLE : View.GONE);
+
+        // Stepper circles + connectors
+        // Fallback si no existen (por si estás migrando el XML en fases)
+        if (tvStep1Num == null || tvStep2Num == null || tvStep3Num == null) {
+            render(); // al menos genera el resumen en paso 3
+            return;
+        }
+
+        switch (step) {
+            case 1:
+                setCircle(step1Circle, R.drawable.bg_step_active);  tvStep1Num.setText("1");
+                setCircle(step2Circle, R.drawable.bg_step_inactive);tvStep2Num.setText("2");
+                setCircle(step3Circle, R.drawable.bg_step_inactive);tvStep3Num.setText("3");
+                animateConnector(line12Fg, 0f);
+                animateConnector(line23Fg, 0f);
+                break;
+
+            case 2:
+                setCircle(step1Circle, R.drawable.bg_step_done);     tvStep1Num.setText("✓");
+                setCircle(step2Circle, R.drawable.bg_step_active);   tvStep2Num.setText("2");
+                setCircle(step3Circle, R.drawable.bg_step_inactive); tvStep3Num.setText("3");
+                animateConnector(line12Fg, 1f);
+                animateConnector(line23Fg, 0f);
+                break;
+
+            case 3:
+                setCircle(step1Circle, R.drawable.bg_step_done);     tvStep1Num.setText("✓");
+                setCircle(step2Circle, R.drawable.bg_step_done);     tvStep2Num.setText("✓");
+                setCircle(step3Circle, R.drawable.bg_step_active);   tvStep3Num.setText("3");
+                animateConnector(line12Fg, 1f);
+                animateConnector(line23Fg, 1f);
+                break;
+        }
 
         render();
     }
+
+    private void setCircle(View circle, int drawable) {
+        if (circle != null) circle.setBackgroundResource(drawable);
+    }
+
+    // Anima el ancho del conector foreground (0..1 del ancho del parent)
+    private void animateConnector(View fg, float fraction) {
+        if (fg == null || fg.getParent() == null) return;
+        View parent = (View) fg.getParent();
+        parent.post(() -> {
+            int target = (int) (parent.getWidth() * Math.max(0f, Math.min(1f, fraction)));
+            int start = fg.getWidth();
+            if (start == target) return;
+
+            ValueAnimator va = ValueAnimator.ofInt(start, target);
+            va.setDuration(220);
+            va.addUpdateListener(a -> {
+                ViewGroup.LayoutParams lp = fg.getLayoutParams();
+                lp.width = (int) a.getAnimatedValue();
+                fg.setLayoutParams(lp);
+            });
+            va.start();
+        });
+    }
+
+    /* =========================
+          LÓGICA EXISTENTE
+       ========================= */
 
     /** Mostrar/ocultar controles según tipo (Cortesía/Descuento) y bloquear por rol */
     private void applyTipoSolicitudUI() {
@@ -379,14 +483,6 @@ public class SolicitudCrearActivity extends AppCompatActivity {
     }
 
     private void render() {
-        step1.setVisibility(step == 1 ? View.VISIBLE : View.GONE);
-        step2.setVisibility(step == 2 ? View.VISIBLE : View.GONE);
-        step3.setVisibility(step == 3 ? View.VISIBLE : View.GONE);
-
-        btnAtras.setEnabled(step > 1);
-        btnSiguiente.setVisibility(step < 3 ? View.VISIBLE : View.GONE);
-        btnEnviar.setVisibility(step == 3 ? View.VISIBLE : View.GONE);
-
         if (step == 3) {
             StringBuilder sb = new StringBuilder();
             sb.append("Tipo: ").append(v(actTipo)).append("\n");
@@ -407,21 +503,6 @@ public class SolicitudCrearActivity extends AppCompatActivity {
 
             tvResumen.setText(sb.toString());
         }
-    }
-
-    private void goNext() {
-        if (step == 1) {
-            if (!validStep1()) return;
-            step = 2;
-        } else if (step == 2) {
-            if (!validStep2()) return;
-            step = 3;
-        }
-        render();
-    }
-
-    private void goBack() {
-        if (step > 1) { step--; render(); }
     }
 
     private boolean validStep1() {
@@ -448,7 +529,7 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         if (TextUtils.isEmpty(t(etPlaca))) {
             etPlaca.setError("Ingresa la placa"); etPlaca.requestFocus(); return false;
         }
-        if (!isCortesia()) { // validar monto SOLO si NO es cortesía
+        if (!isCortesia()) {
             if (TextUtils.isEmpty(t(etMonto))) {
                 etMonto.setError("Ingresa el monto"); etMonto.requestFocus(); return false;
             }
@@ -506,7 +587,7 @@ public class SolicitudCrearActivity extends AppCompatActivity {
             try { req.monto = Double.parseDouble(t(etMonto)); }
             catch (Exception e) { req.monto = null; }
         } else {
-            req.monto = null; // no aplica en cortesía
+            req.monto = null;
         }
 
         // TODO: NewApiClient.get().crearSolicitud(req).enqueue(...)
