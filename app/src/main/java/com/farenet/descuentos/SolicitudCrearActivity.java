@@ -12,9 +12,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.farenet.descuentos.models.newapi.AccesoPlantaDto;
 import com.farenet.descuentos.models.newapi.ConceptoPlantaDto;
 import com.farenet.descuentos.models.newapi.ConceptosResponse;
+import com.farenet.descuentos.models.newapi.TipoPagoDto;
 import com.farenet.descuentos.models.req.SolicitudCrearReq;
 import com.farenet.descuentos.network.newapi.NewApiClient;
 import com.farenet.descuentos.repository.SessionManager;
+import com.farenet.descuentos.models.newapi.UsuarioPerfil;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
@@ -35,11 +37,13 @@ public class SolicitudCrearActivity extends AppCompatActivity {
     private MaterialButton btnAtras, btnSiguiente, btnEnviar;
 
     // Paso 1
-    private AutoCompleteTextView actTipo, actPlanta, actConcepto, actTipoCampania;
-    private TextInputLayout tilConcepto;
+    private AutoCompleteTextView actTipo, actPlanta, actConcepto, actTipoPago, actTipoDescuento;
+    private TextInputLayout tilConcepto, tilTipoPago, tilTipoDescuento;
+
     // Paso 2
     private TextInputEditText etPlaca, etMonto, etMotivo;
     private AutoCompleteTextView actAutoriza;
+
     // Paso 3
     private android.widget.TextView tvResumen;
 
@@ -48,12 +52,23 @@ public class SolicitudCrearActivity extends AppCompatActivity {
     // Sesión / plantas
     private SessionManager session;
     private final List<String> plantasNombres = new ArrayList<>();
-    private final Map<String, String> plantaNombreToKey = new LinkedHashMap<>(); // nombre -> key
+    private final Map<String, String> plantaNombreToKey = new LinkedHashMap<>();
 
     // Conceptos
     private final List<String> conceptosLabel = new ArrayList<>();
     private final Map<String, ConceptoPlantaDto> conceptoByLabel = new LinkedHashMap<>();
     private Call<ConceptosResponse> conceptosCall;
+
+    // Tipos de pago
+    private final List<String> tiposPagoLabel = new ArrayList<>();
+    private final Map<String, TipoPagoDto> tipoPagoByLabel = new LinkedHashMap<>();
+    private Call<List<TipoPagoDto>> tiposPagoCall;
+
+    // Flags para selección diferida de FLAT
+    private boolean pendingSelectFlat = false;
+    // Valor "Flat" que esperamos del API (por nombre)
+    private static final String TIPO_PAGO_FLAT_KEY = "FLA";
+    private static final String TIPO_PAGO_FLAT_NOMBRE = "Flat";
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -70,11 +85,15 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         step2 = findViewById(R.id.panel_step2);
         step3 = findViewById(R.id.panel_step3);
 
-        actTipo         = findViewById(R.id.act_tipo);
-        actPlanta       = findViewById(R.id.act_planta);
-        actConcepto     = findViewById(R.id.act_concepto);
-        actTipoCampania = findViewById(R.id.act_tipocampana);
-        tilConcepto     = findViewById(R.id.til_concepto);
+        actTipo          = findViewById(R.id.act_tipo);
+        actPlanta        = findViewById(R.id.act_planta);
+        actConcepto      = findViewById(R.id.act_concepto);
+        actTipoPago      = findViewById(R.id.act_tipopago);
+        actTipoDescuento = findViewById(R.id.act_tipodescuento);
+
+        tilConcepto      = findViewById(R.id.til_concepto);
+        tilTipoPago      = findViewById(R.id.til_tipopago);
+        tilTipoDescuento = findViewById(R.id.til_tipodescuento);
 
         etPlaca   = findViewById(R.id.et_placa);
         etMonto   = findViewById(R.id.et_monto);
@@ -87,18 +106,16 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         btnSiguiente = findViewById(R.id.btn_siguiente);
         btnEnviar    = findViewById(R.id.btn_enviar);
 
-        // 1) Tipo de solicitud: combo fijo
+        // Tipo de solicitud
         setAdapter(actTipo, new String[]{"Descuento", "Cortesía"});
         actTipo.setText("Descuento", false);
+        actTipo.setOnClickListener(v -> actTipo.showDropDown());
+        actTipo.setOnFocusChangeListener((v, f) -> { if (f) actTipo.showDropDown(); });
+        actTipo.setOnItemClickListener((p, v, pos, id) -> applyTipoSolicitudUI());
 
-        // 2) Plantas desde SessionManager
-        cargarPlantasDesdeSesion(); // llena plantasNombres + mapa nombre->key
-        if (plantasNombres.isEmpty()) {
-            Toast.makeText(this, "No tienes plantas asignadas en tu sesión.", Toast.LENGTH_LONG).show();
-        }
+        // Plantas
+        cargarPlantasDesdeSesion();
         setAdapter(actPlanta, plantasNombres.toArray(new String[0]));
-
-        // UX: mostrar dropdown al tocar/enfocar
         actPlanta.setOnClickListener(v -> actPlanta.showDropDown());
         actPlanta.setOnFocusChangeListener((v, hasFocus) -> { if (hasFocus) actPlanta.showDropDown(); });
         actPlanta.setOnItemClickListener((parent, view, position, id) -> {
@@ -106,31 +123,50 @@ public class SolicitudCrearActivity extends AppCompatActivity {
             String key = obtenerPlantaKeySeleccionada();
             if (TextUtils.isEmpty(key)) {
                 resetConceptos();
-            } else {
+            } else if (!isCortesia()) { // si es cortesía, no necesitamos conceptos
                 cargarConceptosPorPlanta(key);
             }
         });
-
-        // Autoselección si solo hay una planta (y carga sus conceptos)
         if (plantasNombres.size() == 1) {
             actPlanta.setText(plantasNombres.get(0), false);
             String key = obtenerPlantaKeySeleccionada();
-            if (!TextUtils.isEmpty(key)) cargarConceptosPorPlanta(key);
+            if (!TextUtils.isEmpty(key) && !isCortesia()) cargarConceptosPorPlanta(key);
         }
 
-        // 3) Otros combos (puedes reemplazarlos por APIs reales cuando gustes)
-        setAdapter(actTipoCampania, new String[]{"N/A", "Campaña XX", "Alianza Y"});
-        actTipoCampania.setText("N/A", false);
-        setAdapter(actAutoriza, new String[]{"Jefe Operaciones", "Gerente Operaciones", "Sistemas"});
+        // Tipo de pago (API)
+        actTipoPago.setOnClickListener(v -> {
+            if (tiposPagoLabel.isEmpty()) cargarTiposPago();
+            actTipoPago.showDropDown();
+        });
+        actTipoPago.setOnFocusChangeListener((v, f) -> {
+            if (f) {
+                if (tiposPagoLabel.isEmpty()) cargarTiposPago();
+                actTipoPago.showDropDown();
+            }
+        });
+        actTipoPago.setOnItemClickListener((p, v, pos, id) -> actTipoPago.setError(null));
 
-        // Concepto deshabilitado hasta elegir planta
+        // Tipo de descuento (fijo)
+        setAdapter(actTipoDescuento, new String[]{"Autorizado", "Carta", "Campaña"});
+        actTipoDescuento.setOnClickListener(v -> actTipoDescuento.showDropDown());
+        actTipoDescuento.setOnFocusChangeListener((v, f) -> { if (f) actTipoDescuento.showDropDown(); });
+
+        // Concepto deshabilitado hasta elegir planta (y no ser Cortesía)
         actConcepto.setEnabled(false);
         if (tilConcepto != null) tilConcepto.setEnabled(false);
         actConcepto.setOnClickListener(v -> actConcepto.showDropDown());
         actConcepto.setOnFocusChangeListener((v, hasFocus) -> { if (hasFocus) actConcepto.showDropDown(); });
         actConcepto.setOnItemClickListener((p, v, pos, id) -> actConcepto.setError(null));
 
-        // listeners navegación
+        // Autoriza (fijo)
+        setAdapter(actAutoriza, new String[]{"Jefe Operaciones", "Gerente Operaciones", "Sistemas"});
+        actAutoriza.setOnClickListener(v -> actAutoriza.showDropDown());
+        actAutoriza.setOnFocusChangeListener((v, f) -> { if (f) actAutoriza.showDropDown(); });
+
+        // Aplicar reglas por rol iniciales
+        applyTipoSolicitudUI();
+
+        // Nav
         btnAtras.setOnClickListener(v -> goBack());
         btnSiguiente.setOnClickListener(v -> goNext());
         btnEnviar.setOnClickListener(v -> enviar());
@@ -138,14 +174,97 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         render();
     }
 
-    /** Pobla combo de plantas desde la sesión. */
+    /** UI y bloqueos según tipo de solicitud y rol */
+    private void applyTipoSolicitudUI() {
+        boolean cortesia = isCortesia();
+
+        // Mostrar/ocultar secciones
+        setVisible(tilConcepto, !cortesia);
+        setVisible(tilTipoPago, !cortesia);
+        setVisible(tilTipoDescuento, !cortesia);
+
+        // Deshabilitar controles cuando no aplican
+        actConcepto.setEnabled(!cortesia && !conceptosLabel.isEmpty());
+        if (tilConcepto != null) tilConcepto.setEnabled(!cortesia && !conceptosLabel.isEmpty());
+
+        actTipoPago.setEnabled(!cortesia);
+        if (tilTipoPago != null) tilTipoPago.setEnabled(!cortesia);
+
+        actTipoDescuento.setEnabled(!cortesia);
+        if (tilTipoDescuento != null) tilTipoDescuento.setEnabled(!cortesia);
+
+        if (cortesia) {
+            // Limpiar errores y valores secundarios si deseas (opcional):
+            actConcepto.setError(null);
+            actTipoPago.setError(null);
+            actTipoDescuento.setError(null);
+        } else {
+            // Descuento: aplicar defaults/bloqueos por rol
+            applyRoleDefaultsAndLocks();
+        }
+    }
+
+    /** Aplica defaults/bloqueos cuando es Descuento y rol es admin/operaciones */
+    private void applyRoleDefaultsAndLocks() {
+        if (!isAdminOrOps()) {
+            // Habilitar para otros perfiles
+            enableTipoPago(true);
+            enableTipoDescuento(true);
+            return;
+        }
+
+        // Tipo de descuento = Autorizado (bloqueado)
+        actTipoDescuento.setText("Autorizado", false);
+        enableTipoDescuento(false);
+
+        // Tipo de pago = Flat (bloqueado). Si aún no cargó el API, marcamos pendiente.
+        if (tiposPagoLabel.isEmpty()) {
+            pendingSelectFlat = true;
+            cargarTiposPago(); // se seleccionará al llegar la data
+        } else {
+            // Buscar por key FLA o por nombre Flat
+            String labelToSet = findTipoPagoLabelByKeyOrNombre(TIPO_PAGO_FLAT_KEY, TIPO_PAGO_FLAT_NOMBRE);
+            if (!TextUtils.isEmpty(labelToSet)) {
+                actTipoPago.setText(labelToSet, false);
+            } else if (!tiposPagoLabel.isEmpty()) {
+                // fallback por si cambió el nombre: intenta primer ítem
+                actTipoPago.setText(tiposPagoLabel.get(0), false);
+            }
+            enableTipoPago(false);
+        }
+    }
+
+    private void enableTipoPago(boolean enable) {
+        actTipoPago.setEnabled(enable);
+        if (tilTipoPago != null) tilTipoPago.setEnabled(enable);
+    }
+
+    private void enableTipoDescuento(boolean enable) {
+        actTipoDescuento.setEnabled(enable);
+        if (tilTipoDescuento != null) tilTipoDescuento.setEnabled(enable);
+    }
+
+    private boolean isCortesia() {
+        return "Cortesía".equalsIgnoreCase(v(actTipo));
+    }
+
+    private boolean isAdminOrOps() {
+        UsuarioPerfil up = session.getPerfil();
+        String p = (up != null ? up.perfilId : null);
+        if (p == null) return false;
+        p = p.trim().toLowerCase();
+        return p.equals("administrador") || p.equals("operaciones");
+    }
+
+    private void setVisible(TextInputLayout til, boolean visible) {
+        if (til != null) til.setVisibility(visible ? View.VISIBLE : View.GONE);
+    }
+
     private void cargarPlantasDesdeSesion() {
         plantasNombres.clear();
         plantaNombreToKey.clear();
-
         List<AccesoPlantaDto> accesos = session.getAccesos();
         if (accesos == null) return;
-
         for (AccesoPlantaDto a : accesos) {
             if (a == null) continue;
             String nombre = safe(a.planta);
@@ -158,12 +277,8 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         }
     }
 
-    /** Llama API y pobla combo de conceptos según planta. */
     private void cargarConceptosPorPlanta(String plantaKey) {
-        // Cancela llamadas previas
         if (conceptosCall != null) conceptosCall.cancel();
-
-        // Limpia UI
         resetConceptos();
 
         conceptosCall = NewApiClient.get().conceptosPorPlanta(plantaKey);
@@ -174,10 +289,8 @@ public class SolicitudCrearActivity extends AppCompatActivity {
                     Toast.makeText(SolicitudCrearActivity.this, "No se pudieron cargar conceptos", Toast.LENGTH_LONG).show();
                     return;
                 }
-
                 for (ConceptoPlantaDto dto : response.body().items) {
                     if (dto == null) continue;
-                    // Etiqueta visible: "ABREVIATURA (S/ valor)"
                     String label = (dto.abreviatura != null ? dto.abreviatura : dto.conceptoKey);
                     if (dto.valor != null) {
                         boolean entero = Math.abs(dto.valor - Math.rint(dto.valor)) < 1e-9;
@@ -186,18 +299,12 @@ public class SolicitudCrearActivity extends AppCompatActivity {
                     conceptosLabel.add(label);
                     conceptoByLabel.put(label, dto);
                 }
-
                 setAdapter(actConcepto, conceptosLabel.toArray(new String[0]));
                 boolean habilitar = !conceptosLabel.isEmpty();
-                actConcepto.setEnabled(habilitar);
-                if (tilConcepto != null) tilConcepto.setEnabled(habilitar);
-
-                // Autoselección si hay uno solo
-                if (conceptosLabel.size() == 1) {
-                    actConcepto.setText(conceptosLabel.get(0), false);
-                }
+                actConcepto.setEnabled(habilitar && !isCortesia());
+                if (tilConcepto != null) tilConcepto.setEnabled(habilitar && !isCortesia());
+                if (conceptosLabel.size() == 1) actConcepto.setText(conceptosLabel.get(0), false);
             }
-
             @Override
             public void onFailure(Call<ConceptosResponse> call, Throwable t) {
                 if (call.isCanceled()) return;
@@ -206,7 +313,61 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         });
     }
 
-    /** Limpia y deshabilita el combo de conceptos. */
+    private void cargarTiposPago() {
+        if (tiposPagoCall != null) tiposPagoCall.cancel();
+
+        tiposPagoLabel.clear();
+        tipoPagoByLabel.clear();
+        setAdapter(actTipoPago, new String[0]);
+
+        tiposPagoCall = NewApiClient.get().obtenerTiposPago(null);
+        tiposPagoCall.enqueue(new Callback<List<TipoPagoDto>>() {
+            @Override
+            public void onResponse(Call<List<TipoPagoDto>> call, Response<List<TipoPagoDto>> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    Toast.makeText(SolicitudCrearActivity.this, "No se pudieron cargar tipos de pago", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                for (TipoPagoDto t : response.body()) {
+                    if (t == null) continue;
+                    String label = !TextUtils.isEmpty(t.nombre) ? t.nombre : (t.key != null ? t.key : "—");
+                    tiposPagoLabel.add(label);
+                    tipoPagoByLabel.put(label, t);
+                }
+                setAdapter(actTipoPago, tiposPagoLabel.toArray(new String[0]));
+
+                // Si está pendiente fijar FLAT por rol, hacerlo ahora
+                if (pendingSelectFlat) {
+                    pendingSelectFlat = false;
+                    String labelToSet = findTipoPagoLabelByKeyOrNombre(TIPO_PAGO_FLAT_KEY, TIPO_PAGO_FLAT_NOMBRE);
+                    if (!TextUtils.isEmpty(labelToSet)) {
+                        actTipoPago.setText(labelToSet, false);
+                    }
+                    enableTipoPago(false); // bloquear
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<TipoPagoDto>> call, Throwable t) {
+                if (call.isCanceled()) return;
+                Toast.makeText(SolicitudCrearActivity.this, "Error al cargar tipos de pago", Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private String findTipoPagoLabelByKeyOrNombre(String key, String nombre) {
+        // Busca por nombre primero entre las labels cargadas
+        for (String label : tiposPagoLabel) {
+            if (label.equalsIgnoreCase(nombre)) return label;
+        }
+        // Si no, busca en el mapa por key
+        for (Map.Entry<String, TipoPagoDto> e : tipoPagoByLabel.entrySet()) {
+            TipoPagoDto dto = e.getValue();
+            if (dto != null && key.equalsIgnoreCase(dto.key)) return e.getKey(); // label
+        }
+        return null;
+    }
+
     private void resetConceptos() {
         actConcepto.setEnabled(false);
         if (tilConcepto != null) tilConcepto.setEnabled(false);
@@ -234,8 +395,9 @@ public class SolicitudCrearActivity extends AppCompatActivity {
             String resumen = ""
                     + "Tipo: " + v(actTipo) + "\n"
                     + "Planta: " + v(actPlanta) + "\n"
-                    + "Concepto: " + v(actConcepto) + "\n"
-                    + "Tipo de campaña: " + v(actTipoCampania) + "\n"
+                    + (isCortesia() ? "" : ("Concepto: " + v(actConcepto) + "\n"))
+                    + (isCortesia() ? "" : ("Tipo de pago: " + v(actTipoPago) + "\n"))
+                    + (isCortesia() ? "" : ("Tipo de descuento: " + v(actTipoDescuento) + "\n"))
                     + "Placa: " + t(etPlaca) + "\n"
                     + "Monto: " + t(etMonto) + "\n"
                     + "Motivo: " + t(etMotivo) + "\n"
@@ -261,23 +423,22 @@ public class SolicitudCrearActivity extends AppCompatActivity {
     }
 
     private boolean validStep1() {
-        if (empty(actTipo))         { actTipo.setError("Selecciona el tipo"); actTipo.requestFocus(); return false; }
-        if (empty(actPlanta))       { actPlanta.setError("Selecciona la planta"); actPlanta.requestFocus(); return false; }
-
+        if (empty(actTipo))   { actTipo.setError("Selecciona el tipo"); actTipo.requestFocus(); return false; }
+        if (empty(actPlanta)) { actPlanta.setError("Selecciona la planta"); actPlanta.requestFocus(); return false; }
         String key = obtenerPlantaKeySeleccionada();
-        if (TextUtils.isEmpty(key)) {
-            actPlanta.setError("Planta inválida para tu sesión");
-            actPlanta.requestFocus();
-            return false;
-        }
+        if (TextUtils.isEmpty(key)) { actPlanta.setError("Planta inválida"); actPlanta.requestFocus(); return false; }
 
-        if (!actConcepto.isEnabled() || empty(actConcepto)) {
-            actConcepto.setError("Selecciona el concepto");
-            actConcepto.requestFocus();
-            return false;
+        if (!isCortesia()) {
+            if (!actConcepto.isEnabled() || empty(actConcepto)) {
+                actConcepto.setError("Selecciona el concepto"); actConcepto.requestFocus(); return false;
+            }
+            if (empty(actTipoPago)) {
+                actTipoPago.setError("Selecciona el tipo de pago"); actTipoPago.requestFocus(); return false;
+            }
+            if (empty(actTipoDescuento)) {
+                actTipoDescuento.setError("Selecciona el tipo de descuento"); actTipoDescuento.requestFocus(); return false;
+            }
         }
-
-        if (empty(actTipoCampania)) { actTipoCampania.setError("Selecciona el tipo de campaña"); actTipoCampania.requestFocus(); return false; }
         return true;
     }
 
@@ -305,31 +466,53 @@ public class SolicitudCrearActivity extends AppCompatActivity {
 
     private void enviar() {
         SolicitudCrearReq req = new SolicitudCrearReq();
-        req.tipoSolicitud = v(actTipo);          // "Descuento" | "Cortesía"
+        // Paso 1
+        req.tipoSolicitud = v(actTipo);
         req.planta        = v(actPlanta);
-        req.plantaKey     = obtenerPlantaKeySeleccionada(); // CLAVE real
+        req.plantaKey     = obtenerPlantaKeySeleccionada();
 
-        String conceptoLabel = v(actConcepto);
-        req.concepto      = conceptoLabel;
+        if (!isCortesia()) {
+            // Concepto
+            String conceptoLabel = v(actConcepto);
+            req.concepto = conceptoLabel;
+            ConceptoPlantaDto dtoSel = conceptoByLabel.get(conceptoLabel);
+            if (dtoSel != null) {
+                req.conceptoKey   = dtoSel.conceptoKey;
+                req.conceptoValor = dtoSel.valor;
+            }
 
-        // Recupera clave y valor del concepto seleccionado
-        ConceptoPlantaDto dtoSel = conceptoByLabel.get(conceptoLabel);
-        if (dtoSel != null) {
-            req.conceptoKey   = dtoSel.conceptoKey;
-            req.conceptoValor = dtoSel.valor;
+            // Tipo de pago
+            String tpLabel = v(actTipoPago);
+            TipoPagoDto tpSel = tipoPagoByLabel.get(tpLabel);
+            if (tpSel != null) {
+                req.tipoPagoKey = tpSel.key;     // "POR" | "MON" | "FLA"
+                req.tipoPago    = tpSel.nombre;  // "Porcentaje" | "Monto" | "Flat"
+            } else {
+                req.tipoPago = tpLabel;
+            }
+
+            // Tipo de descuento
+            req.tipoDescuento = v(actTipoDescuento);
         }
 
-        req.tipoCampania  = v(actTipoCampania);
-        req.placa         = t(etPlaca);
-        req.monto         = Double.parseDouble(t(etMonto));
-        req.motivo        = t(etMotivo);
-        req.autoriza      = v(actAutoriza);
+        // Paso 2
+        req.placa    = t(etPlaca);
+        try {
+            req.monto = Double.parseDouble(t(etMonto));
+        } catch (Exception e) {
+            req.monto = null;
+        }
+        req.motivo   = t(etMotivo);
+        req.autoriza = v(actAutoriza);
 
-        // TODO: Retrofit -> NewApiClient.get().crearSolicitud(req).enqueue(...)
+        // TODO: NewApiClient.get().crearSolicitud(req).enqueue(...)
+
         Toast.makeText(this,
-                "Solicitud lista: plantaKey=" + req.plantaKey
-                        + " conceptoKey=" + req.conceptoKey
-                        + " valor=" + req.conceptoValor,
+                "Solicitud lista:\nTipo=" + req.tipoSolicitud
+                        + "\nplantaKey=" + req.plantaKey
+                        + (isCortesia() ? "" : ("\nconceptoKey=" + req.conceptoKey
+                        + "\ntipoPago=" + req.tipoPago + " (" + req.tipoPagoKey + ")"
+                        + "\nTipoDesc=" + req.tipoDescuento)),
                 Toast.LENGTH_LONG).show();
         finish();
     }
@@ -351,5 +534,6 @@ public class SolicitudCrearActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         if (conceptosCall != null) conceptosCall.cancel();
+        if (tiposPagoCall != null) tiposPagoCall.cancel();
     }
 }

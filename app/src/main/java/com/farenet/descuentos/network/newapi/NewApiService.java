@@ -33,4 +33,7 @@ public interface NewApiService {
 
     @GET("conceptos_planta")
     Call<ConceptosResponse> conceptosPorPlanta(@Query("planta_key") String plantaKeyCsv);
+
+    @GET("/obtener_tipo_pago_descuento")
+    Call<List<TipoPagoDto>> obtenerTiposPago(@Query("filtro") String filtro);
 }

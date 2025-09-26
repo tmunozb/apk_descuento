@@ -73,13 +73,14 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
-                <!-- Tipo de solicitud (Descuento/Cortesía) -->
+                <!-- Tipo de solicitud (ExposedDropdown) -->
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/til_tipo"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Tipo de solicitud">
+                    android:hint="Tipo de solicitud"
+                    app:endIconMode="dropdown_menu">
 
                     <com.google.android.material.textfield.MaterialAutoCompleteTextView
                         android:id="@+id/act_tipo"
@@ -132,14 +133,15 @@
                         android:cursorVisible="false" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Tipo de pago -->
+                <!-- Tipo de pago (ExposedDropdown) -->
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/til_tipopago"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:hint="Tipo de pago">
+                    android:hint="Tipo de pago"
+                    app:endIconMode="dropdown_menu">
 
                     <com.google.android.material.textfield.MaterialAutoCompleteTextView
                         android:id="@+id/act_tipopago"
@@ -151,14 +153,15 @@
                         android:cursorVisible="false" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Tipo de descuento -->
+                <!-- Tipo de descuento (ExposedDropdown) -->
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/til_tipodescuento"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:hint="Tipo de descuento">
+                    android:hint="Tipo de descuento"
+                    app:endIconMode="dropdown_menu">
 
                     <com.google.android.material.textfield.MaterialAutoCompleteTextView
                         android:id="@+id/act_tipodescuento"
@@ -170,24 +173,7 @@
                         android:cursorVisible="false" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Tipo de campaña -->
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/til_tipocampana"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:hint="Tipo de campaña">
-
-                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                        android:id="@+id/act_tipocampana"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="none"
-                        android:focusable="false"
-                        android:clickable="true"
-                        android:cursorVisible="false" />
-                </com.google.android.material.textfield.TextInputLayout>
+                <!-- (Eliminado) Tipo de campaña -->
 
             </LinearLayout>
 
