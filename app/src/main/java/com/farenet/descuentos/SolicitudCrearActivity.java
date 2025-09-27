@@ -1,14 +1,16 @@
 package com.farenet.descuentos;
 
 import android.animation.ValueAnimator;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
+import android.view.ViewGroup; // <- IMPORTANTE
 import android.widget.AutoCompleteTextView;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.view.ViewGroup;
-
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -26,6 +28,8 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -37,11 +41,14 @@ import retrofit2.Response;
 
 public class SolicitudCrearActivity extends AppCompatActivity {
 
+    // ==== WhatsApp destino (opcional). Deja "" para seleccionar contacto al enviar.
+    private static final String WHATSAPP_PHONE = ""; // Ej: "+51987654321"
+
     // Panels
     private View step1, step2, step3;
     private MaterialButton btnAtras, btnSiguiente, btnEnviar;
 
-    // Stepper (círculos/labels/conectores)
+    // Stepper (círculos y conectores)
     private View step1Circle, step2Circle, step3Circle;
     private TextView tvStep1Num, tvStep2Num, tvStep3Num;
     private View line12Fg, line23Fg;
@@ -54,8 +61,10 @@ public class SolicitudCrearActivity extends AppCompatActivity {
     private TextInputLayout tilMonto;
     private TextInputEditText etPlaca, etMonto, etMotivo;
 
-    // Paso 3
-    private TextView tvResumen;
+    // Paso 3 (card + legacy)
+    private TextView tvResumen; // no se usa, pero se deja por compatibilidad
+    private View groupDescuento, rowMonto;
+    private TextView tvValTipo, tvValPlanta, tvValConcepto, tvValTipoPago, tvValTipoDescuento, tvValPlaca, tvValMonto, tvValMotivo;
 
     private int step = 1;
 
@@ -74,7 +83,7 @@ public class SolicitudCrearActivity extends AppCompatActivity {
     private final Map<String, TipoPagoDto> tipoPagoByLabel = new LinkedHashMap<>();
     private Call<List<TipoPagoDto>> tiposPagoCall;
 
-    // Flags para selección diferida de FLAT
+    // Flags
     private boolean pendingSelectFlat = false;
     private static final String TIPO_PAGO_FLAT_KEY = "FLA";
     private static final String TIPO_PAGO_FLAT_NOMBRE = "Flat";
@@ -94,10 +103,10 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         step2 = findViewById(R.id.panel_step2);
         step3 = findViewById(R.id.panel_step3);
 
-        // Stepper refs (asegúrate que existan en el XML nuevo)
-        step1Circle = findViewById(R.id.step1_container) != null ? ((View)((android.view.ViewGroup)findViewById(R.id.step1_container)).getChildAt(0)) : null;
-        step2Circle = findViewById(R.id.step2_container) != null ? ((View)((android.view.ViewGroup)findViewById(R.id.step2_container)).getChildAt(0)) : null;
-        step3Circle = findViewById(R.id.step3_container) != null ? ((View)((android.view.ViewGroup)findViewById(R.id.step3_container)).getChildAt(0)) : null;
+        // Stepper refs
+        step1Circle = findViewById(R.id.step1_container) != null ? ((View)((ViewGroup)findViewById(R.id.step1_container)).getChildAt(0)) : null;
+        step2Circle = findViewById(R.id.step2_container) != null ? ((View)((ViewGroup)findViewById(R.id.step2_container)).getChildAt(0)) : null;
+        step3Circle = findViewById(R.id.step3_container) != null ? ((View)((ViewGroup)findViewById(R.id.step3_container)).getChildAt(0)) : null;
 
         tvStep1Num = findViewById(R.id.tv_step1_num);
         tvStep2Num = findViewById(R.id.tv_step2_num);
@@ -121,7 +130,18 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         etMotivo  = findViewById(R.id.et_motivo);
         tilMonto  = findViewById(R.id.til_monto);
 
-        tvResumen = findViewById(R.id.tv_resumen);
+        // Paso 3 (card)
+        tvResumen        = findViewById(R.id.tv_resumen); // oculto en XML
+        groupDescuento   = findViewById(R.id.group_descuento);
+        rowMonto         = findViewById(R.id.row_monto);
+        tvValTipo        = findViewById(R.id.tv_val_tipo);
+        tvValPlanta      = findViewById(R.id.tv_val_planta);
+        tvValConcepto    = findViewById(R.id.tv_val_concepto);
+        tvValTipoPago    = findViewById(R.id.tv_val_tipopago);
+        tvValTipoDescuento = findViewById(R.id.tv_val_tipodescuento);
+        tvValPlaca       = findViewById(R.id.tv_val_placa);
+        tvValMonto       = findViewById(R.id.tv_val_monto);
+        tvValMotivo      = findViewById(R.id.tv_val_motivo);
 
         btnAtras     = findViewById(R.id.btn_atras);
         btnSiguiente = findViewById(R.id.btn_siguiente);
@@ -182,17 +202,17 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         actTipoDescuento.setOnClickListener(v -> actTipoDescuento.showDropDown());
         actTipoDescuento.setOnFocusChangeListener((v, f) -> { if (f) actTipoDescuento.showDropDown(); });
 
-        // Concepto disabled hasta elegir planta (si no es cortesía)
+        // Concepto deshabilitado hasta elegir planta (y no cortesía)
         actConcepto.setEnabled(false);
         if (tilConcepto != null) tilConcepto.setEnabled(false);
         actConcepto.setOnClickListener(v -> actConcepto.showDropDown());
         actConcepto.setOnFocusChangeListener((v, hasFocus) -> { if (hasFocus) actConcepto.showDropDown(); });
         actConcepto.setOnItemClickListener((p, v, pos, id) -> actConcepto.setError(null));
 
-        // UI inicial por tipo/rol
+        // Reglas iniciales
         applyTipoSolicitudUI();
 
-        // Nav con stepper
+        // Navegación + stepper
         btnAtras.setOnClickListener(v -> setStep(step - 1));
         btnSiguiente.setOnClickListener(v -> {
             if (step == 1 && !validStep1()) return;
@@ -211,7 +231,8 @@ public class SolicitudCrearActivity extends AppCompatActivity {
 
     private void setStep(int target) {
         step = Math.max(1, Math.min(3, target));
-        // Panels & botones
+
+        // Mostrar paneles y botones
         step1.setVisibility(step == 1 ? View.VISIBLE : View.GONE);
         step2.setVisibility(step == 2 ? View.VISIBLE : View.GONE);
         step3.setVisibility(step == 3 ? View.VISIBLE : View.GONE);
@@ -220,10 +241,9 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         btnSiguiente.setVisibility(step < 3 ? View.VISIBLE : View.GONE);
         btnEnviar.setVisibility(step == 3 ? View.VISIBLE : View.GONE);
 
-        // Stepper circles + connectors
-        // Fallback si no existen (por si estás migrando el XML en fases)
+        // Si aún no tienes el stepper en el XML, evita NPE y al menos renderiza el resumen
         if (tvStep1Num == null || tvStep2Num == null || tvStep3Num == null) {
-            render(); // al menos genera el resumen en paso 3
+            render();
             return;
         }
 
@@ -260,7 +280,7 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         if (circle != null) circle.setBackgroundResource(drawable);
     }
 
-    // Anima el ancho del conector foreground (0..1 del ancho del parent)
+    // Anima ancho del conector (0..1 del ancho del parent)
     private void animateConnector(View fg, float fraction) {
         if (fg == null || fg.getParent() == null) return;
         View parent = (View) fg.getParent();
@@ -281,14 +301,14 @@ public class SolicitudCrearActivity extends AppCompatActivity {
     }
 
     /* =========================
-          LÓGICA EXISTENTE
+          LÓGICA DE NEGOCIO
        ========================= */
 
     /** Mostrar/ocultar controles según tipo (Cortesía/Descuento) y bloquear por rol */
     private void applyTipoSolicitudUI() {
         boolean cortesia = isCortesia();
 
-        // Paso 1: ocultar Concepto / TipoPago / TipoDescuento en Cortesía
+        // Paso 1
         setVisible(tilConcepto, !cortesia);
         setVisible(tilTipoPago, !cortesia);
         setVisible(tilTipoDescuento, !cortesia);
@@ -299,14 +319,14 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         enableTipoPago(!cortesia);
         enableTipoDescuento(!cortesia);
 
-        // Paso 2: ocultar Monto si es Cortesía
+        // Paso 2
         if (tilMonto != null) tilMonto.setVisibility(cortesia ? View.GONE : View.VISIBLE);
         if (cortesia) {
             etMonto.setText("");
             etMonto.setError(null);
         }
 
-        // Defaults/bloqueos por rol (solo si es Descuento)
+        // Defaults/bloqueos por rol (si es Descuento)
         if (!cortesia) applyRoleDefaultsAndLocks();
     }
 
@@ -482,28 +502,57 @@ public class SolicitudCrearActivity extends AppCompatActivity {
                 android.R.layout.simple_list_item_1, arr));
     }
 
+    /* =========================
+               RENDER
+       ========================= */
+
     private void render() {
         if (step == 3) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("Tipo: ").append(v(actTipo)).append("\n");
-            sb.append("Planta: ").append(v(actPlanta)).append("\n");
-
-            if (!isCortesia()) {
-                sb.append("Concepto: ").append(v(actConcepto)).append("\n");
-                sb.append("Tipo de pago: ").append(v(actTipoPago)).append("\n");
-                sb.append("Tipo de descuento: ").append(v(actTipoDescuento)).append("\n");
-            }
-
-            sb.append("Placa: ").append(t(etPlaca)).append("\n");
-            if (!isCortesia()) {
-                sb.append("Monto: ").append(t(etMonto)).append("\n");
-            }
-            sb.append("Motivo: ").append(t(etMotivo)).append("\n");
-            sb.append("PlantaKey: ").append(obtenerPlantaKeySeleccionada());
-
-            tvResumen.setText(sb.toString());
+            renderResumenCard();
         }
     }
+
+    private void renderResumenCard() {
+        boolean cortesia = isCortesia();
+
+        setText(tvValTipo, v(actTipo));
+        setText(tvValPlanta, v(actPlanta));
+        setText(tvValPlaca, t(etPlaca));
+        setText(tvValMotivo, t(etMotivo));
+
+        if (cortesia) {
+            if (groupDescuento != null) groupDescuento.setVisibility(View.GONE);
+            if (rowMonto != null) rowMonto.setVisibility(View.GONE);
+        } else {
+            if (groupDescuento != null) groupDescuento.setVisibility(View.VISIBLE);
+            if (rowMonto != null) rowMonto.setVisibility(View.VISIBLE);
+
+            setText(tvValConcepto, v(actConcepto));
+            setText(tvValTipoPago, v(actTipoPago));
+            setText(tvValTipoDescuento, v(actTipoDescuento));
+
+            String montoStr = t(etMonto);
+            if (!TextUtils.isEmpty(montoStr)) {
+                try {
+                    double val = Double.parseDouble(montoStr);
+                    String fmt = (Math.abs(val - Math.rint(val)) < 1e-9) ? ("S/ " + (int) val) : ("S/ " + val);
+                    setText(tvValMonto, fmt);
+                } catch (Exception e) {
+                    setText(tvValMonto, "—");
+                }
+            } else {
+                setText(tvValMonto, "—");
+            }
+        }
+    }
+
+    private void setText(TextView tv, String value) {
+        if (tv != null) tv.setText(TextUtils.isEmpty(value) ? "—" : value);
+    }
+
+    /* =========================
+            VALIDACIONES
+       ========================= */
 
     private boolean validStep1() {
         if (empty(actTipo))   { actTipo.setError("Selecciona el tipo"); actTipo.requestFocus(); return false; }
@@ -548,62 +597,116 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         return true;
     }
 
+    /* =========================
+               ENVÍO (WhatsApp)
+       ========================= */
+
     private void enviar() {
-        SolicitudCrearReq req = new SolicitudCrearReq();
+        // Validación defensiva (por si llegó al paso 3 con algo incompleto)
+        if (!validStep1() || !validStep2()) return;
 
-        // Paso 1
-        req.tipoSolicitud = v(actTipo);
-        req.planta        = v(actPlanta);
-        req.plantaKey     = obtenerPlantaKeySeleccionada();
+        // Armar mensaje
+        String msg = buildWhatsappMessage();
 
-        if (!isCortesia()) {
-            // Concepto
-            String conceptoLabel = v(actConcepto);
-            req.concepto = conceptoLabel;
-            ConceptoPlantaDto dtoSel = conceptoByLabel.get(conceptoLabel);
-            if (dtoSel != null) {
-                req.conceptoKey   = dtoSel.conceptoKey;
-                req.conceptoValor = dtoSel.valor;
-            }
-
-            // Tipo de pago
-            String tpLabel = v(actTipoPago);
-            TipoPagoDto tpSel = tipoPagoByLabel.get(tpLabel);
-            if (tpSel != null) {
-                req.tipoPagoKey = tpSel.key;     // "POR" | "MON" | "FLA"
-                req.tipoPago    = tpSel.nombre;  // "Porcentaje" | "Monto" | "Flat"
-            } else {
-                req.tipoPago = tpLabel;
-            }
-
-            // Tipo de descuento
-            req.tipoDescuento = v(actTipoDescuento);
+        // Intentar abrir WhatsApp (directo a número si está configurado)
+        boolean launched = openWhatsApp(msg, WHATSAPP_PHONE);
+        if (!launched) {
+            Toast.makeText(this, "No encontré WhatsApp ni WhatsApp Business.", Toast.LENGTH_LONG).show();
         }
-
-        // Paso 2
-        req.placa  = t(etPlaca);
-        req.motivo = t(etMotivo);
-        if (!isCortesia()) {
-            try { req.monto = Double.parseDouble(t(etMonto)); }
-            catch (Exception e) { req.monto = null; }
-        } else {
-            req.monto = null;
-        }
-
-        // TODO: NewApiClient.get().crearSolicitud(req).enqueue(...)
-
-        Toast.makeText(this,
-                "Solicitud lista:\nTipo=" + req.tipoSolicitud
-                        + "\nplantaKey=" + req.plantaKey
-                        + (isCortesia() ? "" : ("\nconceptoKey=" + req.conceptoKey
-                        + "\ntipoPago=" + req.tipoPago + " (" + req.tipoPagoKey + ")"
-                        + "\nTipoDesc=" + req.tipoDescuento
-                        + "\nMonto=" + req.monto))
-                        + "\nPlaca=" + req.placa
-                        + "\nMotivo=" + req.motivo,
-                Toast.LENGTH_LONG).show();
-        finish();
+        // No cerramos la pantalla para permitir editar y reenviar si desea
     }
+
+    /** Construye el mensaje de WhatsApp con lo ingresado */
+    /** Mensaje de WhatsApp con formato personalizado */
+    private String buildWhatsappMessage() {
+        boolean cortesia = isCortesia();
+
+        String placa  = t(etPlaca);
+        String planta = v(actPlanta);
+        String motivo = t(etMotivo);
+
+        // Quitar el precio del label de concepto (si viene como "ABREV (S/ 30)")
+        String conceptoLabel = v(actConcepto);
+        String concepto = "";
+        if (!TextUtils.isEmpty(conceptoLabel)) {
+            int idx = conceptoLabel.indexOf(" (");
+            concepto = (idx > 0 ? conceptoLabel.substring(0, idx) : conceptoLabel);
+        }
+
+        // Normalizaciones visuales (según ejemplo)
+        String placaFmt  = TextUtils.isEmpty(placa)  ? "—" : placa.toUpperCase();
+        String plantaFmt = TextUtils.isEmpty(planta) ? "—" : planta.toUpperCase();
+        String conceptoFmt = TextUtils.isEmpty(concepto) ? "—" : concepto.toUpperCase();
+        String motivoFmt = TextUtils.isEmpty(motivo) ? "—" : motivo;
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(cortesia ? "✅ Solicitud de Cortesía" : "✅ Solicitud de Descuento").append("\n");
+        sb.append("• 🚗 Placa: ").append(placaFmt).append("\n");
+        sb.append("• 🏭 Planta: ").append(plantaFmt).append("\n");
+
+        // Solo en Descuento mostramos concepto y monto
+        if (!cortesia) {
+            sb.append("• 🚙 Concepto vehicular: ").append(conceptoFmt).append("\n");
+        }
+
+        sb.append("• 📝 Motivo: ").append(motivoFmt);
+
+        if (!cortesia) {
+            String montoStr = t(etMonto);
+            if (!TextUtils.isEmpty(montoStr)) {
+                try {
+                    // Normaliza a número simple (sin "S/") para coincidir con tu ejemplo
+                    double val = Double.parseDouble(montoStr);
+                    montoStr = String.valueOf(val);
+                } catch (Exception ignore) { /* deja tal cual */ }
+            } else {
+                montoStr = "—";
+            }
+            sb.append("\n").append("• 💰 Monto a pagar: ").append(montoStr);
+        }
+
+        return sb.toString();
+    }
+
+
+    /** Abre WhatsApp con el texto. Si 'phoneE164' está vacío => abrir selector de contacto. */
+    private boolean openWhatsApp(String message, String phoneE164) {
+        // 1) Si hay número, usar wa.me para chat directo
+        if (!TextUtils.isEmpty(phoneE164)) {
+            try {
+                String encoded = URLEncoder.encode(message, StandardCharsets.UTF_8.name());
+                Uri uri = Uri.parse("https://wa.me/" + phoneE164.replace("+", "") + "?text=" + encoded);
+                Intent i = new Intent(Intent.ACTION_VIEW, uri);
+                startActivity(i);
+                return true;
+            } catch (ActivityNotFoundException e) {
+                // Seguimos abajo con intent directo
+            } catch (Exception ignore) {}
+        }
+
+        // 2) Sin número: ACTION_SEND a WhatsApp (o Business) para elegir contacto
+        Intent sendIntent = new Intent(Intent.ACTION_SEND);
+        sendIntent.setType("text/plain");
+        sendIntent.putExtra(Intent.EXTRA_TEXT, message);
+
+        try {
+            sendIntent.setPackage("com.whatsapp");
+            startActivity(sendIntent);
+            return true;
+        } catch (ActivityNotFoundException e) {
+            try {
+                sendIntent.setPackage("com.whatsapp.w4b"); // WhatsApp Business
+                startActivity(sendIntent);
+                return true;
+            } catch (ActivityNotFoundException ex) {
+                return false;
+            }
+        }
+    }
+
+    /* =========================
+               HELPERS
+       ========================= */
 
     private String obtenerPlantaKeySeleccionada() {
         String nombre = v(actPlanta);
@@ -612,7 +715,6 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         return key == null ? "" : key.trim();
     }
 
-    // helpers
     private boolean empty(AutoCompleteTextView v) { return TextUtils.isEmpty(v.getText()); }
     private String v(AutoCompleteTextView v) { return v.getText() == null ? "" : v.getText().toString().trim(); }
     private String t(TextInputEditText v) { return v.getText() == null ? "" : v.getText().toString().trim(); }
