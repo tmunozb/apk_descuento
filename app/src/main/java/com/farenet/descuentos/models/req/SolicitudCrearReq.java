@@ -1,50 +1,27 @@
+// models/req/SolicitudCrearReq.java
 package com.farenet.descuentos.models.req;
 
-import com.google.gson.annotations.SerializedName;
-
 public class SolicitudCrearReq {
-
-    // ===== Paso 1 =====
-    @SerializedName("tipo_solicitud")
-    public String tipoSolicitud;     // "Descuento" | "Cortesía"
-
-    @SerializedName("planta")
-    public String planta;            // Nombre visible de planta
-
-    @SerializedName("planta_key")
-    public String plantaKey;         // Clave real de planta
-
-    // Concepto seleccionado (desde /conceptos_por_planta)
-    @SerializedName("concepto_label")
-    public String concepto;          // Etiqueta visible (p.e. "TAXI (S/ 75)")
-
-    @SerializedName("concepto_key")
-    public String conceptoKey;       // p.e. "3"
-
-    @SerializedName("concepto_valor")
-    public Double conceptoValor;     // p.e. 75.0
-
-    // Tipo de pago (desde /obtener_tipo_pago_descuento)
-    @SerializedName("tipo_pago_key")
-    public String tipoPagoKey;       // "POR" | "MON" | "FLA"
-
-    @SerializedName("tipo_pago")
-    public String tipoPago;          // "Porcentaje" | "Monto" | "Flat"
-
-    // Tipo de descuento (combo fijo)
-    @SerializedName("tipo_descuento")
-    public String tipoDescuento;     // "Autorizado" | "Carta" | "Campaña"
-
-    // ===== Paso 2 =====
-    @SerializedName("placa")
+    public String tipo;                 // "DESCUENTO" | "CORTESIA"
+    public String planta_key;
+    public String planta_nombre;
     public String placa;
-
-    @SerializedName("monto")
-    public Double monto;
-
-    @SerializedName("motivo")
     public String motivo;
+    public String sustento_texto;
 
-    @SerializedName("autoriza")
-    public String autoriza;
+    // Solo descuento
+    public String concepto_key;
+    public String concepto_abreviatura;
+    public String tipo_pago_key;
+    public String tipo_pago_nombre;
+    public String tipo_desc;            // "AUTORIZADO" | "CARTA" | "CAMPAÑA"
+    public String campania_nombre;
+    public Double monto;
+    public String autorizado_nombre;
+
+    // Trazabilidad
+    public String solicitado_por_username;
+    public Long   solicitado_por_id;
+    public String solicitado_por_nombre;
+    public String solicitado_por_perfil;
 }

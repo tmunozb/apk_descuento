@@ -1,14 +1,10 @@
-// network/newapi/NewApiClient.java
 package com.farenet.descuentos.network.newapi;
 
 import com.farenet.descuentos.BuildConfig;
-import com.farenet.descuentos.models.newapi.TipoPagoDto;
-import com.farenet.descuentos.models.newapi.ConceptosResponse;
-
-import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import okhttp3.OkHttpClient;
-import retrofit2.Call;
+import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
@@ -17,22 +13,37 @@ public class NewApiClient {
 
     public static NewApiService get() {
         if (instance == null) {
-            OkHttpClient ok = new OkHttpClient.Builder().build();
+            HttpLoggingInterceptor log = new HttpLoggingInterceptor();
+            log.setLevel(BuildConfig.DEBUG
+                    ? HttpLoggingInterceptor.Level.BODY
+                    : HttpLoggingInterceptor.Level.BASIC);
+
+            OkHttpClient ok = new OkHttpClient.Builder()
+                    .addInterceptor(chain -> {
+                        // Si más adelante usas Token, colócalo aquí:
+                        // String token = ...;
+                        // return chain.proceed(chain.request().newBuilder()
+                        //     .header("Token", token)
+                        //     .build());
+                        return chain.proceed(chain.request());
+                    })
+                    .addInterceptor(log)
+                    .connectTimeout(20, TimeUnit.SECONDS)
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .writeTimeout(30, TimeUnit.SECONDS)
+                    .build();
+
+            // Asegúrate que NEW_API_BASE_URL termine con '/'
             Retrofit r = new Retrofit.Builder()
-                    .baseUrl(BuildConfig.NEW_API_BASE_URL) // debe terminar en '/'
+                    .baseUrl(BuildConfig.NEW_API_BASE_URL)
                     .addConverterFactory(GsonConverterFactory.create())
                     .client(ok)
                     .build();
+
             instance = r.create(NewApiService.class);
         }
         return instance;
     }
 
-    // -------- helpers opcionales ----------
-    public static Call<List<TipoPagoDto>> tiposPago() {
-        return get().obtenerTiposPago(null);
-    }
-    public static Call<ConceptosResponse> conceptosPorPlanta(String plantaKey) {
-        return get().conceptosPorPlanta(plantaKey);
-    }
+
 }

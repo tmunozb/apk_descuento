@@ -20,7 +20,10 @@ import com.farenet.descuentos.models.newapi.ConceptoPlantaDto;
 import com.farenet.descuentos.models.newapi.ConceptosResponse;
 import com.farenet.descuentos.models.newapi.TipoPagoDto;
 import com.farenet.descuentos.models.newapi.UsuarioPerfil;
+import com.farenet.descuentos.models.newapi.SolicitudCrearRsp;
+import com.farenet.descuentos.models.newapi.AdjuntoCrearRsp;
 import com.farenet.descuentos.models.req.SolicitudCrearReq;
+import com.farenet.descuentos.models.req.AdjuntoCrearReq;
 import com.farenet.descuentos.network.newapi.NewApiClient;
 import com.farenet.descuentos.repository.SessionManager;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -87,6 +90,13 @@ public class SolicitudCrearActivity extends AppCompatActivity {
     private boolean pendingSelectFlat = false;
     private static final String TIPO_PAGO_FLAT_KEY = "FLA";
     private static final String TIPO_PAGO_FLAT_NOMBRE = "Flat";
+
+    // ==== Sustento (foto) opcional para subir a /solicitudes/{id}/adjuntos
+    // Setéalos cuando el usuario tome/seleccione una imagen.
+    private String sustentoBase64;        // contenido Base64 sin cabecera (NO "data:image/jpeg;base64,")
+    private String sustentoFileName;      // ej. "placa.jpg"
+    private String sustentoMime = "image/jpeg";
+    private Integer sustentoW, sustentoH; // si los conoces
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -598,26 +608,154 @@ public class SolicitudCrearActivity extends AppCompatActivity {
     }
 
     /* =========================
-               ENVÍO (WhatsApp)
+               ENVÍO (API + WhatsApp)
        ========================= */
 
     private void enviar() {
         // Validación defensiva (por si llegó al paso 3 con algo incompleto)
         if (!validStep1() || !validStep2()) return;
 
-        // Armar mensaje
-        String msg = buildWhatsappMessage();
+        // Token si tu backend lo exige por header
+        String token = getSharedPreferences("TOKEN", MODE_PRIVATE).getString("token", null);
 
-        // Intentar abrir WhatsApp (directo a número si está configurado)
+        btnEnviar.setEnabled(false);
+
+        // Construir request
+        SolicitudCrearReq req = buildSolicitudReqFromUI();
+
+        // Crear solicitud
+        NewApiClient.get().crearSolicitud(req).enqueue(new Callback<SolicitudCrearRsp>() {
+            @Override public void onResponse(Call<SolicitudCrearRsp> call, Response<SolicitudCrearRsp> rsp) {
+                if (!rsp.isSuccessful() || rsp.body() == null) {
+                    btnEnviar.setEnabled(true);
+                    Toast.makeText(SolicitudCrearActivity.this, "No se pudo crear la solicitud", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                String solicitudId = rsp.body().id;
+
+                // Si hay sustento Base64, subirlo; si no, continuar con WhatsApp.
+                if (!TextUtils.isEmpty(sustentoBase64)) {
+                    subirSustentoYEnviarWA(solicitudId, token);
+                } else {
+                    onSolicitudRegistradaYEnviarWA();
+                }
+            }
+            @Override public void onFailure(Call<SolicitudCrearRsp> call, Throwable t) {
+                btnEnviar.setEnabled(true);
+                Toast.makeText(SolicitudCrearActivity.this, "Error de red al crear solicitud", Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    /** Construye el cuerpo del POST /solicitudes con lo ingresado en la UI */
+    private SolicitudCrearReq buildSolicitudReqFromUI() {
+        SolicitudCrearReq r = new SolicitudCrearReq();
+
+        r.tipo = mapTipoSolicitudEnum();
+        r.planta_nombre = v(actPlanta);
+        r.planta_key = obtenerPlantaKeySeleccionada();
+        r.placa = t(etPlaca).toUpperCase();
+        r.motivo = t(etMotivo);
+        r.sustento_texto = null; // si tienes un campo de texto adicional para sustento, setéalo aquí
+
+        if (!isCortesia()) {
+            // Concepto
+            String label = v(actConcepto);
+            ConceptoPlantaDto c = conceptoByLabel.get(label);
+            if (c != null) {
+                r.concepto_key = c.conceptoKey;
+                r.concepto_abreviatura = (c.abreviatura != null ? c.abreviatura : c.conceptoKey);
+            }
+            // Tipo de pago
+            String pagoLabel = v(actTipoPago);
+            TipoPagoDto tp = tipoPagoByLabel.get(pagoLabel);
+            if (tp != null) {
+                r.tipo_pago_key = tp.key;
+                r.tipo_pago_nombre = (tp.nombre != null ? tp.nombre : tp.key);
+            }
+            // Tipo de descuento
+            r.tipo_desc = mapTipoDescEnum(v(actTipoDescuento));
+            // Campaña (si aplica; ajusta con tu control real de campaña si tienes uno)
+            if ("CAMPAÑA".equals(r.tipo_desc)) {
+                r.campania_nombre = "CAMPAÑA"; // placeholder si luego tienes otro selector
+            }
+            try {
+                r.monto = Double.parseDouble(t(etMonto).replace(',', '.'));
+            } catch (Exception e) {
+                r.monto = null;
+            }
+            r.autorizado_nombre = null; // Si en esta pantalla no eliges “Autorizadores”
+        }
+
+        // Trazabilidad desde SessionManager
+        r.solicitado_por_username = session.getUsername();
+        UsuarioPerfil up = session.getPerfil();
+        if (up != null) {
+            r.solicitado_por_id = null; // si no lo manejas, déjalo null
+            r.solicitado_por_nombre = up.getNombreCompleto();
+            r.solicitado_por_perfil = up.perfilId;
+        } else {
+            r.solicitado_por_nombre = session.getUsername();
+        }
+
+        return r;
+    }
+
+    private String mapTipoSolicitudEnum() {
+        return isCortesia() ? "CORTESIA" : "DESCUENTO";
+    }
+
+    private String mapTipoDescEnum(String labelUi) {
+        if (labelUi == null) return null;
+        String s = labelUi.trim().toUpperCase();
+        if (s.startsWith("AUTO")) return "AUTORIZADO";
+        if (s.startsWith("CART")) return "CARTA";
+        if (s.startsWith("CAMP")) return "CAMPAÑA";
+        return null;
+    }
+
+    private void subirSustentoYEnviarWA(String solicitudId, String token) {
+        AdjuntoCrearReq a = new AdjuntoCrearReq();
+        a.tipo = "FOTO";
+        a.nombre_original = (sustentoFileName != null ? sustentoFileName : "sustento.jpg");
+        a.mime_type = sustentoMime != null ? sustentoMime : "image/jpeg";
+        a.b64_input = sustentoBase64; // IMPORTANTE
+        a.width_px = sustentoW;
+        a.height_px = sustentoH;
+        a.exif_removido = true;
+
+        a.subido_por_username = session.getUsername();
+        a.subido_por_nombre = session.getNombreVisible();
+        a.subido_por_id = null; // si no lo tienes
+        a.device_model = android.os.Build.MODEL;
+        a.device_os = "Android " + android.os.Build.VERSION.RELEASE;
+
+        NewApiClient.get().subirAdjunto(solicitudId, a).enqueue(new Callback<AdjuntoCrearRsp>() {
+            @Override public void onResponse(Call<AdjuntoCrearRsp> call, Response<AdjuntoCrearRsp> rsp) {
+                // Aunque falle el adjunto, ya existe la solicitud: no bloquees el flujo
+                onSolicitudRegistradaYEnviarWA();
+            }
+            @Override public void onFailure(Call<AdjuntoCrearRsp> call, Throwable t) {
+                onSolicitudRegistradaYEnviarWA();
+            }
+        });
+    }
+
+    private void onSolicitudRegistradaYEnviarWA() {
+        btnEnviar.setEnabled(true);
+
+        // WhatsApp
+        String msg = buildWhatsappMessage();
         boolean launched = openWhatsApp(msg, WHATSAPP_PHONE);
         if (!launched) {
             Toast.makeText(this, "No encontré WhatsApp ni WhatsApp Business.", Toast.LENGTH_LONG).show();
         }
-        // No cerramos la pantalla para permitir editar y reenviar si desea
+
+        // (Opcional) limpiar UI aquí si lo deseas
+        // etPlaca.setText(""); etMonto.setText(""); etMotivo.setText(""); ...
     }
 
     /** Construye el mensaje de WhatsApp con lo ingresado */
-    /** Mensaje de WhatsApp con formato personalizado */
     private String buildWhatsappMessage() {
         boolean cortesia = isCortesia();
 
@@ -633,7 +771,7 @@ public class SolicitudCrearActivity extends AppCompatActivity {
             concepto = (idx > 0 ? conceptoLabel.substring(0, idx) : conceptoLabel);
         }
 
-        // Normalizaciones visuales (según ejemplo)
+        // Normalizaciones visuales
         String placaFmt  = TextUtils.isEmpty(placa)  ? "—" : placa.toUpperCase();
         String plantaFmt = TextUtils.isEmpty(planta) ? "—" : planta.toUpperCase();
         String conceptoFmt = TextUtils.isEmpty(concepto) ? "—" : concepto.toUpperCase();
@@ -644,7 +782,6 @@ public class SolicitudCrearActivity extends AppCompatActivity {
         sb.append("• 🚗 Placa: ").append(placaFmt).append("\n");
         sb.append("• 🏭 Planta: ").append(plantaFmt).append("\n");
 
-        // Solo en Descuento mostramos concepto y monto
         if (!cortesia) {
             sb.append("• 🚙 Concepto vehicular: ").append(conceptoFmt).append("\n");
         }
@@ -655,7 +792,6 @@ public class SolicitudCrearActivity extends AppCompatActivity {
             String montoStr = t(etMonto);
             if (!TextUtils.isEmpty(montoStr)) {
                 try {
-                    // Normaliza a número simple (sin "S/") para coincidir con tu ejemplo
                     double val = Double.parseDouble(montoStr);
                     montoStr = String.valueOf(val);
                 } catch (Exception ignore) { /* deja tal cual */ }
@@ -667,7 +803,6 @@ public class SolicitudCrearActivity extends AppCompatActivity {
 
         return sb.toString();
     }
-
 
     /** Abre WhatsApp con el texto. Si 'phoneE164' está vacío => abrir selector de contacto. */
     private boolean openWhatsApp(String message, String phoneE164) {
