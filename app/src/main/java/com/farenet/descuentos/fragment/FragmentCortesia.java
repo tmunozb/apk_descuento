@@ -16,6 +16,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
 import com.farenet.descuentos.R;
@@ -23,11 +24,15 @@ import com.farenet.descuentos.adapter.SpinerAdapter;
 import com.farenet.descuentos.config.Constante;
 import com.farenet.descuentos.domain.Autorizadores;
 import com.farenet.descuentos.domain.Cortesia;
+import com.farenet.descuentos.domain.MotivoCortesia;
 import com.farenet.descuentos.domain.Planta;
+import com.farenet.descuentos.network.newapi.NewApiClient;
+import com.farenet.descuentos.network.newapi.NewApiService;
 import com.farenet.descuentos.repository.DescuentoRepository;
 import com.farenet.descuentos.repository.MaestroRepository;
 import com.farenet.descuentos.sql.QueryRealm;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -47,7 +52,12 @@ public class FragmentCortesia extends Fragment {
 
     private DescuentoRepository descuentoRepository;
     private MaestroRepository maestroRepository;
+    private NewApiService newApi; // Para motivos
     private SharedPreferences sharedPreferences;
+
+    // Cache de motivos desde la API
+    private final List<MotivoCortesia> motivos = new ArrayList<>();
+    private String motivoSeleccionadoId; // por si luego decides enviar el ID
 
     @Nullable
     @Override
@@ -58,17 +68,20 @@ public class FragmentCortesia extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
         spPlanta   = view.findViewById(R.id.sp_planta_cort);
         spAutoriza = view.findViewById(R.id.sp_autoriza_cort);
         txtPlaca   = view.findViewById(R.id.txtPlaca_cort);
-        txtMotivo  = view.findViewById(R.id.txtMotivo_cort);
+        // OJO: en tu XML el id es txtMotivo_cort
+        txtMotivo  = view.findViewById(R.id.actvMotivo_cort);
         btnGuardar = view.findViewById(R.id.btnGuardar_cort);
 
         descuentoRepository = Constante.getDescuentoRepository();
         maestroRepository   = Constante.getMaestroRespository();
+        newApi              = NewApiClient.get(); // baseUrl viene de BuildConfig.NEW_API_BASE_URL
         sharedPreferences   = requireActivity().getSharedPreferences(Constante.TOKEN, Context.MODE_PRIVATE);
 
-        // Cargar COPIAS (unmanaged) desde Realm
+        // Cargar copias (unmanaged) desde Realm
         List<Planta> plantas = safe(QueryRealm.copyAllPlantas());
         List<Autorizadores> autores = safe(QueryRealm.copyAllAutorizadores());
 
@@ -78,13 +91,87 @@ public class FragmentCortesia extends Fragment {
         spPlanta.setAdapter(spPlantaAdapter);
         spAutoriza.setAdapter(spAutorizaAdapter);
 
+        // Guardar
         btnGuardar.setOnClickListener(v -> onGuardarClicked());
 
-        // Re-sync desde API si el caché está vacío
+        // Selector de motivo via diálogo
+        txtMotivo.setFocusable(false);
+        txtMotivo.setOnClickListener(v -> mostrarSelectorMotivo());
+
+        // Si los spinners están vacíos, refresca desde API
         ensureMaestrosDesdeApiSiHaceFalta();
+
+        // Cargar motivos de cortesía desde NewApiService
+        cargarMotivosCortesia();
     }
 
     private <T> List<T> safe(List<T> list) { return list != null ? list : Collections.emptyList(); }
+
+    // ----------------- Motivos desde NewApiService -----------------
+    private void cargarMotivosCortesia() {
+        // Si tu endpoint no requiere token, no retornes aunque falte:
+        String token = sharedPreferences.getString("token", null);
+        if (TextUtils.isEmpty(token)) {
+            Toast.makeText(requireContext(), "Sesión no válida. Inicie sesión.", Toast.LENGTH_LONG).show();
+            // Si el endpoint es público, puedes NO retornar.
+            // return;
+        }
+
+        if (newApi == null) {
+            Toast.makeText(requireContext(), "Servicio no disponible", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        newApi.getMotivosCortesia(true).enqueue(new Callback<List<MotivoCortesia>>() {
+            @Override
+            public void onResponse(Call<List<MotivoCortesia>> call, Response<List<MotivoCortesia>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    motivos.clear();
+                    motivos.addAll(response.body());
+                    if (!motivos.isEmpty()) {
+                        // Prefijar el primero (opcional)
+                        txtMotivo.setText(motivos.get(0).getNombre());
+                        motivoSeleccionadoId = motivos.get(0).getId();
+                    }
+                } else {
+                    handleHttpError("Motivos cortesía", response.code(), response.message());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<MotivoCortesia>> call, Throwable t) {
+                Toast.makeText(requireContext(), "Error motivos: " + safeMsg(t), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void mostrarSelectorMotivo() {
+        if (motivos.isEmpty()) {
+            Toast.makeText(requireContext(), "No hay motivos disponibles", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        CharSequence[] items = new CharSequence[motivos.size()];
+        int preseleccion = -1;
+        String actual = txtMotivo.getText() != null ? txtMotivo.getText().toString() : "";
+        for (int i = 0; i < motivos.size(); i++) {
+            items[i] = motivos.get(i).getNombre();
+            if (!TextUtils.isEmpty(actual) && actual.equals(motivos.get(i).getNombre())) {
+                preseleccion = i;
+            }
+        }
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Selecciona un motivo")
+                .setSingleChoiceItems(items, preseleccion, (dialog, which) -> {
+                    MotivoCortesia sel = motivos.get(which);
+                    txtMotivo.setText(sel.getNombre());
+                    motivoSeleccionadoId = sel.getId();
+                    dialog.dismiss();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+    // ----------------- FIN motivos -----------------
 
     private void onGuardarClicked() {
         if (!validarCampos()) return;
@@ -108,7 +195,7 @@ public class FragmentCortesia extends Fragment {
         }
 
         String placa    = txtPlaca.getText().toString().trim().toUpperCase();
-        String motivo   = txtMotivo.getText().toString().trim();
+        String motivo   = txtMotivo.getText().toString().trim(); // texto del motivo seleccionado
         String autoriza = aut.getNombre() != null ? aut.getNombre() : aut.toString();
 
         Cortesia cortesia = new Cortesia();
@@ -116,6 +203,7 @@ public class FragmentCortesia extends Fragment {
         cortesia.setPlanta(planta.getKey());
         cortesia.setAutoriza(autoriza);
         cortesia.setMotivo(motivo);
+        // Si luego quieres enviar el ID: ya lo tienes en motivoSeleccionadoId
 
         btnGuardar.setEnabled(false);
         Call<String> call = descuentoRepository.saveCortesia(cortesia, token);
@@ -125,9 +213,7 @@ public class FragmentCortesia extends Fragment {
                 btnGuardar.setEnabled(true);
                 if (response.isSuccessful() && response.code() == 200) {
                     Toast.makeText(requireContext(), "Se agregó la cortesía", Toast.LENGTH_LONG).show();
-                    // WhatsApp: solo placa + motivo
                     abrirWhatsappYLimpiar(placa);
-
                 } else {
                     if (response.code() == 401 || response.code() == 403) {
                         Toast.makeText(requireContext(), "Sesión expirada. Inicie sesión.", Toast.LENGTH_LONG).show();
@@ -152,7 +238,7 @@ public class FragmentCortesia extends Fragment {
         if (placa.isEmpty()) { txtPlaca.setError("Ingrese placa"); ok = false; }
 
         String motivo = txtMotivo.getText() != null ? txtMotivo.getText().toString().trim() : "";
-        if (motivo.isEmpty()) { txtMotivo.setError("Ingrese motivo"); ok = false; }
+        if (motivo.isEmpty()) { txtMotivo.setError("Seleccione motivo"); ok = false; }
 
         if (spPlanta.getAdapter() == null || spPlanta.getAdapter().getCount() == 0) {
             Toast.makeText(requireContext(), "No hay plantas disponibles", Toast.LENGTH_SHORT).show();
@@ -166,12 +252,7 @@ public class FragmentCortesia extends Fragment {
         return ok;
     }
 
-    /**
-     * Envia el mensaje a WhatsApp con solamente la placa y el motivo.
-     * Evita "whatsapp://" y prueba WhatsApp normal, Business y por último wa.me.
-     */
     private void abrirWhatsappYLimpiar(String placa) {
-        // Usar string con placeholders: %1$s = placa, %2$s = motivo
         String msg = getString(R.string.msjwhtsp_corte, placa);
 
         Intent send = new Intent(Intent.ACTION_SEND);
@@ -193,8 +274,6 @@ public class FragmentCortesia extends Fragment {
         limpiar();
     }
 
-
-
     private boolean tryStartActivityWithPackage(Intent base, String packageName) {
         try {
             Intent i = new Intent(base);
@@ -212,6 +291,7 @@ public class FragmentCortesia extends Fragment {
         if (spAutoriza.getAdapter() != null && spAutoriza.getAdapter().getCount() > 0) spAutoriza.setSelection(0);
         txtPlaca.setText("");
         txtMotivo.setText("");
+        motivoSeleccionadoId = null;
     }
 
     /** Si los spinners están vacíos, baja maestros desde API, guarda en Realm y refresca adapters. */
@@ -243,7 +323,6 @@ public class FragmentCortesia extends Fragment {
             maestroRepository.getPlantas(token).enqueue(new Callback<List<Planta>>() {
                 @Override public void onResponse(Call<List<Planta>> call, Response<List<Planta>> rsp) {
                     if (rsp.isSuccessful() && rsp.body() != null) {
-                        // Método async para guardar en Realm (debes tenerlo como en FragmentDescuento)
                         QueryRealm.savePlantaAsync(rsp.body(), new QueryRealm.TxCallback() {
                             @Override public void onSuccess() { refreshUiIfDone.run(); }
                             @Override public void onError(Throwable error) {

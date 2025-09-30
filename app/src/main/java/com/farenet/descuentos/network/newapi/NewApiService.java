@@ -1,5 +1,6 @@
 package com.farenet.descuentos.network.newapi;
 
+import com.farenet.descuentos.domain.MotivoCortesia;
 import com.farenet.descuentos.models.newapi.*;
 import com.farenet.descuentos.models.req.*;
 import com.farenet.descuentos.models.rsp.AccionSolicitudRsp;
@@ -72,4 +73,9 @@ public interface NewApiService {
             @Path("id") String id,
             @Body RechazarSolicitudReq req
     );
+
+    // GET /motivos_cortesia?activo=true
+    @GET("motivos_cortesia")
+    Call<List<MotivoCortesia>> getMotivosCortesia(@Query("activo") Boolean activo);
+
 }

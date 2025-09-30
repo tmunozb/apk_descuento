@@ -2,6 +2,7 @@ package com.farenet.descuentos.repository;
 
 import com.farenet.descuentos.domain.Autorizadores;
 import com.farenet.descuentos.domain.Conceptoinspeccion;
+import com.farenet.descuentos.domain.MotivoCortesia;
 import com.farenet.descuentos.domain.Planta;
 import com.farenet.descuentos.domain.TipoPagoDescuento;
 
@@ -10,6 +11,7 @@ import java.util.List;
 import retrofit2.Call;
 import retrofit2.http.GET;
 import retrofit2.http.Header;
+import retrofit2.http.Query;
 
 /**
  * Author by Alexis Pumayalla on 28/08/19.
@@ -29,4 +31,9 @@ public interface MaestroRepository {
 
     @GET("/maestro/autorizadores")
     Call<List<Autorizadores>> getAutorizadores(@Header("Token") String token);
+
+    // En tu interfaz de MaestroRepository/ApiService:
+    @GET("/motivos_cortesia")
+    Call<List<MotivoCortesia>> getMotivosCortesia(@Query("activo") boolean activo);
+
 }

@@ -70,25 +70,25 @@
                         android:imeOptions="actionNext"/>
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Motivo (editable con sugerencias si luego quieres) -->
+                <!-- Motivo (dropdown de solo lectura con lista de la API) -->
                 <com.google.android.material.textfield.TextInputLayout
-                    style="@style/Widget.App.TextInputLayout"
+                    style="@style/Widget.Material3.TextInputLayout.FilledBox.ExposedDropdownMenu"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:hint="@string/motivo"
-                    app:helperText="Describe brevemente el motivo"
                     app:helperTextEnabled="true"
-                    app:startIconDrawable="@drawable/ic_note_24">
+                    app:helperText="Selecciona un motivo"
+                    app:startIconDrawable="@drawable/ic_note_24"
+                    app:endIconMode="dropdown_menu">
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/txtMotivo_cort"
+                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                        android:id="@+id/actvMotivo_cort"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="textCapSentences|textMultiLine"
-                        android:minLines="2"
-                        android:maxLines="4"
-                        android:imeOptions="actionDone"/>
+                        android:inputType="none"
+                        android:imeOptions="actionDone"
+                        android:singleLine="true" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- Autoriza -->

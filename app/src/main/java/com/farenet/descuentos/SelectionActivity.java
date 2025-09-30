@@ -149,7 +149,7 @@ public class SelectionActivity extends AppCompatActivity
         }
         if (cardCortesias != null) {
             cardCortesias.setOnClickListener(v -> {
-                if (tienePerfil("sistemas")) {
+                if (tienePerfil("operaciones") || tienePerfil("sistemas") || tienePerfil("administrador")) {
                     startActivity(new Intent(this, CortesiaActivity.class));
                 } else {
                     showInfo("Acceso restringido", "Solo Sistemas gestiona cortesías directamente.");
@@ -187,15 +187,15 @@ public class SelectionActivity extends AppCompatActivity
         boolean isAdmin        = tienePerfil("administrador");
         boolean isOperaciones  = tienePerfil("operaciones");
 
-        setVisible(cardNuevaSolicitud,  isAdmin || isSistemas);
-        setVisible(cardMisSolicitudes,  true);
-        setVisible(cardHistorial,       isAdmin || isOperaciones || isSistemas);
-        setVisible(cardPendientesAprobar, isOperaciones || isSistemas);
+        setVisible(cardNuevaSolicitud,   isSistemas);
+        setVisible(cardMisSolicitudes,  isSistemas);
+        setVisible(cardHistorial,        isSistemas);
+        setVisible(cardPendientesAprobar,  isSistemas);
         setVisible(cardDescuentos, isSistemas );
-        setVisible(cardCortesias,  isSistemas || isOperaciones);
-        setVisible(cardReportes, true);
-        setVisible(cardDatos,    true);
-        setVisible(cardFeed,     true);
+        setVisible(cardCortesias,  isSistemas || isOperaciones || isAdmin);
+        setVisible(cardReportes, isSistemas);
+        setVisible(cardDatos,    isSistemas);
+        setVisible(cardFeed,     isSistemas);
     }
 
     private boolean tienePerfil(String perfilEsperado) {
@@ -241,15 +241,15 @@ public class SelectionActivity extends AppCompatActivity
         String perfilId = up.perfilId.toLowerCase(Locale.ROOT);
 
         boolean puedeDescuento         = any(perfilId, "sistemas");
-        boolean puedeCortesia          = any(perfilId, "sistemas");
-        boolean puedeReportes          = any(perfilId, "sistemas","administrador","operaciones");
-        boolean puedeDatosVehiculares  = any(perfilId, "sistemas","administrador","operaciones");
+        boolean puedeCortesia          = any(perfilId, "sistemas","administrador","operaciones");
+        boolean puedeReportes          = any(perfilId, "sistemas");
+        boolean puedeDatosVehiculares  = any(perfilId, "sistemas");
 
         setVisible(menu, R.id.nav_descuento,         puedeDescuento);
         setVisible(menu, R.id.nav_cortesia,          puedeCortesia);
         setVisible(menu, R.id.nav_reportes,          puedeReportes);
         setVisible(menu, R.id.nav_datos_vehiculares, puedeDatosVehiculares);
-        setVisible(menu, R.id.nav_soporte,           true);
+        setVisible(menu, R.id.nav_soporte,           puedeDatosVehiculares);
         setVisible(menu, R.id.nav_logout,            true);
 
         Log.d(TAG, "Visibilidad aplicada. perfilId=" + perfilId);
