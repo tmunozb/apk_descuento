@@ -12,6 +12,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.farenet.descuentos.config.Constante;
+import com.farenet.descuentos.domain.Descuento;
 import com.farenet.descuentos.models.newapi.AccesoPlantaDto;
 import com.farenet.descuentos.models.newapi.UsuarioPerfil;
 import com.farenet.descuentos.models.req.AprobarSolicitudReq;
@@ -20,6 +22,7 @@ import com.farenet.descuentos.models.rsp.AccionSolicitudRsp;
 import com.farenet.descuentos.models.rsp.SolicitudPendienteDto;
 import com.farenet.descuentos.models.ui.SolicitudUI;
 import com.farenet.descuentos.network.newapi.NewApiClient;
+import com.farenet.descuentos.repository.DescuentoRepository;
 import com.farenet.descuentos.repository.SessionManager;
 import com.farenet.descuentos.ui.PendienteSolicitudAdapter;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -32,6 +35,7 @@ import java.util.Map;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import android.content.SharedPreferences;
 
 public class SolicitudesPendientesActivity extends AppCompatActivity
         implements PendienteSolicitudAdapter.Actions {
@@ -56,6 +60,9 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
     private static final String[] TIPOS = new String[]{"Todos", "Descuento", "Cortesía"};
     private static final String[] ESTADOS = new String[]{"Pendiente"};
 
+    private DescuentoRepository descuentoRepository;
+    private SharedPreferences sharedPreferences;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -70,7 +77,7 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
         actTipo   = findViewById(R.id.act_tipo);
         actEstado = findViewById(R.id.act_estado);
         rv        = findViewById(R.id.rv_pendientes);
-        progress  = findViewById(android.R.id.progress); // opcional: agrega un ProgressBar en el layout si quieres
+        progress  = findViewById(android.R.id.progress);
 
         rv.setLayoutManager(new LinearLayoutManager(this));
         adapter = new PendienteSolicitudAdapter(data, this);
@@ -95,6 +102,9 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
         actPlanta.setOnItemClickListener((p, v, pos, id) -> filtrar());
         actTipo.setOnItemClickListener((p, v, pos, id) -> filtrar());
         actEstado.setOnItemClickListener((p, v, pos, id) -> filtrar());
+
+        descuentoRepository = Constante.getDescuentoRepository();
+        sharedPreferences   = getSharedPreferences(Constante.TOKEN, MODE_PRIVATE);
 
         // Cargar de API
         cargarPendientes();
@@ -142,15 +152,31 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
                             : "CORTESIA".equalsIgnoreCase(d.tipo) ? "Cortesía" : safe(d.tipo);
                     String estadoNice = mapEstadoUI(d.estado);
                     String fechaNice  = niceDate(d.creado_en);
+
+                    // Conversión segura de tipos (id y keys pueden venir como numéricos en el DTO)
+                    String idStr         = s(d.id);
+                    String plantaKeyStr  = s(d.planta_key);
+                    String conceptoKeyStr= s(d.concepto_key);
+                    String tipoPagoKeyStr= s(d.tipo_pago_key);
+                    Double montoVal      = d.monto != null ? d.monto : 0d;
+                    String tipoDescVal   = s(d.tipo_desc);
+                    String campaniaVal   = s(d.campania_nombre);
+
                     all.add(new SolicitudUI(
                             d.codigo,
                             tipoNice,
-                            safe(d.placa),
-                            safe(d.planta_nombre),
-                            safe(d.motivo),
+                            s(d.placa),
+                            s(d.planta_nombre),
+                            s(d.motivo),
                             estadoNice,
-                            d.id, // guardamos id para aprobar/rechazar
-                            fechaNice
+                            idStr,
+                            fechaNice,
+                            plantaKeyStr,
+                            conceptoKeyStr,
+                            tipoPagoKeyStr,
+                            montoVal,
+                            tipoDescVal,
+                            campaniaVal
                     ));
                 }
                 filtrar();
@@ -176,6 +202,65 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
         });
     }
 
+    private void generarDescuentoDesdeSolicitud(SolicitudUI s, String aprobNom) {
+        if (!s.isCompletaParaDescuento()) {
+            Toast.makeText(this, "Solicitud incompleta para generar descuento", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        Descuento d = new Descuento();
+        d.setConceptoinspeccion(s.conceptoKey);
+        d.setPlanta(s.plantaKey);
+        d.setTipoPagoDescuento(s.tipoPagoKey);
+        d.setPlaca(s.placa);
+        d.setMonto(s.monto != null ? s.monto : 0d);
+        d.setMotivo(!TextUtils.isEmpty(s.motivo) ? s.motivo : "Aprobado desde solicitudes");
+        d.setAutoriza(!TextUtils.isEmpty(aprobNom) ? aprobNom : "APROBADOR");
+
+        if ("CAMPAÑA".equalsIgnoreCase(s.tipoDesc) && !TextUtils.isEmpty(s.campaniaNombre)) {
+            d.setNomDescuento(s.campaniaNombre);
+        }
+
+        String token = sharedPreferences != null ? sharedPreferences.getString("token", null) : null;
+        if (TextUtils.isEmpty(token)) {
+            Toast.makeText(this, "Sesión no válida para generar descuento", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        retrofit2.Call<String> call;
+        if ("AUTORIZADO".equalsIgnoreCase(s.tipoDesc)) {
+            call = descuentoRepository.saveDescuento(d, token);
+        } else if ("CARTA".equalsIgnoreCase(s.tipoDesc)) {
+            call = descuentoRepository.saveCarta(d, token);
+        } else if ("CAMPAÑA".equalsIgnoreCase(s.tipoDesc)) {
+            call = descuentoRepository.saveCampana(d, token);
+        } else {
+            call = descuentoRepository.saveDescuento(d, token);
+        }
+
+        call.enqueue(new retrofit2.Callback<String>() {
+            @Override
+            public void onResponse(retrofit2.Call<String> c, retrofit2.Response<String> rsp) {
+                if (rsp.isSuccessful()) {
+                    Toast.makeText(SolicitudesPendientesActivity.this,
+                            "Descuento generado correctamente", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(SolicitudesPendientesActivity.this,
+                            "Generado pero no se pudo registrar descuento (" + rsp.code() + ")",
+                            Toast.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            public void onFailure(retrofit2.Call<String> c, Throwable t) {
+                Toast.makeText(SolicitudesPendientesActivity.this,
+                        "Aprobada, pero error registrando descuento: " +
+                                (t.getMessage()!=null?t.getMessage():""),
+                        Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
     private void filtrar() {
         String planta = safe(actPlanta.getText() != null ? actPlanta.getText().toString() : "");
         String tipo   = safe(actTipo.getText()   != null ? actTipo.getText().toString()   : "");
@@ -186,7 +271,6 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
             if (!("Todas".equalsIgnoreCase(planta) || s.planta.equalsIgnoreCase(planta))) continue;
             if (!("Todos".equalsIgnoreCase(tipo) || s.tipo.equalsIgnoreCase(tipo))) continue;
 
-            // Mapeo de “Pendiente” UI a estados backend ENVIADA/OBSERVADA (ya mapeado en UI a "Pendiente")
             if (!TextUtils.isEmpty(estado) && !"Todos".equalsIgnoreCase(estado)) {
                 if (!s.estado.equalsIgnoreCase(estado)) continue;
             }
@@ -219,11 +303,10 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
     private void aprobar(SolicitudUI s) {
         showLoading(true);
 
-        // Datos del aprobador desde sesión
         UsuarioPerfil up = session.getPerfil();
         String aprobUser = (up != null && !TextUtils.isEmpty(up.username))
                 ? up.username
-                : session.getUsername(); // si tienes este helper, si no, deja null/"" y backend valida
+                : session.getUsername();
 
         String aprobNom = null;
         if (up != null) {
@@ -234,10 +317,11 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
         }
         if (TextUtils.isEmpty(aprobNom)) aprobNom = aprobUser;
 
-        // No tenemos 'id' en UsuarioPerfil → lo enviamos null
-        Integer aprobId = null;
+        // ✅ Hacerla efectivamente final para usar dentro del callback
+        final String aprobNomFinal = aprobNom;
 
-        AprobarSolicitudReq req = new AprobarSolicitudReq(aprobUser, aprobId, aprobNom);
+        Integer aprobId = null;
+        AprobarSolicitudReq req = new AprobarSolicitudReq(aprobUser, aprobId, aprobNomFinal);
 
         if (aprobarCall != null) aprobarCall.cancel();
         aprobarCall = NewApiClient.get().aprobarSolicitud(s.id, req);
@@ -252,6 +336,11 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
                 s.estado = "Aprobada";
                 adapter.notifyDataSetChanged();
                 Toast.makeText(SolicitudesPendientesActivity.this, "Aprobada", Toast.LENGTH_SHORT).show();
+
+                // Usa la variable finalizada
+                generarDescuentoDesdeSolicitud(s, aprobNomFinal);
+
+                // Recarga la lista
                 cargarPendientes();
             }
 
@@ -264,9 +353,9 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
         });
     }
 
+
     @Override
     public void onRechazar(SolicitudUI s) {
-        // simple prompt de motivo (rápido); puedes reemplazar por un diálogo con input
         new AlertDialog.Builder(this)
                 .setTitle("Rechazar solicitud")
                 .setMessage("¿Rechazar " + s.codigo + "?\nMotivo: se registrará como 'No corresponde'.")
@@ -309,6 +398,9 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
     }
 
     private String safe(String s) { return s == null ? "" : s.trim(); }
+
+    /** Convierte cualquier objeto a String (trim) o "" si es null. Útil para DTOs con tipos mixtos. */
+    private String s(Object o) { return o == null ? "" : String.valueOf(o).trim(); }
 
     @Override
     protected void onDestroy() {
