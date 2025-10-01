@@ -1,0 +1,13 @@
+<resources>
+    <string-array name="placeholder_spinner">
+        <item>— Selecciona —</item>
+    </string-array>
+
+    <!-- (opcional) otros placeholders -->
+    <string-array name="placeholder_autoriza">
+        <item>— Selecciona quién autoriza —</item>
+    </string-array>
+    <string-array name="placeholder_planta">
+        <item>— Selecciona planta —</item>
+    </string-array>
+</resources>

@@ -5,6 +5,9 @@
     <string name="agregar">Agregar Descuento</string>
     <string name="navigation_drawer_open">Abrir menú de navegación</string>
     <string name="navigation_drawer_close">Cerrar menú de navegación</string>
+    <string name="cortesia_title">CORTESÍA</string>
+    <string name="selecciona_un_motivo">Selecciona un motivo</string>
+
 
     <!-- Placeholders:
      %1$s -> placa
@@ -41,7 +44,7 @@
     <string name="ingresar">Ingresar</string>
 
     <string name="hello_blank_fragment">Hello blank fragment</string>
-    <string name="autoriza">Autoriza</string>
+    <string name="autoriza">Registra</string>
     <string name="motivo">Motivo</string>
 
     <array name="autoriza">

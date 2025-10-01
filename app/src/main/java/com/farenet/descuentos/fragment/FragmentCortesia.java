@@ -22,7 +22,6 @@ import androidx.fragment.app.Fragment;
 import com.farenet.descuentos.R;
 import com.farenet.descuentos.adapter.SpinerAdapter;
 import com.farenet.descuentos.config.Constante;
-import com.farenet.descuentos.domain.Autorizadores;
 import com.farenet.descuentos.domain.Cortesia;
 import com.farenet.descuentos.domain.MotivoCortesia;
 import com.farenet.descuentos.domain.Planta;
@@ -30,6 +29,7 @@ import com.farenet.descuentos.network.newapi.NewApiClient;
 import com.farenet.descuentos.network.newapi.NewApiService;
 import com.farenet.descuentos.repository.DescuentoRepository;
 import com.farenet.descuentos.repository.MaestroRepository;
+import com.farenet.descuentos.repository.SessionManager;
 import com.farenet.descuentos.sql.QueryRealm;
 
 import java.util.ArrayList;
@@ -43,17 +43,17 @@ import retrofit2.Response;
 
 public class FragmentCortesia extends Fragment {
 
-    private Spinner spPlanta, spAutoriza;
-    private EditText txtPlaca, txtMotivo;
+    private Spinner spPlanta;
+    private EditText txtPlaca, txtMotivo, txtAutorizaReadonly;
     private Button btnGuardar;
 
     private SpinerAdapter<Planta> spPlantaAdapter;
-    private SpinerAdapter<Autorizadores> spAutorizaAdapter;
 
     private DescuentoRepository descuentoRepository;
     private MaestroRepository maestroRepository;
     private NewApiService newApi; // Para motivos
     private SharedPreferences sharedPreferences;
+    private SessionManager session;
 
     // Cache de motivos desde la API
     private final List<MotivoCortesia> motivos = new ArrayList<>();
@@ -69,36 +69,39 @@ public class FragmentCortesia extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        spPlanta   = view.findViewById(R.id.sp_planta_cort);
-        spAutoriza = view.findViewById(R.id.sp_autoriza_cort);
-        txtPlaca   = view.findViewById(R.id.txtPlaca_cort);
-        // OJO: en tu XML el id es txtMotivo_cort
-        txtMotivo  = view.findViewById(R.id.actvMotivo_cort);
-        btnGuardar = view.findViewById(R.id.btnGuardar_cort);
+        // Views
+        spPlanta            = view.findViewById(R.id.sp_planta_cort);
+        txtPlaca            = view.findViewById(R.id.txtPlaca_cort);
+        txtMotivo           = view.findViewById(R.id.actvMotivo_cort);
+        txtAutorizaReadonly = view.findViewById(R.id.txtAutoriza_cort_readonly);
+        btnGuardar          = view.findViewById(R.id.btnGuardar_cort);
 
+        // Repos/Session
         descuentoRepository = Constante.getDescuentoRepository();
         maestroRepository   = Constante.getMaestroRespository();
         newApi              = NewApiClient.get(); // baseUrl viene de BuildConfig.NEW_API_BASE_URL
         sharedPreferences   = requireActivity().getSharedPreferences(Constante.TOKEN, Context.MODE_PRIVATE);
+        session             = new SessionManager(requireContext());
+
+        // Mostrar autoriza (solo lectura) desde la sesión
+        String nombreAutoriza = session.getNombreVisible();
+        if (txtAutorizaReadonly != null) {
+            txtAutorizaReadonly.setText(nombreAutoriza != null ? nombreAutoriza : "");
+        }
 
         // Cargar copias (unmanaged) desde Realm
         List<Planta> plantas = safe(QueryRealm.copyAllPlantas());
-        List<Autorizadores> autores = safe(QueryRealm.copyAllAutorizadores());
-
-        spPlantaAdapter   = new SpinerAdapter<>(requireContext(), plantas);
-        spAutorizaAdapter = new SpinerAdapter<>(requireContext(), autores);
-
+        spPlantaAdapter = new SpinerAdapter<>(requireContext(), plantas);
         spPlanta.setAdapter(spPlantaAdapter);
-        spAutoriza.setAdapter(spAutorizaAdapter);
 
         // Guardar
         btnGuardar.setOnClickListener(v -> onGuardarClicked());
 
-        // Selector de motivo via diálogo
+        // Selector de motivo via diálogo (aunque sea ExposedDropdown, mantenemos tu UX)
         txtMotivo.setFocusable(false);
         txtMotivo.setOnClickListener(v -> mostrarSelectorMotivo());
 
-        // Si los spinners están vacíos, refresca desde API
+        // Si el spinner de plantas está vacío, refresca desde API
         ensureMaestrosDesdeApiSiHaceFalta();
 
         // Cargar motivos de cortesía desde NewApiService
@@ -109,12 +112,11 @@ public class FragmentCortesia extends Fragment {
 
     // ----------------- Motivos desde NewApiService -----------------
     private void cargarMotivosCortesia() {
-        // Si tu endpoint no requiere token, no retornes aunque falte:
+        // Si tu endpoint NO requiere token, puedes no salir aunque esté vacío.
         String token = sharedPreferences.getString("token", null);
         if (TextUtils.isEmpty(token)) {
             Toast.makeText(requireContext(), "Sesión no válida. Inicie sesión.", Toast.LENGTH_LONG).show();
-            // Si el endpoint es público, puedes NO retornar.
-            // return;
+            // return; // si el endpoint es público, comenta este return.
         }
 
         if (newApi == null) {
@@ -183,25 +185,19 @@ public class FragmentCortesia extends Fragment {
         }
 
         Planta planta = (Planta) spPlanta.getSelectedItem();
-        Autorizadores aut = (Autorizadores) spAutoriza.getSelectedItem();
-
         if (planta == null) {
             Toast.makeText(requireContext(), "Seleccione una planta", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (aut == null) {
-            Toast.makeText(requireContext(), "Seleccione quién autoriza", Toast.LENGTH_SHORT).show();
             return;
         }
 
         String placa    = txtPlaca.getText().toString().trim().toUpperCase();
         String motivo   = txtMotivo.getText().toString().trim(); // texto del motivo seleccionado
-        String autoriza = aut.getNombre() != null ? aut.getNombre() : aut.toString();
+        String autoriza = session.getNombreVisible(); // <-- DEL LOGIN
 
         Cortesia cortesia = new Cortesia();
         cortesia.setPlaca(placa);
         cortesia.setPlanta(planta.getKey());
-        cortesia.setAutoriza(autoriza);
+        cortesia.setAutoriza(autoriza != null ? autoriza : "");
         cortesia.setMotivo(motivo);
         // Si luego quieres enviar el ID: ya lo tienes en motivoSeleccionadoId
 
@@ -244,10 +240,8 @@ public class FragmentCortesia extends Fragment {
             Toast.makeText(requireContext(), "No hay plantas disponibles", Toast.LENGTH_SHORT).show();
             ok = false;
         }
-        if (spAutoriza.getAdapter() == null || spAutoriza.getAdapter().getCount() == 0) {
-            Toast.makeText(requireContext(), "No hay autorizadores disponibles", Toast.LENGTH_SHORT).show();
-            ok = false;
-        }
+
+        // Autoriza ya no se valida (viene de sesión)
 
         return ok;
     }
@@ -288,18 +282,16 @@ public class FragmentCortesia extends Fragment {
 
     private void limpiar() {
         if (spPlanta.getAdapter() != null && spPlanta.getAdapter().getCount() > 0) spPlanta.setSelection(0);
-        if (spAutoriza.getAdapter() != null && spAutoriza.getAdapter().getCount() > 0) spAutoriza.setSelection(0);
         txtPlaca.setText("");
         txtMotivo.setText("");
+        // Autoriza se mantiene mostrando el usuario logueado
         motivoSeleccionadoId = null;
     }
 
-    /** Si los spinners están vacíos, baja maestros desde API, guarda en Realm y refresca adapters. */
+    /** Si el spinner de plantas está vacío, baja maestros desde API, guarda en Realm y refresca adapter. */
     private void ensureMaestrosDesdeApiSiHaceFalta() {
-        boolean needPlantas       = spPlantaAdapter.getCount() == 0;
-        boolean needAutorizadores = spAutorizaAdapter.getCount() == 0;
-
-        if (!(needPlantas || needAutorizadores)) return;
+        boolean needPlantas = spPlantaAdapter.getCount() == 0;
+        if (!needPlantas) return;
 
         String token = sharedPreferences.getString("token", null);
         if (TextUtils.isEmpty(token)) {
@@ -313,60 +305,31 @@ public class FragmentCortesia extends Fragment {
         Runnable refreshUiIfDone = () -> {
             if (pending.decrementAndGet() == 0) {
                 spPlantaAdapter.setItems(QueryRealm.copyAllPlantas());
-                spAutorizaAdapter.setItems(QueryRealm.copyAllAutorizadores());
                 btnGuardar.setEnabled(true);
             }
         };
 
-        if (needPlantas) {
-            pending.incrementAndGet();
-            maestroRepository.getPlantas(token).enqueue(new Callback<List<Planta>>() {
-                @Override public void onResponse(Call<List<Planta>> call, Response<List<Planta>> rsp) {
-                    if (rsp.isSuccessful() && rsp.body() != null) {
-                        QueryRealm.savePlantaAsync(rsp.body(), new QueryRealm.TxCallback() {
-                            @Override public void onSuccess() { refreshUiIfDone.run(); }
-                            @Override public void onError(Throwable error) {
-                                Toast.makeText(requireContext(), "Guardar plantas: " + safeMsg(error), Toast.LENGTH_SHORT).show();
-                                refreshUiIfDone.run();
-                            }
-                        });
-                    } else {
-                        handleHttpError("Plantas", rsp.code(), rsp.message());
-                        refreshUiIfDone.run();
-                    }
-                }
-                @Override public void onFailure(Call<List<Planta>> call, Throwable t) {
-                    Toast.makeText(requireContext(), "Error plantas: " + safeMsg(t), Toast.LENGTH_SHORT).show();
+        pending.incrementAndGet();
+        maestroRepository.getPlantas(token).enqueue(new Callback<List<Planta>>() {
+            @Override public void onResponse(Call<List<Planta>> call, Response<List<Planta>> rsp) {
+                if (rsp.isSuccessful() && rsp.body() != null) {
+                    QueryRealm.savePlantaAsync(rsp.body(), new QueryRealm.TxCallback() {
+                        @Override public void onSuccess() { refreshUiIfDone.run(); }
+                        @Override public void onError(Throwable error) {
+                            Toast.makeText(requireContext(), "Guardar plantas: " + safeMsg(error), Toast.LENGTH_SHORT).show();
+                            refreshUiIfDone.run();
+                        }
+                    });
+                } else {
+                    handleHttpError("Plantas", rsp.code(), rsp.message());
                     refreshUiIfDone.run();
                 }
-            });
-        }
-
-        if (needAutorizadores) {
-            pending.incrementAndGet();
-            maestroRepository.getAutorizadores(token).enqueue(new Callback<List<Autorizadores>>() {
-                @Override public void onResponse(Call<List<Autorizadores>> call, Response<List<Autorizadores>> rsp) {
-                    if (rsp.isSuccessful() && rsp.body() != null) {
-                        QueryRealm.saveAutorizadoresAsync(rsp.body(), new QueryRealm.TxCallback() {
-                            @Override public void onSuccess() { refreshUiIfDone.run(); }
-                            @Override public void onError(Throwable error) {
-                                Toast.makeText(requireContext(), "Guardar autorizadores: " + safeMsg(error), Toast.LENGTH_SHORT).show();
-                                refreshUiIfDone.run();
-                            }
-                        });
-                    } else {
-                        handleHttpError("Autorizadores", rsp.code(), rsp.message());
-                        refreshUiIfDone.run();
-                    }
-                }
-                @Override public void onFailure(Call<List<Autorizadores>> call, Throwable t) {
-                    Toast.makeText(requireContext(), "Error autorizadores: " + safeMsg(t), Toast.LENGTH_SHORT).show();
-                    refreshUiIfDone.run();
-                }
-            });
-        }
-
-        if (pending.get() == 0) btnGuardar.setEnabled(true);
+            }
+            @Override public void onFailure(Call<List<Planta>> call, Throwable t) {
+                Toast.makeText(requireContext(), "Error plantas: " + safeMsg(t), Toast.LENGTH_SHORT).show();
+                refreshUiIfDone.run();
+            }
+        });
     }
 
     private void handleHttpError(String tag, int code, String msg) {
