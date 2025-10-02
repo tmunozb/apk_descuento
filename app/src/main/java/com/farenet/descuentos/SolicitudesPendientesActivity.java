@@ -57,10 +57,32 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
     private Call<AccionSolicitudRsp> rechazarCall;
 
     private static final String[] TIPOS = new String[]{"Todos", "Descuento", "Cortesía"};
-    private static final String[] ESTADOS = new String[]{"Pendiente", "Aprobada", "Rechazada"};
+    // Elimina la constante ESTADOS actual y agrega esto:
+    private String[] estadosAdapterArray() {
+        // Comercial SOLO ve “Pendiente (Autorización)”
+        if (isSoloComercial()) {
+            return new String[]{"Pendiente (Autorización)"};
+        }
+
+        List<String> estados = new ArrayList<>();
+        estados.add("Pendiente"); // ENVIADA/OBSERVADA
+        if (canVerPendienteAut()) {
+            estados.add("Pendiente (Autorización)");
+        }
+        estados.add("Aprobada");
+        estados.add("Rechazada");
+        return estados.toArray(new String[0]);
+    }
+
 
     private DescuentoRepository descuentoRepository;
     private SharedPreferences sharedPreferences;
+
+    // Flags de rol (se calculan al iniciar)
+    private boolean isSistemas = false;
+    private boolean isOperaciones = false;
+    private boolean isComercial = false;
+
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -68,6 +90,7 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
         setContentView(R.layout.activity_solicitudes_pendientes);
 
         session = new SessionManager(getApplicationContext());
+        computeRoleFlags();
 
         MaterialToolbar tb = findViewById(R.id.toolbar);
         tb.setNavigationOnClickListener(v -> finish());
@@ -89,11 +112,23 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
         actTipo.setAdapter(new android.widget.ArrayAdapter<>(this,
                 android.R.layout.simple_list_item_1, TIPOS));
         actEstado.setAdapter(new android.widget.ArrayAdapter<>(this,
-                android.R.layout.simple_list_item_1, ESTADOS));
+                android.R.layout.simple_list_item_1, estadosAdapterArray()));
 
-        actPlanta.setText("Todas", false);
+// Estado por defecto
+        if (canVerTodasPlantas()) {
+            actPlanta.setText("Todas", false);
+        } else {
+            // Si no hay “Todas”, selecciona la primera planta disponible si existe
+            if (!plantasNombres.isEmpty()) {
+                actPlanta.setText(plantasNombres.get(0), false);
+            }
+        }
         actTipo.setText("Todos", false);
-        actEstado.setText("Pendiente", false);
+        if (isSoloComercial()) {
+            actEstado.setText("Pendiente (Autorización)", false);
+        } else {
+            actEstado.setText("Pendiente", false);
+        }
 
         actPlanta.setOnItemClickListener((p, v, pos, id) -> filtrar());
         actTipo.setOnItemClickListener((p, v, pos, id) -> filtrar());
@@ -108,10 +143,14 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
     private void cargarPlantasDesdeSesion() {
         plantasNombres.clear();
         plantaNombreToKey.clear();
-        plantasNombres.add("Todas");
+
+        if (canVerTodasPlantas()) {
+            plantasNombres.add("Todas");
+        }
 
         List<AccesoPlantaDto> accesos = session.getAccesos();
         if (accesos == null) return;
+
         for (AccesoPlantaDto a : accesos) {
             if (a == null) continue;
             String nombre = safe(a.planta);
@@ -123,6 +162,50 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
             }
         }
     }
+
+    private String perfilUpper(UsuarioPerfil up) {
+        if (up == null || up.perfilId == null) return "";
+        return up.perfilId.trim().toUpperCase();
+    }
+
+    private void computeRoleFlags() {
+        UsuarioPerfil up = session.getPerfil();
+        String p = perfilUpper(up);
+
+        // Alias reconocidos (ajusta a tus valores reales)
+        String[] sis = {"SIS", "SISTEMAS"};
+        String[] ope = {"OPE", "OPERACION", "OPERACIONES"};
+        String[] com = {"COM", "COMERCIAL", "VENTAS"};
+
+        isSistemas    = matchesAny(p, sis);
+        isOperaciones = matchesAny(p, ope);
+        isComercial   = matchesAny(p, com);
+    }
+
+    private boolean matchesAny(String value, String[] options) {
+        if (value == null) return false;
+        for (String opt : options) {
+            if (value.equalsIgnoreCase(opt)) return true;
+        }
+        return false;
+    }
+
+    // Permisos derivados
+
+    private boolean isSoloComercial() {
+        return isComercial && !isSistemas;
+    }
+
+
+    private boolean canVerTodasPlantas() {
+        return isSistemas || isOperaciones || isComercial;
+    }
+
+    private boolean canVerPendienteAut() {
+        return isSistemas || isComercial;
+    }
+
+
 
     private String[] plantasAdapterArray() {
         return plantasNombres.toArray(new String[0]);
@@ -142,6 +225,10 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
                 }
                 all.clear();
                 for (SolicitudPendienteDto d : response.body()) {
+                    // ⛔ Para COMERCIAL: solo incorporar PENDIENTE_AUT
+                    if (isSoloComercial() && (d.estado == null || !d.estado.equalsIgnoreCase("PENDIENTE_AUT"))) {
+                        continue;
+                    }
                     String tipoNice = "DESCUENTO".equalsIgnoreCase(d.tipo) ? "Descuento"
                             : "CORTESIA".equalsIgnoreCase(d.tipo) ? "Cortesía" : safe(d.tipo);
                     String estadoNice = mapEstadoUI(d.estado);
@@ -286,10 +373,11 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
     }
 
     private boolean isPendienteGrupo(String estadoUi) {
-        if (estadoUi == null) return true;
-        String e = estadoUi.toLowerCase();
-        return e.startsWith("pendiente");
+        if (estadoUi == null) return false;
+        String e = estadoUi.trim().toLowerCase();
+        return "pendiente".equals(e) || "pendiente (observada)".equals(e);
     }
+
 
     private String mapEstadoUI(String backendEstado) {
         if (backendEstado == null) return "Pendiente";
