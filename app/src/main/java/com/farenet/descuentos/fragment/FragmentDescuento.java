@@ -10,7 +10,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter; // <-- NUEVO
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
@@ -29,13 +28,15 @@ import com.farenet.descuentos.domain.Conceptoinspeccion;
 import com.farenet.descuentos.domain.Descuento;
 import com.farenet.descuentos.domain.Planta;
 import com.farenet.descuentos.domain.TipoPagoDescuento;
+import com.farenet.descuentos.models.newapi.MotivoDescuento;
+import com.farenet.descuentos.network.newapi.NewApiClient;
+import com.farenet.descuentos.network.newapi.NewApiService;
 import com.farenet.descuentos.repository.DescuentoRepository;
 import com.farenet.descuentos.repository.MaestroRepository;
 import com.farenet.descuentos.sql.QueryRealm;
-import com.google.android.material.textfield.MaterialAutoCompleteTextView; // <-- NUEVO
+import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 
 import java.util.ArrayList;
-import java.util.Arrays; // <-- NUEVO
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -47,7 +48,8 @@ import retrofit2.Response;
 public class FragmentDescuento extends Fragment {
 
     private Spinner spPlanta, spConcepto, spTipoPago, spTipoCampana, spTipoDescuento, spAutoriza;
-    private EditText txtPlaca, txtMonto, txtMotivo; // Mantengo EditText para no romper nada
+    private EditText txtPlaca, txtMonto;
+    private MaterialAutoCompleteTextView actvMotivo;
     private Button btnGuardar;
 
     private SpinerAdapter<Planta> spPlantaAdapter;
@@ -60,6 +62,11 @@ public class FragmentDescuento extends Fragment {
     private DescuentoRepository descuentoRepository;
     private MaestroRepository maestroRepository;
     private SharedPreferences sharedPreferences;
+    private NewApiService newApi;
+
+    // Motivos desde API
+    private final List<MotivoDescuento> motivosDesc = new ArrayList<>();
+    private String motivoDescIdSeleccionado = null;
 
     @Nullable
     @Override
@@ -76,7 +83,7 @@ public class FragmentDescuento extends Fragment {
         spTipoPago      = view.findViewById(R.id.sp_tipopago_desc);
         txtPlaca        = view.findViewById(R.id.txtPlaca_desc);
         txtMonto        = view.findViewById(R.id.txtMonto_desc);
-        txtMotivo       = view.findViewById(R.id.txtMotivo_desc); // puede ser EditText o MaterialAutoCompleteTextView
+        actvMotivo      = view.findViewById(R.id.actvMotivo_desc);
         btnGuardar      = view.findViewById(R.id.btnGuardar_desc);
         spTipoCampana   = view.findViewById(R.id.sp_tipocampana);
         spTipoDescuento = view.findViewById(R.id.sp_tipodescuento);
@@ -85,6 +92,7 @@ public class FragmentDescuento extends Fragment {
         sharedPreferences   = requireActivity().getSharedPreferences(Constante.TOKEN, Context.MODE_PRIVATE);
         descuentoRepository = Constante.getDescuentoRepository();
         maestroRepository   = Constante.getMaestroRespository();
+        newApi              = NewApiClient.get(); // <-- ¡IMPORTANTE! Inicializa aquí
 
         // 1) Cargar local
         List<Planta> plantas = safe(QueryRealm.copyAllPlantas());
@@ -131,32 +139,12 @@ public class FragmentDescuento extends Fragment {
             @Override public void onNothingSelected(AdapterView<?> parent) {}
         });
 
-        // 4.1) MOTIVO como combo editable (si el layout usa MaterialAutoCompleteTextView)
-        if (txtMotivo instanceof MaterialAutoCompleteTextView) {
-            MaterialAutoCompleteTextView mac = (MaterialAutoCompleteTextView) txtMotivo;
-
-            String[] motivos = getResources().getStringArray(R.array.motivos_descuento);
-            ArrayAdapter<String> motivoAdapter = new ArrayAdapter<>(
-                    requireContext(),
-                    android.R.layout.simple_list_item_1,
-                    Arrays.asList(motivos)
-            );
-            mac.setAdapter(motivoAdapter);
-
-            mac.setOnFocusChangeListener((v, hasFocus) -> { if (hasFocus) mac.showDropDown(); });
-            mac.setOnItemClickListener((parent, v, pos, id) -> {
-                String sel = (String) parent.getItemAtPosition(pos);
-                if ("Otro (especificar)".equalsIgnoreCase(sel)) {
-                    mac.setText("");
-                    mac.requestFocus();
-                }
-            });
-        }
+        // 5) Cargar motivos de descuento desde API
+        cargarMotivosDescuento();
 
         btnGuardar.setOnClickListener(v -> onGuardarClicked());
 
-
-        // 5) Re-sync si local vacío
+        // 6) Re-sync si local vacío
         ensureMaestrosDesdeApiSiHaceFalta();
     }
 
@@ -167,6 +155,67 @@ public class FragmentDescuento extends Fragment {
                 ? spTipoDescuento.getSelectedItem().toString()
                 : "";
         spTipoCampana.setVisibility("CAMPAÑA".equalsIgnoreCase(tipo) ? View.VISIBLE : View.GONE);
+    }
+
+    // ===== Motivos de Descuento desde API =====
+    private void cargarMotivosDescuento() {
+        // (Opcional) Validación de token si tu endpoint lo requiere
+        String token = sharedPreferences.getString("token", null);
+        if (TextUtils.isEmpty(token)) {
+            // Si el endpoint es público, no retornes.
+            Toast.makeText(requireContext(), "Sesión no válida. Inicie sesión.", Toast.LENGTH_SHORT).show();
+        }
+
+        // Llamar SIEMPRE al cliente inicializado
+        NewApiClient.get()
+                .getMotivosDescuento(true)
+                .enqueue(new Callback<List<MotivoDescuento>>() {
+                    @Override
+                    public void onResponse(Call<List<MotivoDescuento>> call, Response<List<MotivoDescuento>> response) {
+                        if (!response.isSuccessful() || response.body() == null) {
+                            Toast.makeText(requireContext(), "Motivos: HTTP " + response.code(), Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        motivosDesc.clear();
+                        motivosDesc.addAll(response.body());
+
+                        // Poner nombres en el dropdown
+                        List<String> nombres = new ArrayList<>();
+                        for (MotivoDescuento m : motivosDesc) {
+                            if (m != null && m.getNombre() != null) nombres.add(m.getNombre());
+                        }
+
+                        // Adapter para el MaterialAutoCompleteTextView
+                        android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(
+                                requireContext(),
+                                android.R.layout.simple_list_item_1,
+                                nombres
+                        );
+                        actvMotivo.setAdapter(adapter);
+
+                        // Preseleccionar el primero (opcional)
+                        if (!motivosDesc.isEmpty()) {
+                            actvMotivo.setText(motivosDesc.get(0).getNombre(), false);
+                            motivoDescIdSeleccionado = motivosDesc.get(0).getId();
+                        }
+
+                        // Guardar el id cuando el usuario elija uno
+                        actvMotivo.setOnItemClickListener((parent, view, position, id) -> {
+                            String elegido = (String) parent.getItemAtPosition(position);
+                            for (MotivoDescuento m : motivosDesc) {
+                                if (m != null && elegido.equals(m.getNombre())) {
+                                    motivoDescIdSeleccionado = m.getId();
+                                    break;
+                                }
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onFailure(Call<List<MotivoDescuento>> call, Throwable t) {
+                        Toast.makeText(requireContext(), "Error motivos: " + safeMsg(t), Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
     /** Muestra diálogo y, si acepta, borra token + Realm y navega a Login. */
@@ -181,7 +230,6 @@ public class FragmentDescuento extends Fragment {
 
     private void cerrarSesionYBorrarCache() {
         btnGuardar.setEnabled(false);
-
 
         sharedPreferences.edit().clear().apply();
 
@@ -204,7 +252,6 @@ public class FragmentDescuento extends Fragment {
                 } catch (ClassNotFoundException e) {
                     Toast.makeText(requireContext(), "No se encontró LoginActivity", Toast.LENGTH_LONG).show();
                     btnGuardar.setEnabled(true);
-
                 }
             }
 
@@ -213,7 +260,6 @@ public class FragmentDescuento extends Fragment {
                                 (error != null && error.getMessage()!=null ? error.getMessage() : "desconocido"),
                         Toast.LENGTH_LONG).show();
                 btnGuardar.setEnabled(true);
-
             }
         });
     }
@@ -382,7 +428,7 @@ public class FragmentDescuento extends Fragment {
             return;
         }
 
-        String motivo = txtMotivo.getText().toString().trim();
+        String motivo = actvMotivo.getText() != null ? actvMotivo.getText().toString().trim() : "";
         String autoriza = aut.getNombre() != null ? aut.getNombre() : aut.toString();
 
         String tipoSelec = spTipoDescuento.getSelectedItem() != null
@@ -422,17 +468,15 @@ public class FragmentDescuento extends Fragment {
                 if (response.isSuccessful() && response.code() == 200) {
                     Toast.makeText(requireContext(), "Se agregó el descuento", Toast.LENGTH_LONG).show();
 
-                    // WhatsApp con placa + planta + concepto + motivo + etiqueta monto + valor
                     String plantaNombre   = planta.getNombre() != null ? planta.getNombre() : String.valueOf(planta);
                     String conceptoNombre = (concepto.getAbreviatura() != null && !concepto.getAbreviatura().isEmpty())
                             ? concepto.getAbreviatura() : String.valueOf(concepto);
 
-                    // === NUEVO: etiqueta dinámica según TipoPagoDescuento ===
-                    String pagoNameOrKey = (tipoPago.getNombre() != null ? tipoPago.getNombre() : "") +
-                            " " +
-                            (tipoPago.getKey() != null ? tipoPago.getKey() : "");
-                    String montoLabel;
+                    // Etiqueta dinámica según tipo de pago
+                    String pagoNameOrKey = (tipoPago.getNombre() != null ? tipoPago.getNombre() : "")
+                            + " " + (tipoPago.getKey() != null ? tipoPago.getKey() : "");
                     String lower = pagoNameOrKey.toLowerCase();
+                    String montoLabel;
                     if (lower.contains("flat")) {
                         montoLabel = "💰 Monto a pagar:";
                     } else if (lower.contains("porcentaje") || lower.contains("%")) {
@@ -440,7 +484,7 @@ public class FragmentDescuento extends Fragment {
                     } else if (lower.contains("monto")) {
                         montoLabel = "💰 Monto de descuento:";
                     } else {
-                        montoLabel = "💰 Monto:"; // fallback
+                        montoLabel = "💰 Monto:";
                     }
 
                     abrirWhatsappYLimpiar(placa, plantaNombre, tipoSelec, conceptoNombre, motivo, montoLabel, monto);
@@ -483,8 +527,8 @@ public class FragmentDescuento extends Fragment {
         if (montoStr.isEmpty()) { txtMonto.setError("Ingrese monto"); ok = false; }
         else if (parseMonto(montoStr) == null) { txtMonto.setError("Monto inválido"); ok = false; }
 
-        String motivo = txtMotivo.getText() != null ? txtMotivo.getText().toString().trim() : "";
-        if (motivo.isEmpty()) { txtMotivo.setError("Ingrese motivo"); ok = false; }
+        String motivo = actvMotivo.getText() != null ? actvMotivo.getText().toString().trim() : "";
+        if (motivo.isEmpty()) { actvMotivo.setError("Seleccione motivo"); ok = false; }
 
         if (spPlanta.getAdapter() == null || spPlanta.getAdapter().getCount() == 0) {
             Toast.makeText(requireContext(), "No hay plantas disponibles", Toast.LENGTH_SHORT).show();
@@ -515,14 +559,13 @@ public class FragmentDescuento extends Fragment {
         return ok;
     }
 
-    /** Arma el texto según el tipo de descuento y abre WhatsApp; luego limpia el formulario. */
     private void abrirWhatsappYLimpiar(String placa,
                                        String plantaNombre,
                                        String tipoSelec,
                                        String conceptoNombre,
                                        String motivo,
-                                       String montoLabel,   // <-- NUEVO
-                                       double monto) {      // <-- NUEVO
+                                       String montoLabel,
+                                       double monto) {
         String msg;
         if ("CARTA".equalsIgnoreCase(tipoSelec)) {
             msg = getString(R.string.msjwhtspcarta,  placa, plantaNombre, conceptoNombre, motivo, montoLabel, monto);
@@ -551,7 +594,6 @@ public class FragmentDescuento extends Fragment {
         limpiar();
     }
 
-    /** Intenta lanzar un ACTION_SEND con un paquete específico. Devuelve true si se lanzó. */
     private boolean tryStartActivityWithPackage(Intent base, String packageName) {
         try {
             Intent i = new Intent(base);
@@ -573,6 +615,7 @@ public class FragmentDescuento extends Fragment {
         if (spTipoCampana.getAdapter() != null && spTipoCampana.getAdapter().getCount() > 0) spTipoCampana.setSelection(0);
         txtPlaca.setText("");
         txtMonto.setText("");
-        txtMotivo.setText("");
+        actvMotivo.setText("");
+        motivoDescIdSeleccionado = null;
     }
 }

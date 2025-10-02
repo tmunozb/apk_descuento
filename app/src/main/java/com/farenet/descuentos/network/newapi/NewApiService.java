@@ -78,4 +78,16 @@ public interface NewApiService {
     @GET("motivos_cortesia")
     Call<List<MotivoCortesia>> getMotivosCortesia(@Query("activo") Boolean activo);
 
+    // GET /motivos_descuento?activo=true
+    @GET("motivos_descuento")
+    Call<List<MotivoDescuento>> getMotivosDescuento(@Query("activo") boolean activo);
+
+    @POST("/solicitudes/{id}/autorizar")
+    Call<AccionSolicitudRsp> autorizarSolicitud(
+            @Path("id") String id,
+            @Body AutorizarSolicitudReq body
+    );
+
+
+
 }

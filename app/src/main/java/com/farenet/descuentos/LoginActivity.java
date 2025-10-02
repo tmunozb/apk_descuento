@@ -21,6 +21,7 @@ import com.farenet.descuentos.models.newapi.UsuarioPerfil;
 import com.farenet.descuentos.network.newapi.NewApiClient;
 import com.farenet.descuentos.repository.LoginRepository;
 import com.farenet.descuentos.repository.SessionManager;
+import com.farenet.descuentos.prefetch.Prefetcher; // <-- IMPORTANTE
 
 import java.util.List;
 
@@ -69,6 +70,12 @@ public class LoginActivity extends AppCompatActivity {
         // Autologin: PRIORIDAD token legacy (porque lo usan las pantallas existentes)
         String legacyToken = sharedPreferences.getString("token", null);
         if (legacyToken != null && !legacyToken.isEmpty()) {
+            // Lanzamos prefetch en background ANTES de ir al main
+            Prefetcher.warmUpAfterLogin(
+                    legacyToken,
+                    Constante.getMaestroRespository(),
+                    NewApiClient.get()
+            );
             goToMain();
             return;
         }
@@ -126,6 +133,13 @@ public class LoginActivity extends AppCompatActivity {
                     editor.putString("user", user);
                     editor.apply();
 
+                    // Prefetch inmediato tras login OK (no bloquea UI)
+                    Prefetcher.warmUpAfterLogin(
+                            usuario.getToken(),
+                            Constante.getMaestroRespository(),
+                            NewApiClient.get()
+                    );
+
                     // Navega de inmediato: Descuento/Cortesía ya tienen token
                     goToMain();
 
@@ -145,7 +159,6 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
-    // ===== LOGIN NUEVO (fire & forget) =====
     // ===== LOGIN NUEVO (fire & forget) =====
     private void doLoginNewFireAndForget(final String user, final String pw) {
         try {
@@ -223,72 +236,12 @@ public class LoginActivity extends AppCompatActivity {
         } catch (Exception ignored) { }
     }
 
-
-    // ===== (Opcional) Login nuevo “bloqueante”, ya no lo usamos como principal =====
-    @SuppressWarnings("unused")
-    private void doLoginNew(final String user, final String pw) {
-        if (loginCallNew != null) loginCallNew.cancel();
-
-        setLoading(true);
-        LoginReq req = new LoginReq(user, pw);
-        loginCallNew = NewApiClient.get().login(req);
-        loginCallNew.enqueue(new Callback<LoginRsp>() {
-            @Override
-            public void onResponse(Call<LoginRsp> call, Response<LoginRsp> response) {
-                setLoading(false);
-                if (!response.isSuccessful()) {
-                    int code = response.code();
-                    if (code == 401) {
-                        toast("Contraseña incorrecta");
-                    } else if (code == 404) {
-                        toast("Usuario no encontrado");
-                    } else if (code == 403) {
-                        toast("Acceso denegado");
-                    } else {
-                        toast("Error del servidor (" + code + ")");
-                    }
-                    return;
-                }
-
-                LoginRsp body = response.body();
-                if (body == null) {
-                    toast("Respuesta vacía del servidor");
-                    return;
-                }
-                if (!body.isOk()) {
-                    toast(body.error != null ? body.error : "Login fallido");
-                    return;
-                }
-
-                // Guardar sesión nueva
-                session.saveUsername(body.username);
-
-                UsuarioPerfil perfil = new UsuarioPerfil();
-                perfil.username = body.username;
-                perfil.perfilId = body.perfilId;
-                perfil.estado = body.estado;
-                perfil.nroDocumento = body.nroDocumento;
-                perfil.nombres = body.nombres;
-                perfil.apellidos = body.apellidos;
-                session.savePerfil(perfil);
-
-                goToMain();
-            }
-
-            @Override
-            public void onFailure(Call<LoginRsp> call, Throwable t) {
-                setLoading(false);
-                toast("No se pudo conectar. Intenta de nuevo.");
-            }
-        });
-    }
-
     private void toast(String msg) {
         Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
     }
 
     private void goToMain() {
-        startActivity(new Intent(LoginActivity.this, SelectionActivity.class));
+        startActivity(new Intent(LoginActivity.this, BootstrapActivity.class));
         finish();
     }
 

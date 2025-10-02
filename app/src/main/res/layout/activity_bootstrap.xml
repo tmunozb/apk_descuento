@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
+
+    <!-- Fondo gradiente -->
+    <View
+        android:id="@+id/bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_bootstrap_gradient"/>
+
+    <!-- Contenedor centrado -->
+    <LinearLayout
+        android:id="@+id/card"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <!-- Tarjeta "glass" -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="8dp"
+            app:strokeColor="@android:color/transparent"
+            android:alpha="0.98">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <!-- Logo / ícono -->
+                <ImageView
+                    android:id="@+id/imgLogo"
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:layout_gravity="center_horizontal"
+                    android:contentDescription="@string/app_name"
+                    android:src="@mipmap/ico_descuento"/>
+
+                <!-- Título -->
+                <TextView
+                    android:id="@+id/tvTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:paddingTop="12dp"
+                    android:text="@string/app_name"
+                    android:textColor="@color/fareazul"
+                    android:textSize="20sp"
+                    android:textStyle="bold"/>
+
+                <!-- Paso principal -->
+                <TextView
+                    android:id="@+id/tvStep"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingTop="10dp"
+                    android:text="Preparando tu sesión…"
+                    android:textColor="@android:color/black"
+                    android:textSize="16sp"/>
+
+                <!-- Subtítulo dinámico -->
+                <TextView
+                    android:id="@+id/tvSub"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingTop="2dp"
+                    android:text="Un momento por favor"
+                    android:textColor="#666666"
+                    android:textSize="14sp"
+                    android:alpha="0.85"/>
+
+                <!-- Indicador circular -->
+                <com.google.android.material.progressindicator.CircularProgressIndicator
+                    android:id="@+id/progressCircular"
+                    style="@style/Widget.Material3.CircularProgressIndicator"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="16dp"
+                    app:indicatorSize="40dp"
+                    app:trackCornerRadius="20dp"
+                    android:indeterminate="true"
+                    app:indicatorColor="@android:color/black"
+                    app:trackColor="#33FFFFFF"/>
+
+                <!-- Barra de progreso determinística -->
+                <com.google.android.material.progressindicator.LinearProgressIndicator
+                    android:id="@+id/progressLinear"
+                    style="@style/Widget.Material3.LinearProgressIndicator"
+                    android:layout_width="match_parent"
+                    android:layout_height="8dp"
+                    android:layout_marginTop="16dp"
+                    android:max="100"
+                    android:progress="8"
+                    app:trackCornerRadius="8dp"
+                    android:indeterminate="false"
+                    app:indicatorColor="@android:color/black"
+                    app:trackColor="#33FFFFFF"/>
+
+                <!-- Píldora de tips (opcional) -->
+                <TextView
+                    android:id="@+id/tvTip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_tip_pill"
+                    android:paddingLeft="12dp"
+                    android:paddingRight="12dp"
+                    android:paddingTop="6dp"
+                    android:paddingBottom="6dp"
+                    android:text="Consejo: puedes abrir Cortesías desde el menú lateral"
+                    android:textColor="@android:color/black"
+                    android:textSize="12sp"
+                    android:alpha="0.9"/>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

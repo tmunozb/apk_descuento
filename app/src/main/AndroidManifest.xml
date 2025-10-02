@@ -58,6 +58,12 @@
             android:name=".CortesiaActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".BootstrapActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar"/>
+
+
 
         <activity
             android:name=".LoginActivity"

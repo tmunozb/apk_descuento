@@ -121,7 +121,7 @@ public class SelectionActivity extends AppCompatActivity
         }
         if (cardPendientesAprobar != null) {
             cardPendientesAprobar.setOnClickListener(v -> {
-                if (tienePerfil("operaciones") || tienePerfil("sistemas")) {
+                if (tienePerfil("operaciones") || tienePerfil("sistemas") || tienePerfil("administrador") || tienePerfil("comercial") || tienePerfil("mecanico") || tienePerfil("asistente_servicio")) {
                     startActivity(new Intent(this, SolicitudesPendientesActivity.class));
                 } else {
                     showInfo("Acceso restringido", "Solo Operaciones o Sistemas pueden aprobar.");
@@ -130,10 +130,10 @@ public class SelectionActivity extends AppCompatActivity
         }
         if (cardHistorial != null) {
             cardHistorial.setOnClickListener(v ->{
-                if (tienePerfil("sistemas")) {
+                if (tienePerfil("sistemas") || tienePerfil("comercial")) {
                     startActivity(new Intent(this, HistorialSolicitudesActivity.class));
                 } else {
-                    showInfo("Acceso restringido", "Solo Sistemas gestiona descuentos directamente.");
+                    showInfo("Acceso restringido", "Solo Sistemas y comercial gestiona descuentos directamente.");
                 }
             });
         }
@@ -186,11 +186,14 @@ public class SelectionActivity extends AppCompatActivity
         boolean isSistemas     = tienePerfil("sistemas");
         boolean isAdmin        = tienePerfil("administrador");
         boolean isOperaciones  = tienePerfil("operaciones");
+        boolean isComercial  = tienePerfil("comercial");
+        boolean isMecanico  = tienePerfil("mecanico");
+        boolean isAsistente  = tienePerfil("asistente_servicio");
 
         setVisible(cardNuevaSolicitud,   isSistemas);
         setVisible(cardMisSolicitudes,  isSistemas);
-        setVisible(cardHistorial,        isSistemas);
-        setVisible(cardPendientesAprobar,  isSistemas);
+        setVisible(cardHistorial,        isSistemas||isComercial);
+        setVisible(cardPendientesAprobar,  isSistemas || isOperaciones || isAdmin ||isComercial||isMecanico||isAsistente);
         setVisible(cardDescuentos, isSistemas );
         setVisible(cardCortesias,  isSistemas || isOperaciones || isAdmin);
         setVisible(cardReportes, isSistemas);
@@ -226,19 +229,15 @@ public class SelectionActivity extends AppCompatActivity
         Log.d(TAG, "updateHeader() -> accesos=" + (acc != null ? acc.size() : 0));
     }
 
+    private String lastPerfilIdShown;
     /** Visibilidad del menú lateral (si agregas entradas nuevas, mapéalas aquí) */
     private void aplicarVisibilidadPorPerfil() {
         if (navView == null || navView.getMenu() == null) return;
         Menu menu = navView.getMenu();
 
         UsuarioPerfil up = session.getPerfil();
-        if (up == null || up.perfilId == null || up.perfilId.trim().isEmpty()) {
-            Log.w(TAG, "Sin perfil nuevo. Mostrando todo (fallback legacy).");
-            setAllVisible(menu, true);
-            return;
-        }
-
-        String perfilId = up.perfilId.toLowerCase(Locale.ROOT);
+        String perfilId = (up != null && up.perfilId != null) ? up.perfilId.trim().toLowerCase() : "";
+        if (perfilId.equals(lastPerfilIdShown)) return;
 
         boolean puedeDescuento         = any(perfilId, "sistemas");
         boolean puedeCortesia          = any(perfilId, "sistemas","administrador","operaciones");
@@ -251,7 +250,7 @@ public class SelectionActivity extends AppCompatActivity
         setVisible(menu, R.id.nav_datos_vehiculares, puedeDatosVehiculares);
         setVisible(menu, R.id.nav_soporte,           puedeDatosVehiculares);
         setVisible(menu, R.id.nav_logout,            true);
-
+        lastPerfilIdShown = perfilId;
         Log.d(TAG, "Visibilidad aplicada. perfilId=" + perfilId);
     }
 
