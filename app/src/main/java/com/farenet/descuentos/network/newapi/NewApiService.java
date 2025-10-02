@@ -7,10 +7,16 @@ import com.farenet.descuentos.models.rsp.AccionSolicitudRsp;
 import com.farenet.descuentos.models.rsp.SolicitudPendienteDto;
 
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+
+import com.farenet.descuentos.models.rsp.BolsaConfigDto;
+import com.farenet.descuentos.models.rsp.BolsaAuditoriaDto;
 
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
+import retrofit2.http.PATCH;
 import retrofit2.http.POST;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
@@ -88,6 +94,25 @@ public interface NewApiService {
             @Body AutorizarSolicitudReq body
     );
 
+    @GET("/bolsa/config/list")
+    Call<List<BolsaConfigDto>> bolsaListConfigs(
+            @Query("periodo") String periodo,
+            @Query("planta_key") String plantaKey,
+            @Query("estado") String estado,        // opcional
+            @Query("limit") Integer limit          // opcional
+    );
 
+    @POST("/bolsa/config")
+    Call<BolsaConfigDto> bolsaUpsertConfig(@Body Map<String, Object> body);
+
+    @PATCH("/bolsa/config/estado")
+    Call<Map<String, Object>> bolsaSetEstado(@Body Map<String, Object> body);
+
+    @GET("/bolsa/auditoria")
+    Call<List<BolsaAuditoriaDto>> bolsaAuditoria(
+            @Query("planta_key") String plantaKey,
+            @Query("periodo") String periodo,
+            @Query("limit") Integer limit
+    );
 
 }

@@ -23,11 +23,12 @@ import com.farenet.descuentos.models.newapi.UsuarioPerfil;
 import com.farenet.descuentos.network.newapi.NewApiClient;
 import com.farenet.descuentos.repository.SessionManager;
 import com.farenet.descuentos.sql.QueryRealm;
+import com.farenet.descuentos.ui.bolsa.BolsaBulkActivity;
+import com.farenet.descuentos.ui.bolsa.BolsaEstadoActivity; // TODO: implementar pantalla
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.navigation.NavigationView;
 
 import java.util.List;
-import java.util.Locale;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -45,12 +46,13 @@ public class SelectionActivity extends AppCompatActivity
     private SessionManager session;
     private SharedPreferences legacyPrefs;
 
-    // refs de UI del dashboard
+    // Dashboard
     private TextView tvWelcome;
-    // nuevas tarjetas
     private View cardNuevaSolicitud, cardMisSolicitudes, cardPendientesAprobar, cardHistorial;
-    // existentes
     private View cardDescuentos, cardCortesias, cardReportes, cardDatos, cardFeed;
+
+    // NUEVAS: Bolsas
+    private View cardBolsasEstado, cardBolsasBulk;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,23 +62,16 @@ public class SelectionActivity extends AppCompatActivity
         session = new SessionManager(getApplicationContext());
         legacyPrefs = getSharedPreferences(Constante.TOKEN, MODE_PRIVATE);
 
-        logSession("onCreate()");
-        logLegacyToken("onCreate()");
-
         String legacyToken = legacyPrefs.getString("token", null);
         UsuarioPerfil up = session.getPerfil();
         if ((legacyToken == null || legacyToken.isEmpty())
                 && (up == null || up.username == null || up.username.isEmpty())) {
-            Log.w(TAG, "No hay sesión válida (legacy ni nueva). Redirigiendo a Login.");
             goToLogin();
             return;
         }
 
         toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle(R.string.app_name);
-        }
 
         drawerLayout = findViewById(R.id.drawer_layout);
         navView = findViewById(R.id.navigationView);
@@ -88,26 +83,28 @@ public class SelectionActivity extends AppCompatActivity
         );
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
-
         navView.setNavigationItemSelectedListener(this);
 
-        // refs del dashboard
+        // refs dashboard
         tvWelcome            = findViewById(R.id.tv_welcome);
         cardNuevaSolicitud   = findViewById(R.id.card_nueva_solicitud);
         cardMisSolicitudes   = findViewById(R.id.card_mis_solicitudes);
         cardPendientesAprobar= findViewById(R.id.card_pendientes_aprobar);
         cardHistorial        = findViewById(R.id.card_historial);
+        cardDescuentos       = findViewById(R.id.card_descuentos);
+        cardCortesias        = findViewById(R.id.card_cortesias);
+        cardReportes         = findViewById(R.id.card_reportes);
+        cardDatos            = findViewById(R.id.card_datos);
+        cardFeed             = findViewById(R.id.card_feed);
 
-        cardDescuentos = findViewById(R.id.card_descuentos);
-        cardCortesias  = findViewById(R.id.card_cortesias);
-        cardReportes   = findViewById(R.id.card_reportes);
-        cardDatos      = findViewById(R.id.card_datos);
-        cardFeed       = findViewById(R.id.card_feed);
+        // NUEVAS bolsAs
+        cardBolsasEstado     = findViewById(R.id.card_bolsas_estado);
+        cardBolsasBulk       = findViewById(R.id.card_bolsas_bulk);
 
-        // listeners
+        // Listeners
         if (cardNuevaSolicitud != null) {
             cardNuevaSolicitud.setOnClickListener(v -> {
-                if (tienePerfil("administrador") || tienePerfil("sistemas")) {
+                if (tienePerfil("sistemas") || tienePerfil("administrador")) {
                     startActivity(new Intent(this, SolicitudCrearActivity.class));
                 } else {
                     showInfo("Acceso restringido", "Solo Administrador o Sistemas pueden crear solicitudes.");
@@ -121,23 +118,24 @@ public class SelectionActivity extends AppCompatActivity
         }
         if (cardPendientesAprobar != null) {
             cardPendientesAprobar.setOnClickListener(v -> {
-                if (tienePerfil("operaciones") || tienePerfil("sistemas") || tienePerfil("administrador") || tienePerfil("comercial") || tienePerfil("mecanico") || tienePerfil("asistente_servicio")) {
+                if (tienePerfil("operaciones") || tienePerfil("sistemas")
+                        || tienePerfil("administrador") || tienePerfil("comercial")
+                        || tienePerfil("mecanico") || tienePerfil("asistente_servicio")) {
                     startActivity(new Intent(this, SolicitudesPendientesActivity.class));
                 } else {
-                    showInfo("Acceso restringido", "Solo Operaciones o Sistemas pueden aprobar.");
+                    showInfo("Acceso restringido", "No tienes permiso para aprobar.");
                 }
             });
         }
         if (cardHistorial != null) {
-            cardHistorial.setOnClickListener(v ->{
+            cardHistorial.setOnClickListener(v -> {
                 if (tienePerfil("sistemas") || tienePerfil("comercial")) {
                     startActivity(new Intent(this, HistorialSolicitudesActivity.class));
                 } else {
-                    showInfo("Acceso restringido", "Solo Sistemas y comercial gestiona descuentos directamente.");
+                    showInfo("Acceso restringido", "Solo Sistemas o Comercial.");
                 }
             });
         }
-
         if (cardDescuentos != null) {
             cardDescuentos.setOnClickListener(v -> {
                 if (tienePerfil("sistemas")) {
@@ -152,25 +150,43 @@ public class SelectionActivity extends AppCompatActivity
                 if (tienePerfil("operaciones") || tienePerfil("sistemas") || tienePerfil("administrador")) {
                     startActivity(new Intent(this, CortesiaActivity.class));
                 } else {
-                    showInfo("Acceso restringido", "Solo Sistemas gestiona cortesías directamente.");
+                    showInfo("Acceso restringido", "No tienes permisos para cortesías.");
+                }
+            });
+        }
+
+        // NUEVOS listeners (SOLO SISTEMAS)
+        if (cardBolsasEstado != null) {
+            cardBolsasEstado.setOnClickListener(v -> {
+                if (tienePerfil("sistemas")) {
+                    startActivity(new Intent(this, BolsaEstadoActivity.class)); // la implementamos después
+                } else {
+                    showInfo("Acceso restringido", "Solo Sistemas puede ver el estado de bolsas.");
+                }
+            });
+        }
+        if (cardBolsasBulk != null) {
+            cardBolsasBulk.setOnClickListener(v -> {
+                if (tienePerfil("sistemas")) {
+                    startActivity(new Intent(this, BolsaBulkActivity.class));
+                } else {
+                    showInfo("Acceso restringido", "Solo Sistemas puede gestionar carga masiva de bolsas.");
                 }
             });
         }
 
         updateHeader();
-        aplicarVisibilidadPorPerfil();      // menú lateral
-        aplicarSaludoYVisibilidadDeCards(); // saludo + cards del dashboard
+        aplicarVisibilidadPorPerfil();
+        aplicarSaludoYVisibilidadDeCards();
 
         if (needsBootstrap(up)) {
-            tryBootstrapPerfilPorServicios(); // ahora usa GET /login_perfiles
+            tryBootstrapPerfilPorServicios();
         }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        logSession("onResume()");
-        logLegacyToken("onResume()");
         aplicarVisibilidadPorPerfil();
         aplicarSaludoYVisibilidadDeCards();
     }
@@ -186,19 +202,23 @@ public class SelectionActivity extends AppCompatActivity
         boolean isSistemas     = tienePerfil("sistemas");
         boolean isAdmin        = tienePerfil("administrador");
         boolean isOperaciones  = tienePerfil("operaciones");
-        boolean isComercial  = tienePerfil("comercial");
-        boolean isMecanico  = tienePerfil("mecanico");
-        boolean isAsistente  = tienePerfil("asistente_servicio");
+        boolean isComercial    = tienePerfil("comercial");
+        boolean isMecanico     = tienePerfil("mecanico");
+        boolean isAsistente    = tienePerfil("asistente_servicio");
 
-        setVisible(cardNuevaSolicitud,   isSistemas);
-        setVisible(cardMisSolicitudes,  isSistemas);
-        setVisible(cardHistorial,        isSistemas||isComercial);
-        setVisible(cardPendientesAprobar,  isSistemas || isOperaciones || isAdmin ||isComercial||isMecanico||isAsistente);
-        setVisible(cardDescuentos, isSistemas );
-        setVisible(cardCortesias,  isSistemas || isOperaciones || isAdmin);
-        setVisible(cardReportes, isSistemas);
-        setVisible(cardDatos,    isSistemas);
-        setVisible(cardFeed,     isSistemas);
+        setVisible(cardNuevaSolicitud,        isSistemas);
+        setVisible(cardMisSolicitudes,        isSistemas);
+        setVisible(cardHistorial,             isSistemas || isComercial);
+        setVisible(cardPendientesAprobar,     isSistemas || isOperaciones || isAdmin || isComercial || isMecanico || isAsistente);
+        setVisible(cardDescuentos,            isSistemas);
+        setVisible(cardCortesias,             isSistemas || isOperaciones || isAdmin);
+        setVisible(cardReportes,              isSistemas);
+        setVisible(cardDatos,                 isSistemas);
+        setVisible(cardFeed,                  isSistemas);
+
+        // NUEVOS (solo sistemas)
+        setVisible(cardBolsasEstado,          isSistemas);
+        setVisible(cardBolsasBulk,            isSistemas);
     }
 
     private boolean tienePerfil(String perfilEsperado) {
@@ -230,7 +250,6 @@ public class SelectionActivity extends AppCompatActivity
     }
 
     private String lastPerfilIdShown;
-    /** Visibilidad del menú lateral (si agregas entradas nuevas, mapéalas aquí) */
     private void aplicarVisibilidadPorPerfil() {
         if (navView == null || navView.getMenu() == null) return;
         Menu menu = navView.getMenu();
@@ -251,12 +270,6 @@ public class SelectionActivity extends AppCompatActivity
         setVisible(menu, R.id.nav_soporte,           puedeDatosVehiculares);
         setVisible(menu, R.id.nav_logout,            true);
         lastPerfilIdShown = perfilId;
-        Log.d(TAG, "Visibilidad aplicada. perfilId=" + perfilId);
-    }
-
-    private void setAllVisible(Menu menu, boolean visible) {
-        int size = menu.size();
-        for (int i = 0; i < size; i++) menu.getItem(i).setVisible(visible);
     }
 
     private void setVisible(Menu menu, int id, boolean visible) {
@@ -291,25 +304,16 @@ public class SelectionActivity extends AppCompatActivity
         return null;
     }
 
-    /** Bootstrap usando GET /login_perfiles?username=... (no requiere password) */
     private void tryBootstrapPerfilPorServicios() {
         final String user = resolveUsername();
-        if (user == null) {
-            Log.w(TAG, "Bootstrap cancelado: username vacío.");
-            return;
-        }
-        Log.d(TAG, "Bootstrap -> login_perfiles(GET) username=" + user);
+        if (user == null) return;
 
         NewApiClient.get().loginPerfilesGet(user).enqueue(new Callback<LoginRsp>() {
             @Override
             public void onResponse(Call<LoginRsp> call, Response<LoginRsp> response) {
-                if (!response.isSuccessful() || response.body() == null) {
-                    Log.w(TAG, "login_perfiles(GET) code=" + response.code() + " – sin bootstrap");
-                    return;
-                }
-                LoginRsp body = response.body();
+                if (!response.isSuccessful() || response.body() == null) return;
 
-                // Guardar username y perfil
+                LoginRsp body = response.body();
                 session.saveUsername(body.username);
 
                 UsuarioPerfil p = new UsuarioPerfil();
@@ -321,12 +325,10 @@ public class SelectionActivity extends AppCompatActivity
                 p.apellidos    = body.apellidos;
                 session.savePerfil(p);
 
-                // Guardar accesos del payload
                 if (body.accesos != null && !body.accesos.isEmpty()) {
                     session.saveAccesos(body.accesos);
                 }
 
-                Log.d(TAG, "Bootstrap GET OK -> " + session.debugSnapshot());
                 updateHeader();
                 aplicarVisibilidadPorPerfil();
                 aplicarSaludoYVisibilidadDeCards();
@@ -339,7 +341,7 @@ public class SelectionActivity extends AppCompatActivity
         });
     }
 
-    // ====== Navegación ======
+    // ====== Drawer ======
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         final int id = item.getItemId();
@@ -353,12 +355,9 @@ public class SelectionActivity extends AppCompatActivity
             showInfo("Reportes", "Abrir módulo de reportes.");
         } else if (id == R.id.nav_datos_vehiculares) {
             showInfo("Datos vehiculares", "Abrir módulo de datos vehiculares.");
-        } else if (id == R.id.nav_plantas) {
-            showInfo("Plantas", "Abrir administración de plantas.");
         } else if (id == R.id.nav_logout) {
             confirmarLogout();
         }
-
         if (drawerLayout != null) drawerLayout.closeDrawers();
         return true;
     }
@@ -404,25 +403,6 @@ public class SelectionActivity extends AppCompatActivity
             drawerLayout.closeDrawer(GravityCompat.START);
         } else {
             super.onBackPressed();
-        }
-    }
-
-    // ====== Logs ======
-    private void logSession(String where) {
-        try {
-            String snapshot = session != null ? session.debugSnapshot() : "session=null";
-            Log.d(TAG, where + " -> " + snapshot);
-        } catch (Throwable t) {
-            Log.e(TAG, where + " -> error al leer snapshot", t);
-        }
-    }
-
-    private void logLegacyToken(String where) {
-        try {
-            String token = legacyPrefs != null ? legacyPrefs.getString("token", null) : null;
-            Log.d(TAG, where + " -> Legacy token presente? " + (token != null && !token.isEmpty()));
-        } catch (Throwable t) {
-            Log.e(TAG, where + " -> error al leer legacy token", t);
         }
     }
 }

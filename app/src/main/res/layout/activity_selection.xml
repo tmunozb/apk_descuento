@@ -38,7 +38,7 @@
                 android:layout_height="wrap_content"
                 android:padding="16dp">
 
-                <!-- Fondo gradiente sutil -->
+                <!-- Fondo -->
                 <View
                     android:id="@+id/bg"
                     android:layout_width="0dp"
@@ -75,7 +75,7 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/tv_welcome" />
 
-                <!-- === Fila 1: Solicitudes (Nueva / Mis) === -->
+                <!-- === Fila 1: Nueva / Mis === -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/card_nueva_solicitud"
                     android:layout_width="0dp"
@@ -159,7 +159,7 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- === Fila 2: Aprobaciones (Pendientes / Historial) === -->
+                <!-- === Fila 2: Aprobaciones / Historial === -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/card_pendientes_aprobar"
                     android:layout_width="0dp"
@@ -243,7 +243,7 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- === Fila 3: Módulos actuales (solo Sistemas para Descuentos/Cortesías) === -->
+                <!-- === Fila 3: Descuentos / Cortesías === -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/card_descuentos"
                     android:layout_width="0dp"
@@ -411,7 +411,91 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Tarjeta ancha inferior: feed -->
+                <!-- === Fila 5: Bolsas - Estado / Carga masiva (SOLO SISTEMAS) === -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_bolsas_estado"
+                    android:layout_width="0dp"
+                    android:layout_height="120dp"
+                    android:clickable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    android:layout_marginTop="12dp"
+                    app:cardCornerRadius="18dp"
+                    app:cardElevation="4dp"
+                    app:layout_constraintEnd_toStartOf="@id/card_bolsas_bulk"
+                    app:layout_constraintHorizontal_weight="1"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/card_reportes">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:src="@drawable/ic_account_balance_wallet_24" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:paddingTop="8dp"
+                            android:text="Bolsas - Estado"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Saldos / auditoría"
+                            android:textColor="@android:color/darker_gray"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_bolsas_bulk"
+                    android:layout_width="0dp"
+                    android:layout_height="120dp"
+                    android:clickable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    app:cardCornerRadius="18dp"
+                    app:cardElevation="4dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintHorizontal_weight="1"
+                    app:layout_constraintStart_toEndOf="@id/card_bolsas_estado"
+                    app:layout_constraintTop_toTopOf="@id/card_bolsas_estado">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:src="@drawable/ic_cloud_upload_24" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:paddingTop="8dp"
+                            android:text="Bolsas - Carga masiva"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Asignar topes por período"
+                            android:textColor="@android:color/darker_gray"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Tarjeta inferior: feed -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/card_feed"
                     android:layout_width="0dp"
@@ -422,7 +506,7 @@
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/card_reportes">
+                    app:layout_constraintTop_toBottomOf="@id/card_bolsas_estado">
 
                     <LinearLayout
                         android:layout_width="match_parent"
