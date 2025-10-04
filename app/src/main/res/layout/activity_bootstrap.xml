@@ -1,36 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
+<androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fitsSystemWindows="true">
+    android:fitsSystemWindows="false">
 
-    <!-- Fondo gradiente -->
+    <!-- Fondo gradiente oscuro -->
     <View
         android:id="@+id/bg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@drawable/bg_bootstrap_gradient"/>
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/bg_bootstrap_gradient"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
-    <!-- Contenedor centrado -->
-    <LinearLayout
-        android:id="@+id/card"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:padding="24dp">
+    <!-- Contenedor centrado con ancho máximo -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/cardHost"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:padding="24dp"
+        app:layout_constraintWidth_percent="0.92"
+        app:layout_constraintWidth_max="720dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- Tarjeta "glass" -->
+        <!-- Tarjeta “glass” sobre fondo oscuro -->
         <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
+            android:id="@+id/cardGlass"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             app:cardCornerRadius="20dp"
-            app:cardElevation="8dp"
-            app:strokeColor="@android:color/transparent"
-            android:alpha="0.98">
+            app:cardElevation="10dp"
+            app:strokeColor="@color/cardStroke"
+            app:strokeWidth="1dp"
+            app:cardBackgroundColor="@color/glassCard"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -38,14 +51,14 @@
                 android:orientation="vertical"
                 android:padding="20dp">
 
-                <!-- Logo / ícono -->
+                <!-- Logo -->
                 <ImageView
                     android:id="@+id/imgLogo"
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
                     android:layout_gravity="center_horizontal"
                     android:contentDescription="@string/app_name"
-                    android:src="@mipmap/ico_descuento"/>
+                    android:src="@mipmap/ico_descuento" />
 
                 <!-- Título -->
                 <TextView
@@ -55,19 +68,26 @@
                     android:layout_gravity="center_horizontal"
                     android:paddingTop="12dp"
                     android:text="@string/app_name"
-                    android:textColor="@color/fareazul"
+                    android:textStyle="bold"
                     android:textSize="20sp"
-                    android:textStyle="bold"/>
+                    android:textColor="@color/textPrimaryOnDark" />
+
+                <!-- Divider sutil -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@color/dividerSoft" />
 
                 <!-- Paso principal -->
                 <TextView
                     android:id="@+id/tvStep"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:paddingTop="10dp"
+                    android:paddingTop="12dp"
                     android:text="Preparando tu sesión…"
-                    android:textColor="@android:color/black"
-                    android:textSize="16sp"/>
+                    android:textSize="16sp"
+                    android:textColor="@color/textPrimaryOnDark" />
 
                 <!-- Subtítulo dinámico -->
                 <TextView
@@ -76,57 +96,69 @@
                     android:layout_height="wrap_content"
                     android:paddingTop="2dp"
                     android:text="Un momento por favor"
-                    android:textColor="#666666"
                     android:textSize="14sp"
-                    android:alpha="0.85"/>
+                    android:textColor="@color/textSubtle" />
 
-                <!-- Indicador circular -->
+                <!-- Indicador circular (MDC) -->
                 <com.google.android.material.progressindicator.CircularProgressIndicator
                     android:id="@+id/progressCircular"
-                    style="@style/Widget.Material3.CircularProgressIndicator"
+                    style="@style/Widget.MaterialComponents.CircularProgressIndicator"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:layout_gravity="center_horizontal"
                     android:layout_marginTop="16dp"
+                    android:indeterminate="true"
                     app:indicatorSize="40dp"
                     app:trackCornerRadius="20dp"
-                    android:indeterminate="true"
-                    app:indicatorColor="@android:color/black"
-                    app:trackColor="#33FFFFFF"/>
+                    app:indicatorColor="@color/progressIndicator"
+                    app:trackColor="@color/progressTrack" />
 
-                <!-- Barra de progreso determinística -->
+                <!-- Barra de progreso determinística (MDC) -->
                 <com.google.android.material.progressindicator.LinearProgressIndicator
                     android:id="@+id/progressLinear"
-                    style="@style/Widget.Material3.LinearProgressIndicator"
+                    style="@style/Widget.MaterialComponents.LinearProgressIndicator"
                     android:layout_width="match_parent"
                     android:layout_height="8dp"
                     android:layout_marginTop="16dp"
                     android:max="100"
                     android:progress="8"
-                    app:trackCornerRadius="8dp"
                     android:indeterminate="false"
-                    app:indicatorColor="@android:color/black"
-                    app:trackColor="#33FFFFFF"/>
+                    app:trackCornerRadius="8dp"
+                    app:indicatorColor="@color/progressIndicator"
+                    app:trackColor="@color/progressTrack" />
 
-                <!-- Píldora de tips (opcional) -->
-                <TextView
-                    android:id="@+id/tvTip"
+                <!-- Tip pill -->
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_horizontal"
-                    android:layout_marginTop="10dp"
+                    android:layout_marginTop="12dp"
                     android:background="@drawable/bg_tip_pill"
-                    android:paddingLeft="12dp"
-                    android:paddingRight="12dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
                     android:paddingTop="6dp"
                     android:paddingBottom="6dp"
-                    android:text="Consejo: puedes abrir Cortesías desde el menú lateral"
-                    android:textColor="@android:color/black"
-                    android:textSize="12sp"
-                    android:alpha="0.9"/>
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:layout_gravity="center_vertical"
+                        android:src="@android:drawable/ic_dialog_info"
+                        android:tint="@color/tipIconTint"
+                        android:contentDescription="@null"/>
+
+                    <TextView
+                        android:id="@+id/tvTip"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:text="Consejo: puedes abrir Cortesías desde el menú lateral"
+                        android:textColor="@color/tipText"
+                        android:textSize="12sp" />
+                </LinearLayout>
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
-
-    </LinearLayout>
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

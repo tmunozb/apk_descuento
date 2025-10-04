@@ -5,33 +5,40 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_login_gradient"
+    android:background="@drawable/bg_login_gradient_modern"
+    android:fitsSystemWindows="false"
     tools:context=".LoginActivity">
 
-    <!-- Logo / marca -->
-    <ImageView
-        android:id="@+id/imgLogo"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        android:layout_marginTop="32dp"
-        android:contentDescription="@string/app_name"
-        android:src="@drawable/logo"
+    <!-- Branding / Logo + título -->
+    <LinearLayout
+        android:id="@+id/brandBox"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingTop="32dp"
+        android:paddingBottom="8dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
 
-    <!-- Título opcional -->
-    <TextView
-        android:id="@+id/tvTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/ingresar"
-        android:textAppearance="?attr/textAppearanceHeadlineSmall"
-        android:textColor="@android:color/white"
-        android:layout_marginTop="12dp"
-        app:layout_constraintTop_toBottomOf="@id/imgLogo"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        <ImageView
+            android:id="@+id/imgLogo"
+            android:layout_width="108dp"
+            android:layout_height="108dp"
+            android:contentDescription="@string/app_name"
+            android:src="@drawable/logo"
+            android:importantForAccessibility="no"/>
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/ingresar"
+            android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
+            android:textColor="@android:color/white"/>
+    </LinearLayout>
 
     <!-- Card del formulario -->
     <com.google.android.material.card.MaterialCardView
@@ -40,10 +47,12 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="24dp"
         android:layout_marginEnd="24dp"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="16dp"
         app:cardCornerRadius="20dp"
-        app:cardElevation="6dp"
-        app:layout_constraintTop_toBottomOf="@id/tvTitle"
+        app:cardElevation="8dp"
+        app:strokeColor="@color/cardStroke"
+        app:strokeWidth="1dp"
+        app:layout_constraintTop_toBottomOf="@id/brandBox"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
@@ -55,7 +64,7 @@
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/tilUser"
-                style="@style/Widget.Material3.TextInputLayout.FilledBox"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="@string/user"
@@ -69,7 +78,7 @@
                     android:id="@+id/etUser"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textEmailAddress"
+                    android:inputType="textEmailAddress|textNoSuggestions"
                     android:imeOptions="actionNext"
                     android:autofillHints="username"
                     android:importantForAutofill="yes"
@@ -82,7 +91,7 @@
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/tilPass"
-                style="@style/Widget.Material3.TextInputLayout.FilledBox"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="@string/pass"
@@ -103,6 +112,22 @@
                     android:importantForAutofill="yes"/>
             </com.google.android.material.textfield.TextInputLayout>
 
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="end"
+                android:paddingTop="4dp">
+                <TextView
+                    android:id="@+id/tvForgot"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Olvidé mi contraseña"
+                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                    android:textColor="@color/linkColor"
+                    android:padding="4dp"/>
+            </LinearLayout>
+
             <TextView
                 android:id="@+id/tvMsgLog"
                 android:layout_width="match_parent"
@@ -110,46 +135,42 @@
                 android:layout_marginTop="8dp"
                 android:text="@string/msg_login"
                 android:textAlignment="center"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                 android:textColor="?attr/colorError"
                 android:visibility="gone"/>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnLogin"
+                style="@style/Widget.Material3.Button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:text="@string/btn_login"
                 android:contentDescription="@string/btn_login"
-                style="@style/Widget.Material3.Button"
+                app:cornerRadius="16dp"
                 app:icon="@drawable/ic_login"
                 app:iconPadding="8dp"
-                app:iconGravity="textStart"
-                app:cornerRadius="16dp"/>
+                app:iconGravity="textStart"/>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Progress -->
-    <com.google.android.material.progressindicator.CircularProgressIndicator
-        android:id="@+id/progress"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/cardForm"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
-
-    <!-- Insets para evitar solape con teclado -->
-    <View
-        android:id="@+id/insets"
+    <!-- Overlay de carga -->
+    <FrameLayout
+        android:id="@+id/progressOverlay"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:importantForAccessibility="no"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:background="@color/scrimDim"
+        android:visibility="gone"
         app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:fitsSystemWindows="false"/>
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <com.google.android.material.progressindicator.CircularProgressIndicator
+            android:id="@+id/progress"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_gravity="center"/>
+    </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

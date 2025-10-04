@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.drawerlayout.widget.DrawerLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
@@ -14,19 +15,21 @@
         <com.google.android.material.appbar.AppBarLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:fitsSystemWindows="true">
+            android:fitsSystemWindows="true"
+            app:liftOnScroll="true">
 
             <com.google.android.material.appbar.MaterialToolbar
                 android:id="@+id/toolbar"
-                style="@style/Widget.App.Toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
-                android:background="?attr/colorPrimary"
-                android:theme="@style/ThemeOverlay.MaterialComponents.ActionBar"
-                app:title="Soporte Farenet" />
+                android:background="@color/toolbarBg"
+                android:titleTextColor="@color/textOnToolbar"
+                app:subtitleTextColor="@color/textOnToolbar"
+                app:title="Soporte Farenet"
+                app:navigationIconTint="@color/textOnToolbar"/>
         </com.google.android.material.appbar.AppBarLayout>
 
-        <!-- Scroll principal con el dashboard -->
+        <!-- Scroll principal -->
         <androidx.core.widget.NestedScrollView
             android:id="@+id/content_container"
             android:layout_width="match_parent"
@@ -38,497 +41,421 @@
                 android:layout_height="wrap_content"
                 android:padding="16dp">
 
-                <!-- Fondo -->
+                <!-- Fondo gradiente -->
                 <View
                     android:id="@+id/bg"
                     android:layout_width="0dp"
                     android:layout_height="220dp"
-                    android:alpha="0.18"
                     android:background="@drawable/bg_dashboard_gradient"
-                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    app:layout_constraintEnd_toEndOf="parent" />
 
-                <!-- Saludo -->
-                <TextView
-                    android:id="@+id/tv_welcome"
+                <!-- Contenedor con ancho máximo -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/centerHost"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:paddingTop="8dp"
-                    android:text="¡Hola, Farenet!"
-                    android:textColor="@color/fareazul"
-                    android:textSize="26sp"
-                    android:textStyle="bold"
-                    app:layout_constraintEnd_toEndOf="parent"
+                    android:paddingTop="12dp"
+                    app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
-
-                <!-- Subtítulo -->
-                <TextView
-                    android:id="@+id/tv_subtitle"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:paddingTop="4dp"
-                    android:text="¿Qué deseas hacer hoy?"
-                    android:textColor="@android:color/darker_gray"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/tv_welcome" />
+                    app:layout_constraintWidth_percent="0.94"
+                    app:layout_constraintWidth_max="920dp">
 
-                <!-- === Fila 1: Nueva / Mis === -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_nueva_solicitud"
-                    android:layout_width="0dp"
-                    android:layout_height="120dp"
-                    android:clickable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    android:layout_marginTop="16dp"
-                    app:cardCornerRadius="18dp"
-                    app:cardElevation="4dp"
-                    app:layout_constraintEnd_toStartOf="@id/card_mis_solicitudes"
-                    app:layout_constraintHorizontal_weight="1"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/tv_subtitle">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:orientation="vertical"
-                        android:padding="12dp">
-
-                        <ImageView
-                            android:layout_width="28dp"
-                            android:layout_height="28dp"
-                            android:src="@drawable/ic_add_circle_24" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:paddingTop="8dp"
-                            android:text="Nueva solicitud"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Descuento / Cortesía"
-                            android:textColor="@android:color/darker_gray"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_mis_solicitudes"
-                    android:layout_width="0dp"
-                    android:layout_height="120dp"
-                    android:clickable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    app:cardCornerRadius="18dp"
-                    app:cardElevation="4dp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintHorizontal_weight="1"
-                    app:layout_constraintStart_toEndOf="@id/card_nueva_solicitud"
-                    app:layout_constraintTop_toTopOf="@id/card_nueva_solicitud">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:orientation="vertical"
-                        android:padding="12dp">
-
-                        <ImageView
-                            android:layout_width="28dp"
-                            android:layout_height="28dp"
-                            android:src="@drawable/ic_assignment_24" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:paddingTop="8dp"
-                            android:text="Mis solicitudes"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Seguimiento / Estados"
-                            android:textColor="@android:color/darker_gray"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- === Fila 2: Aprobaciones / Historial === -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_pendientes_aprobar"
-                    android:layout_width="0dp"
-                    android:layout_height="120dp"
-                    android:clickable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    android:layout_marginTop="12dp"
-                    app:cardCornerRadius="18dp"
-                    app:cardElevation="4dp"
-                    app:layout_constraintEnd_toStartOf="@id/card_historial"
-                    app:layout_constraintHorizontal_weight="1"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/card_nueva_solicitud">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:orientation="vertical"
-                        android:padding="12dp">
-
-                        <ImageView
-                            android:layout_width="28dp"
-                            android:layout_height="28dp"
-                            android:src="@drawable/ic_pending_actions_24" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:paddingTop="8dp"
-                            android:text="Pendientes por aprobar"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Operaciones / Jefatura"
-                            android:textColor="@android:color/darker_gray"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_historial"
-                    android:layout_width="0dp"
-                    android:layout_height="120dp"
-                    android:clickable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    app:cardCornerRadius="18dp"
-                    app:cardElevation="4dp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintHorizontal_weight="1"
-                    app:layout_constraintStart_toEndOf="@id/card_pendientes_aprobar"
-                    app:layout_constraintTop_toTopOf="@id/card_pendientes_aprobar">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:orientation="vertical"
-                        android:padding="12dp">
-
-                        <ImageView
-                            android:layout_width="28dp"
-                            android:layout_height="28dp"
-                            android:src="@drawable/ic_history_24" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:paddingTop="8dp"
-                            android:text="Historial"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Aprobadas / Rechazadas"
-                            android:textColor="@android:color/darker_gray"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- === Fila 3: Descuentos / Cortesías === -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_descuentos"
-                    android:layout_width="0dp"
-                    android:layout_height="120dp"
-                    android:clickable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    android:layout_marginTop="12dp"
-                    app:cardCornerRadius="18dp"
-                    app:cardElevation="4dp"
-                    app:layout_constraintEnd_toStartOf="@id/card_cortesias"
-                    app:layout_constraintHorizontal_weight="1"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/card_pendientes_aprobar">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:orientation="vertical"
-                        android:padding="12dp">
-
-                        <ImageView
-                            android:layout_width="28dp"
-                            android:layout_height="28dp"
-                            android:src="@drawable/ic_local_offer_24" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:paddingTop="8dp"
-                            android:text="Descuentos"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Crear / gestionar"
-                            android:textColor="@android:color/darker_gray"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_cortesias"
-                    android:layout_width="0dp"
-                    android:layout_height="120dp"
-                    android:clickable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    app:cardCornerRadius="18dp"
-                    app:cardElevation="4dp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintHorizontal_weight="1"
-                    app:layout_constraintStart_toEndOf="@id/card_descuentos"
-                    app:layout_constraintTop_toTopOf="@id/card_descuentos">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:orientation="vertical"
-                        android:padding="12dp">
-
-                        <ImageView
-                            android:layout_width="28dp"
-                            android:layout_height="28dp"
-                            android:src="@drawable/ic_card_giftcard_24" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:paddingTop="8dp"
-                            android:text="Cortesías"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Nueva / historial"
-                            android:textColor="@android:color/darker_gray"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- === Fila 4: Reportes / Datos vehiculares === -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_reportes"
-                    android:layout_width="0dp"
-                    android:layout_height="120dp"
-                    android:clickable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    android:layout_marginTop="12dp"
-                    app:cardCornerRadius="18dp"
-                    app:cardElevation="4dp"
-                    app:layout_constraintEnd_toStartOf="@id/card_datos"
-                    app:layout_constraintHorizontal_weight="1"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/card_descuentos">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:orientation="vertical"
-                        android:padding="12dp">
-
-                        <ImageView
-                            android:layout_width="28dp"
-                            android:layout_height="28dp"
-                            android:src="@drawable/ic_trending_up_24" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:paddingTop="8dp"
-                            android:text="Reportes"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="KPIs / exportar"
-                            android:textColor="@android:color/darker_gray"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_datos"
-                    android:layout_width="0dp"
-                    android:layout_height="120dp"
-                    android:clickable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    app:cardCornerRadius="18dp"
-                    app:cardElevation="4dp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintHorizontal_weight="1"
-                    app:layout_constraintStart_toEndOf="@id/card_reportes"
-                    app:layout_constraintTop_toTopOf="@id/card_reportes">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:orientation="vertical"
-                        android:padding="12dp">
-
-                        <ImageView
-                            android:layout_width="28dp"
-                            android:layout_height="28dp"
-                            android:src="@drawable/ic_directions_car_24" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:paddingTop="8dp"
-                            android:text="Datos vehiculares"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Consulta / validar"
-                            android:textColor="@android:color/darker_gray"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- === Fila 5: Bolsas - Estado / Carga masiva (SOLO SISTEMAS) === -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_bolsas_estado"
-                    android:layout_width="0dp"
-                    android:layout_height="120dp"
-                    android:clickable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    android:layout_marginTop="12dp"
-                    app:cardCornerRadius="18dp"
-                    app:cardElevation="4dp"
-                    app:layout_constraintEnd_toStartOf="@id/card_bolsas_bulk"
-                    app:layout_constraintHorizontal_weight="1"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/card_reportes">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:orientation="vertical"
-                        android:padding="12dp">
-
-                        <ImageView
-                            android:layout_width="28dp"
-                            android:layout_height="28dp"
-                            android:src="@drawable/ic_account_balance_wallet_24" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:paddingTop="8dp"
-                            android:text="Bolsas - Estado"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Saldos / auditoría"
-                            android:textColor="@android:color/darker_gray"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_bolsas_bulk"
-                    android:layout_width="0dp"
-                    android:layout_height="120dp"
-                    android:clickable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    app:cardCornerRadius="18dp"
-                    app:cardElevation="4dp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintHorizontal_weight="1"
-                    app:layout_constraintStart_toEndOf="@id/card_bolsas_estado"
-                    app:layout_constraintTop_toTopOf="@id/card_bolsas_estado">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:orientation="vertical"
-                        android:padding="12dp">
-
-                        <ImageView
-                            android:layout_width="28dp"
-                            android:layout_height="28dp"
-                            android:src="@drawable/ic_cloud_upload_24" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:paddingTop="8dp"
-                            android:text="Bolsas - Carga masiva"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Asignar topes por período"
-                            android:textColor="@android:color/darker_gray"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- Tarjeta inferior: feed -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_feed"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    app:cardCornerRadius="18dp"
-                    app:cardElevation="3dp"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/card_bolsas_estado">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
+                    <!-- Saludo -->
+                    <TextView
+                        android:id="@+id/tv_welcome"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="16dp">
+                        android:text="¡Hola, Farenet!"
+                        android:textColor="@color/heroTitle"
+                        android:textSize="24sp"
+                        android:textStyle="bold"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent" />
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Últimas actividades"
-                            android:textStyle="bold" />
+                    <!-- Subtítulo -->
+                    <TextView
+                        android:id="@+id/tv_subtitle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="¿Qué deseas hacer hoy?"
+                        android:textColor="@color/heroSubtitle"
+                        app:layout_constraintTop_toBottomOf="@id/tv_welcome"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent" />
 
-                        <TextView
-                            android:id="@+id/tv_feed_empty"
-                            android:layout_width="wrap_content"
+                    <!-- Grid 2 columnas: SOLO atributos android:* -->
+                    <androidx.gridlayout.widget.GridLayout
+                        android:id="@+id/grid"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        app:columnCount="2"
+                        app:layout_constraintTop_toBottomOf="@id/tv_subtitle"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:rowOrderPreserved="false"
+                        app:useDefaultMargins="false">
+
+                        <!-- CARD: Nueva solicitud -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/card_nueva_solicitud"
+                            style="@style/DashboardCard">
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="120dp"
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:padding="14dp">
+                                <ImageView
+                                    android:layout_width="28dp"
+                                    android:layout_height="28dp"
+                                    android:src="@drawable/ic_add_circle_24"
+                                    android:contentDescription="@null"
+                                    app:tint="@color/cardIconTint" />
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:paddingTop="8dp"
+                                    android:text="Nueva solicitud"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/cardTitle"/>
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Descuento / Cortesía"
+                                    android:textColor="@color/cardSubtitle"
+                                    android:textSize="12sp"/>
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- CARD: Mis solicitudes -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/card_mis_solicitudes"
+                            style="@style/DashboardCard">
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:padding="14dp">
+                                <ImageView
+                                    android:layout_width="28dp"
+                                    android:layout_height="28dp"
+                                    android:src="@drawable/ic_assignment_24"
+                                    android:contentDescription="@null"
+                                    app:tint="@color/cardIconTint" />
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:paddingTop="8dp"
+                                    android:text="Mis solicitudes"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/cardTitle"/>
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Seguimiento / Estados"
+                                    android:textColor="@color/cardSubtitle"
+                                    android:textSize="12sp"/>
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- CARD: Pendientes por aprobar -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/card_pendientes_aprobar"
+                            style="@style/DashboardCard">
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="120dp"
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:padding="14dp">
+                                <ImageView
+                                    android:layout_width="28dp"
+                                    android:layout_height="28dp"
+                                    android:src="@drawable/ic_pending_actions_24"
+                                    android:contentDescription="@null"
+                                    app:tint="@color/cardIconTint" />
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:paddingTop="8dp"
+                                    android:text="Pendientes por aprobar"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/cardTitle"/>
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Operaciones / Jefatura"
+                                    android:textColor="@color/cardSubtitle"
+                                    android:textSize="12sp"/>
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- CARD: Historial -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/card_historial"
+                            style="@style/DashboardCard">
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="120dp"
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:padding="14dp">
+                                <ImageView
+                                    android:layout_width="28dp"
+                                    android:layout_height="28dp"
+                                    android:src="@drawable/ic_history_24"
+                                    android:contentDescription="@null"
+                                    app:tint="@color/cardIconTint" />
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:paddingTop="8dp"
+                                    android:text="Historial"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/cardTitle"/>
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Aprobadas / Rechazadas"
+                                    android:textColor="@color/cardSubtitle"
+                                    android:textSize="12sp"/>
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- CARD: Descuentos -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/card_descuentos"
+                            style="@style/DashboardCard">
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="120dp"
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:padding="14dp">
+                                <ImageView
+                                    android:layout_width="28dp"
+                                    android:layout_height="28dp"
+                                    android:src="@drawable/ic_local_offer_24"
+                                    android:contentDescription="@null"
+                                    app:tint="@color/cardIconTint" />
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:paddingTop="8dp"
+                                    android:text="Descuentos"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/cardTitle"/>
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Crear / gestionar"
+                                    android:textColor="@color/cardSubtitle"
+                                    android:textSize="12sp"/>
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- CARD: Cortesías -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/card_cortesias"
+                            style="@style/DashboardCard">
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="120dp"
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:padding="14dp">
+                                <ImageView
+                                    android:layout_width="28dp"
+                                    android:layout_height="28dp"
+                                    android:src="@drawable/ic_card_giftcard_24"
+                                    android:contentDescription="@null"
+                                    app:tint="@color/cardIconTint" />
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:paddingTop="8dp"
+                                    android:text="Cortesías"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/cardTitle"/>
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Nueva / historial"
+                                    android:textColor="@color/cardSubtitle"
+                                    android:textSize="12sp"/>
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- CARD: Reportes -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/card_reportes"
+                            style="@style/DashboardCard">
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="120dp"
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:padding="14dp">
+                                <ImageView
+                                    android:layout_width="28dp"
+                                    android:layout_height="28dp"
+                                    android:src="@drawable/ic_trending_up_24"
+                                    android:contentDescription="@null"
+                                    app:tint="@color/cardIconTint" />
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:paddingTop="8dp"
+                                    android:text="Reportes"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/cardTitle"/>
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="KPIs / exportar"
+                                    android:textColor="@color/cardSubtitle"
+                                    android:textSize="12sp"/>
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- CARD: Datos vehiculares -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/card_datos"
+                            style="@style/DashboardCard">
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="120dp"
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:padding="14dp">
+                                <ImageView
+                                    android:layout_width="28dp"
+                                    android:layout_height="28dp"
+                                    android:src="@drawable/ic_directions_car_24"
+                                    android:contentDescription="@null"
+                                    app:tint="@color/cardIconTint" />
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:paddingTop="8dp"
+                                    android:text="Datos vehiculares"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/cardTitle"/>
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Consulta / validar"
+                                    android:textColor="@color/cardSubtitle"
+                                    android:textSize="12sp"/>
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- CARD: Bolsas - Estado -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/card_bolsas_estado"
+                            style="@style/DashboardCard">
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="120dp"
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:padding="14dp">
+                                <ImageView
+                                    android:layout_width="28dp"
+                                    android:layout_height="28dp"
+                                    android:src="@drawable/ic_account_balance_wallet_24"
+                                    android:contentDescription="@null"
+                                    app:tint="@color/cardIconTint" />
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:paddingTop="8dp"
+                                    android:text="Bolsas - Estado"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/cardTitle"/>
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Saldos / auditoría"
+                                    android:textColor="@color/cardSubtitle"
+                                    android:textSize="12sp"/>
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- CARD: Bolsas - Carga masiva -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/card_bolsas_bulk"
+                            style="@style/DashboardCard">
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="120dp"
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:padding="14dp">
+                                <ImageView
+                                    android:layout_width="28dp"
+                                    android:layout_height="28dp"
+                                    android:src="@drawable/ic_cloud_upload_24"
+                                    android:contentDescription="@null"
+                                    app:tint="@color/cardIconTint" />
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:paddingTop="8dp"
+                                    android:text="Bolsas - Carga masiva"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/cardTitle"/>
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Asignar topes por período"
+                                    android:textColor="@color/cardSubtitle"
+                                    android:textSize="12sp"/>
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                    </androidx.gridlayout.widget.GridLayout>
+
+                    <!-- FEED (fuera del grid) -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/card_feed"
+                        style="@style/DashboardCardLarge"
+                        app:layout_constraintTop_toBottomOf="@id/grid"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        android:layout_marginTop="16dp"
+                        android:layout_height="match_parent"
+                        android:layout_width="match_parent">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:paddingTop="4dp"
-                            android:text="Aún no hay movimientos. Crea tu primer descuento o consulta reportes."
-                            android:textColor="@android:color/darker_gray" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
+                            android:orientation="vertical"
+                            android:padding="16dp">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Últimas actividades"
+                                android:textStyle="bold"
+                                android:textColor="@color/cardTitle"/>
+                            <TextView
+                                android:id="@+id/tv_feed_empty"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:paddingTop="4dp"
+                                android:text="Aún no hay movimientos. Crea tu primer descuento o consulta reportes."
+                                android:textColor="@color/cardSubtitle"/>
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
 
             </androidx.constraintlayout.widget.ConstraintLayout>
         </androidx.core.widget.NestedScrollView>

@@ -13,4 +13,57 @@
 
     <!-- PARA BORDES (lo usa ?attr/colorOutline) -->
     <color name="color_outline">#1F000000</color>
+
+    <!-- Branding base -->
+    <color name="md_theme_primary">#1E88E5</color>
+    <color name="md_theme_onPrimary">#FFFFFF</color>
+
+
+    <color name="scrimDim">#66000000</color>
+    <color name="linkColor">#BBDEFB</color>
+
+
+    <!-- Fondo oscuro -->
+    <color name="bgStart">#0F172A</color>        <!-- slate-900 -->
+    <color name="bgEnd">#1E293B</color>          <!-- slate-800 -->
+
+    <!-- Card “glass” semitransparente sobre fondo oscuro -->
+    <color name="glassCard">#1AFFFFFF</color>    <!-- blanco 10% -->
+
+    <!-- Bordes/dividers -->
+    <color name="cardStroke">#26FFFFFF</color>   <!-- 15% blanco -->
+    <color name="dividerSoft">#22FFFFFF</color>  <!-- 13% blanco -->
+
+    <!-- Tip pill -->
+    <color name="tipBg">#14FFFFFF</color>
+    <color name="tipStroke">#22FFFFFF</color>
+    <color name="tipText">#FFFFFFFF</color>
+    <color name="tipIconTint">#FFFFFFFF</color>
+
+    <!-- Texto sobre fondo oscuro -->
+    <color name="textPrimaryOnDark">#FFFFFFFF</color>
+    <color name="textSubtle">#B3FFFFFF</color>   <!-- 70% blanco -->
+
+    <!-- Progreso -->
+    <color name="progressIndicator">#FFFFFFFF</color>
+    <color name="progressTrack">#33FFFFFF</color>
+
+    <!-- Fondo del header -->
+    <color name="toolbarBg">#0F172A</color>
+    <color name="textOnToolbar">#FFFFFFFF</color>
+
+    <!-- Hero (sobre bg del header/gradiente) -->
+    <color name="heroTitle">#111827</color>     <!-- en claro -->
+    <color name="heroSubtitle">#6B7280</color>
+
+    <!-- Cards -->
+    <color name="cardBg">#FFFFFFFF</color>
+
+    <color name="cardTitle">#111827</color>
+    <color name="cardSubtitle">#6B7280</color>
+    <color name="cardIconTint">#1E3A8A</color>  <!-- indigo-800 -->
+
+    <!-- Gradiente dashboard -->
+    <color name="dashStart">#EEF2FF</color>     <!-- indigo-50 -->
+    <color name="dashEnd">#E0E7FF</color>       <!-- indigo-100 -->
 </resources>

@@ -35,10 +35,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-/**
- * Pantalla de carga que valida perfil/accesos y precarga catálogos antes de entrar al app.
- * Muestra un loader moderno y NO deja ingresar hasta que perfil y accesos estén OK.
- */
+
 public class BootstrapActivity extends AppCompatActivity {
 
     private SessionManager session;

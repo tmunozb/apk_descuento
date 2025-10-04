@@ -1,15 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <!-- Gradiente lineal en diagonal -->
-    <gradient
-        android:startColor="#0F3D5E"
-    android:centerColor="#1F6AA8"
-    android:endColor="#2EA0DA"
-    android:angle="135"
-    android:type="linear"
-    android:useLevel="false" />
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Gradiente base -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="45"
+                android:startColor="@color/bgStart"
+                android:endColor="@color/bgEnd"/>
+        </shape>
+    </item>
 
-    <!-- (Opcional) ligera transparencia si quieres efecto “glass” detrás -->
-    <!-- android:alpha="0.98" NO es válido aquí; si quieres transparencia,
-         usa colores con alpha (#CC...) en start/center/endColor. -->
-</shape>
+    <!-- Bruma sutil para efecto glass -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#10000000"/>
+        </shape>
+    </item>
+</layer-list>

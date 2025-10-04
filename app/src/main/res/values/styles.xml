@@ -1,9 +1,23 @@
 <resources>
-    <style name="Widget.App.Toolbar" parent="Widget.Material3.Toolbar">
-        <item name="android:background">@color/colorPrimary</item>
-        <item name="titleTextColor">@android:color/white</item>
-        <item name="subtitleTextColor">@android:color/white</item>
-        <item name="navigationIconTint">@android:color/white</item>
-        <item name="popupTheme">@style/ThemeOverlay.Material3.Light</item>
+    <style name="Widget.App.Toolbar" parent="Widget.MaterialComponents.Toolbar">
+        <item name="titleCentered">false</item>
+        <item name="elevation">0dp</item>
     </style>
+    <style name="DashboardCard" parent="Widget.MaterialComponents.CardView">
+            <item name="cardUseCompatPadding">true</item>
+            <item name="cardCornerRadius">18dp</item>
+            <item name="cardElevation">3dp</item>
+            <item name="android:foreground">?attr/selectableItemBackground</item>
+            <item name="strokeColor">@color/cardStroke</item>
+            <item name="strokeWidth">1dp</item>
+            <item name="cardBackgroundColor">@color/cardBg</item>
+            <item name="android:layout_margin">8dp</item>
+    </style>
+
+    <style name="DashboardCardLarge" parent="DashboardCard">
+            <item name="cardElevation">2dp</item>
+    </style>
+
+
+
 </resources>
