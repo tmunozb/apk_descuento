@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:background="@drawable/bg_login_gradient_modern"
     android:fitsSystemWindows="false"
-    tools:context=".LoginActivity">
+    tools:context=".ui.auth.LoginActivity">
 
     <!-- Branding / Logo + título -->
     <LinearLayout

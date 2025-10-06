@@ -13,7 +13,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.farenet.descuentos.R;
-import com.farenet.descuentos.models.newapi.AccesoPlantaDto;
+import com.farenet.descuentos.API.Actual.DTO.maestros.AccesoPlantaDto;
 
 import java.util.ArrayList;
 import java.util.List;

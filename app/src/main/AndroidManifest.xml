@@ -19,7 +19,7 @@
     </queries>
 
     <application
-        android:name=".config.BaseApplication"
+        android:name=".Core.app.BaseApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ico_descuento"
         android:label="@string/app_name"
@@ -29,37 +29,37 @@
         android:theme="@style/Theme.App"
         android:usesCleartextTraffic="true">
         <activity
-            android:name=".HistorialSolicitudesActivity"
+            android:name=".ui.solicitudes.historial.HistorialSolicitudesActivity"
             android:exported="false"
             android:theme="@style/Theme.App" />
         <activity
-            android:name=".SolicitudesPendientesActivity"
+            android:name=".ui.solicitudes.pendientes.SolicitudesPendientesActivity"
             android:exported="false"
             android:theme="@style/Theme.App" />
         <activity
-            android:name=".SolicitudesListaActivity"
+            android:name=".ui.solicitudes.lista.SolicitudesListaActivity"
             android:exported="false"
             android:theme="@style/Theme.App" />
         <activity
-            android:name=".SolicitudCrearActivity"
+            android:name=".ui.solicitudes.crear.SolicitudCrearActivity"
             android:exported="false"
             android:theme="@style/Theme.App" />
         <activity
-            android:name=".SelectionActivity"
+            android:name=".ui.selection.SelectionActivity"
             android:exported="false"
             android:theme="@style/Theme.App" />
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.main.MainActivity"
             android:screenOrientation="portrait" />
         <activity
-            android:name=".DescuentoActivity"
+            android:name=".ui.solicitudes.descuento.DescuentoActivity"
             android:exported="false" />
         <activity
-            android:name=".CortesiaActivity"
+            android:name=".ui.solicitudes.cortesia.CortesiaActivity"
             android:exported="false" />
 
         <activity
-            android:name=".BootstrapActivity"
+            android:name=".ui.bootstrap.BootstrapActivity"
             android:exported="false"
             android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar"/>
 
@@ -70,7 +70,7 @@
 
 
         <activity
-            android:name=".LoginActivity"
+            android:name=".ui.auth.LoginActivity"
             android:exported="true"
             android:screenOrientation="portrait">
             <intent-filter>

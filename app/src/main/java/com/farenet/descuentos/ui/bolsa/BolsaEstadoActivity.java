@@ -13,12 +13,11 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.farenet.descuentos.R;
-import com.farenet.descuentos.models.newapi.AccesoPlantaDto;
-import com.farenet.descuentos.models.newapi.UsuarioPerfil;
-import com.farenet.descuentos.models.rsp.BolsaAuditoriaDto;
-import com.farenet.descuentos.models.rsp.BolsaConfigDto;
-import com.farenet.descuentos.network.newapi.NewApiClient;
-import com.farenet.descuentos.repository.SessionManager;
+import com.farenet.descuentos.API.Actual.DTO.maestros.AccesoPlantaDto;
+import com.farenet.descuentos.API.Actual.DTO.bolsa.BolsaAuditoriaDto;
+import com.farenet.descuentos.API.Actual.DTO.bolsa.BolsaConfigDto;
+import com.farenet.descuentos.Core.Network.NewApiClient;
+import com.farenet.descuentos.Core.Storage.SessionManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.textfield.TextInputEditText;
 

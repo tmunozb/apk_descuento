@@ -15,11 +15,11 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.farenet.descuentos.R;
-import com.farenet.descuentos.models.bolsa.BolsaBulkReq;
-import com.farenet.descuentos.models.bolsa.BolsaBulkRsp;
-import com.farenet.descuentos.models.newapi.AccesoPlantaDto;
-import com.farenet.descuentos.network.newapi.NewApiClient;
-import com.farenet.descuentos.repository.SessionManager;
+import com.farenet.descuentos.API.Actual.DTO.bolsa.BolsaBulkReq;
+import com.farenet.descuentos.API.Actual.DTO.bolsa.BolsaBulkRsp;
+import com.farenet.descuentos.API.Actual.DTO.maestros.AccesoPlantaDto;
+import com.farenet.descuentos.Core.Network.NewApiClient;
+import com.farenet.descuentos.Core.Storage.SessionManager;
 import com.google.android.material.appbar.MaterialToolbar;
 
 import java.text.SimpleDateFormat;
