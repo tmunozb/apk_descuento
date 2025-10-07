@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="16dp"
+    app:cardCornerRadius="24dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="Filtros"
+            android:textStyle="bold"
+            android:textSize="20sp" />
+
+        <!-- Periodo (combo) -->
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.Farenet.Search"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="Mes de trabajo"
+            app:endIconMode="dropdown_menu">
+
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                android:id="@+id/bs_actPeriodo"
+                android:layout_width="match_parent"
+                android:layout_height="70dp"
+                android:inputType="none"
+                android:importantForAutofill="no" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Planta (combo) -->
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.Farenet.Search"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="Planta"
+            app:endIconMode="dropdown_menu">
+
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                android:id="@+id/bs_actPlanta"
+                android:layout_width="match_parent"
+                android:layout_height="70dp"
+                android:inputType="none"
+                android:importantForAutofill="no" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Acciones -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="end"
+            android:layout_marginTop="16dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bs_btnCancelar"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Cancelar" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bs_btnAplicar"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Aplicar"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

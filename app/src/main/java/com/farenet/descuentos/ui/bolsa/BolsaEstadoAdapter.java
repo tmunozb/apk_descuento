@@ -35,11 +35,10 @@ public class BolsaEstadoAdapter extends RecyclerView.Adapter<BolsaEstadoAdapter.
 
     // Formateadores
     private final Locale localeEsPE = new Locale("es", "PE");
-    private final NumberFormat dfMonto; // "S/ 1,234.56"
+    private final NumberFormat dfMonto; // "1,234.56" (prefijo S/ se agrega en texto)
 
     public BolsaEstadoAdapter(Actions actions) {
         this.actions = actions;
-        // Usa DecimalFormat para asegurar prefijo "S/ "
         DecimalFormat df = (DecimalFormat) NumberFormat.getNumberInstance(localeEsPE);
         df.applyPattern("#,##0.00");
         this.dfMonto = df;
@@ -92,18 +91,10 @@ public class BolsaEstadoAdapter extends RecyclerView.Adapter<BolsaEstadoAdapter.
         );
 
         // Acciones
-        h.btnAuditoria.setOnClickListener(v -> {
-            if (actions != null) actions.onAuditoria(it);
-        });
-
-        h.btnEditarTope.setOnClickListener(v -> {
-            if (actions != null) actions.onEditarTope(it);
-        });
-
+        h.btnAuditoria.setOnClickListener(v -> { if (actions != null) actions.onAuditoria(it); });
+        h.btnEditarTope.setOnClickListener(v -> { if (actions != null) actions.onEditarTope(it); });
         h.btnToggleEstado.setText("CERRADO".equalsIgnoreCase(it.estado) ? "Abrir" : "Cerrar");
-        h.btnToggleEstado.setOnClickListener(v -> {
-            if (actions != null) actions.onToggleEstado(it);
-        });
+        h.btnToggleEstado.setOnClickListener(v -> { if (actions != null) actions.onToggleEstado(it); });
     }
 
     @Override
@@ -115,7 +106,7 @@ public class BolsaEstadoAdapter extends RecyclerView.Adapter<BolsaEstadoAdapter.
         try {
             Date d = new SimpleDateFormat("yyyyMM", Locale.getDefault()).parse(yyyymm);
             if (d == null) return yyyymm;
-            String mes = new SimpleDateFormat("MMMM yyyy", new Locale("es")).format(d);
+            String mes = new SimpleDateFormat("MMMM yyyy", new Locale("es", "PE")).format(d);
             mes = capitalize(mes);
             return mes + " (" + yyyymm + ")";
         } catch (ParseException e) {

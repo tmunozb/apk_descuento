@@ -40,14 +40,13 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- Tarjeta de filtros con glow -->
+            <!-- Tarjeta compacta: SOLO chips + buscar -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Widget.Farenet.KpiCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                app:strokeWidth="1dp"
-                android:foreground="@drawable/bg_card_glow">
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -55,108 +54,55 @@
                     android:orientation="vertical"
                     android:padding="12dp">
 
-                    <!-- Encabezado gamer -->
+                    <TextView
+                        android:id="@+id/tvHintResumen"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Selecciona mes y planta"
+                        android:textSize="12sp"
+                        android:textColor="@color/tile_subtitle" />
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:paddingBottom="4dp">
+                        android:layout_marginTop="8dp">
 
-                        <TextView
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipPeriodo"
+                            style="@style/Widget.Farenet.FilterChip"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Mes de trabajo"
+                            app:closeIconEnabled="false" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipPlanta"
+                            style="@style/Widget.Farenet.FilterChip"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="Planta"
+                            app:closeIconEnabled="false" />
+
+                        <View
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="FILTROS"
-                            android:textStyle="bold"
-                            android:letterSpacing="0.05"
-                            android:textAllCaps="true"
-                            android:textColor="@color/tile_title"/>
-
-                        <TextView
-                            android:id="@+id/tvHintResumen"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Selecciona mes y planta"
-                            android:textSize="12sp"
-                            android:textColor="@color/tile_subtitle"/>
-                    </LinearLayout>
-
-                    <!-- Período -->
-                    <com.google.android.material.textfield.TextInputLayout
-                        style="@style/Widget.Farenet.Search"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="Mes de trabajo"
-                        app:endIconMode="dropdown_menu"
-                        app:helperText="Ej. Octubre 2025 (se convierte a AAAAMM)">
-
-                        <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                            android:id="@+id/actPeriodo"
-                            android:layout_width="match_parent"
-                            android:layout_height="70dp"
-                            android:maxLines="1"
-                            android:ellipsize="end"
-                            android:inputType="none"
-                            android:importantForAutofill="no"
-                            android:dropDownHeight="300dp"
-                            android:dropDownHorizontalOffset="0dp"
-                            android:dropDownVerticalOffset="4dp"/>
-                    </com.google.android.material.textfield.TextInputLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="8dp" />
-
-                    <!-- Planta -->
-                    <com.google.android.material.textfield.TextInputLayout
-                        style="@style/Widget.Farenet.Search"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="Planta"
-                        app:endIconMode="dropdown_menu">
-
-                        <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                            android:id="@+id/actPlanta"
-                            android:layout_width="match_parent"
-                            android:layout_height="70dp"
-                            android:maxLines="1"
-                            android:ellipsize="end"
-                            android:inputType="none"
-                            android:importantForAutofill="no"
-                            android:dropDownHeight="300dp"
-                            android:dropDownHorizontalOffset="0dp"
-                            android:dropDownVerticalOffset="4dp"/>
-                    </com.google.android.material.textfield.TextInputLayout>
-
-                    <!-- Acciones -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="end"
-                        android:layout_marginTop="12dp">
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnLimpiar"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Limpiar"/>
+                            android:layout_height="1dp"
+                            android:layout_weight="1" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnBuscar"
                             style="@style/Widget.Material3.Button.TonalButton"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
                             android:minWidth="0dp"
                             android:paddingStart="16dp"
                             android:paddingEnd="16dp"
                             android:text="Buscar"
                             app:icon="@drawable/ic_search_24"
                             app:iconPadding="8dp"
-                            app:iconGravity="textStart"/>
+                            app:iconGravity="textStart" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
