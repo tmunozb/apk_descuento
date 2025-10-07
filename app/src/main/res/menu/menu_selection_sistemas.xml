@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item android:id="@+id/nav_soporte"            android:title="Soporte"              android:icon="@drawable/ic_support_agent"/>
+        <item android:id="@+id/nav_descuento"          android:title="Descuento"            android:icon="@drawable/ic_discount"/>
+        <item android:id="@+id/nav_cortesia"           android:title="Cortesía"             android:icon="@drawable/ic_discount"/>
+        <item android:id="@+id/nav_reportes"           android:title="Reportes"             android:icon="@drawable/ic_bar_chart"/>
+        <item android:id="@+id/nav_datos_vehiculares"  android:title="Datos Vehiculares"    android:icon="@drawable/ic_car"/>
+        <item android:id="@+id/nav_plantas"            android:title="Plantas"              android:icon="@drawable/ic_factory"/>
+
+        <item android:id="@+id/nav_nueva_solicitud"    android:title="Nueva solicitud"      android:icon="@drawable/ic_add_circle_24"/>
+        <item android:id="@+id/nav_mis_solicitudes"    android:title="Mis solicitudes"      android:icon="@drawable/ic_assignment_24"/>
+        <item android:id="@+id/nav_pendientes"         android:title="Pendientes por aprobar" android:icon="@drawable/ic_pending_actions_24"/>
+        <item android:id="@+id/nav_historial"          android:title="Historial"            android:icon="@drawable/ic_history_24"/>
+    </group>
+
+    <item android:id="@+id/nav_logout" android:title="Cerrar sesión" android:icon="@drawable/ic_logout_24"/>
+</menu>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/tab_home"
+        android:title="Inicio"
+        android:icon="@drawable/ic_home_24"/>
+
+    <item
+        android:id="@+id/tab_solicitudes"
+        android:title="Solicitudes"
+        android:icon="@drawable/ic_assignment_24"/>
+
+    <item
+        android:id="@+id/tab_reportes"
+        android:title="Reportes"
+        android:icon="@drawable/ic_bar_chart"/>
+</menu>

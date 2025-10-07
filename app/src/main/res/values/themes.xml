@@ -1,17 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <!-- Tema principal de la app -->
     <style name="Theme.App" parent="Theme.Material3.Light.NoActionBar">
+        <!-- Paleta base -->
+        <item name="colorPrimary">@color/md_theme_primary</item>
+        <item name="colorOnPrimary">@color/md_theme_onPrimary</item>
+
+        <item name="colorSecondary">@color/md_theme_primary</item>
+        <item name="colorOnSecondary">@color/md_theme_onPrimary</item>
+
+        <!-- Superficies y textos -->
+        <item name="colorSurface">@color/tile_bg</item>
+        <item name="colorOnSurface">@color/tile_title</item>
+        <item name="colorOnSurfaceVariant">@color/tile_subtitle</item>
+
+        <!-- Bordes tenues para componentes -->
+        <item name="colorOutline">@color/colorOutline</item>
+
+        <!-- Fondo general de la ventana -->
+        <item name="android:windowBackground">@color/fn_bg</item>
+        <!-- (opcional) color de fondo del framework -->
+        <item name="android:colorBackground">@color/fn_bg</item>
+
+        <!-- Barras del sistema claras -->
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
 
-        <!-- Mapea el attr que usan tus drawables/layout -->
-        <item name="colorOutline">@color/color_outline</item>
+
+          <!-- Estilo por defecto para TextInputLayout -->
+        <item name="textInputStyle">@style/Widget.App.TextInputLayout</item>
     </style>
-    <!-- Base application theme. -->
-    <style name="Base.Theme.App" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
-    </style>
+
+    <!-- (Opcional) tema base si lo usas en algún lugar -->
+    <style name="Base.Theme.App" parent="Theme.Material3.Light.NoActionBar"/>
 </resources>

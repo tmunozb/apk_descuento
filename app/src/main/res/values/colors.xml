@@ -1,69 +1,93 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#092F79</color>
-    <color name="colorPrimaryDark">#092F79</color>
-    <color name="colorAccent">#092F79</color>
 
-    <color name="unselected">#9E9E9E</color>
-    <color name="selected">#092F79</color>
-    <color name="black">#000000</color>
-    <color name="fareazul">#092F79</color>
-    <color name="etField">#DCE4EC</color>
+    <!-- =========================================================
+         PALETA CANÓNICA (usa estos en layouts/estilos nuevos)
+       ========================================================= -->
 
+    <!-- Fondo general de pantallas -->
+    <color name="fn_bg">#F6F2FF</color>
 
-    <!-- PARA BORDES (lo usa ?attr/colorOutline) -->
-    <color name="color_outline">#1F000000</color>
+    <!-- Héroe / header (gradiente) -->
+    <color name="hero_grad_start">#845EF7</color>
+    <color name="hero_grad_end">#6C4CE6</color>
+    <color name="hero_title">#FFFFFFFF</color>
+    <color name="hero_subtitle">#E6FFFFFF</color>
 
-    <!-- Branding base -->
-    <color name="md_theme_primary">#1E88E5</color>
-    <color name="md_theme_onPrimary">#FFFFFF</color>
+    <!-- Tarjetas / tiles -->
+    <color name="tile_bg">#FFFFFFFF</color>
+    <color name="tile_stroke">#22000000</color>   <!-- negro 13% -->
+    <color name="tile_title">#1F2937</color>      <!-- gris muy oscuro -->
+    <color name="tile_subtitle">#6B7280</color>   <!-- gris medio -->
+    <color name="tile_icon">#5B5BEA</color>       <!-- acento -->
 
+    <!-- Outline genérico para componentes Material -->
+    <color name="colorOutline">#1F000000</color>
 
+    <!-- Bottom navigation -->
+    <color name="bottom_nav_active">#F59E0B</color>
+    <color name="bottom_nav_inactive">#9AA6B2</color>
+
+    <!-- Utilitarios -->
     <color name="scrimDim">#66000000</color>
     <color name="linkColor">#BBDEFB</color>
 
+    <!-- =========================================================
+         ALIAS / COMPATIBILIDAD (no cambiar valores aquí)
+       ========================================================= -->
 
-    <!-- Fondo oscuro -->
-    <color name="bgStart">#0F172A</color>        <!-- slate-900 -->
-    <color name="bgEnd">#1E293B</color>          <!-- slate-800 -->
+    <!-- Branding legacy -->
+    <color name="colorPrimary">#092F79</color>
+    <color name="colorPrimaryDark">#092F79</color>
+    <color name="colorAccent">#092F79</color>
+    <color name="fareazul">@color/colorPrimary</color>
 
-    <!-- Card “glass” semitransparente sobre fondo oscuro -->
-    <color name="glassCard">#1AFFFFFF</color>    <!-- blanco 10% -->
+    <!-- Material baseline (si algún tema los usa) -->
+    <color name="md_theme_primary">@color/colorPrimary</color>
+    <color name="md_theme_onPrimary">#FFFFFF</color>
 
-    <!-- Bordes/dividers -->
-    <color name="cardStroke">#26FFFFFF</color>   <!-- 15% blanco -->
-    <color name="dividerSoft">#22FFFFFF</color>  <!-- 13% blanco -->
+    <!-- Varios comunes -->
+    <color name="black">#000000</color>
+    <color name="unselected">#9E9E9E</color>
+    <color name="selected">@color/colorPrimary</color>
+    <color name="etField">#DCE4EC</color>
 
-    <!-- Tip pill -->
+    <!-- Borde (nombre antiguo) -->
+    <color name="color_outline">@color/colorOutline</color>
+
+    <!-- Fondo/toolbar antiguos (si los tienes referenciados) -->
+    <color name="toolbarBg">@color/tile_bg</color>
+    <color name="textOnToolbar">#FFFFFFFF</color>  <!-- usar sólo con toolbar oscura -->
+
+    <!-- Cards legacy (mapeados a la paleta nueva) -->
+    <color name="cardBg">@color/tile_bg</color>
+    <color name="cardTitle">@color/tile_title</color>
+    <color name="cardSubtitle">@color/tile_subtitle</color>
+    <color name="cardIconTint">@color/tile_icon</color>
+
+    <!-- Gradiente dashboard antiguo (si aún se usa) -->
+    <color name="dashStart">#EEF2FF</color>
+    <color name="dashEnd">#E0E7FF</color>
+
+    <!-- Texto sobre fondo oscuro (por si hay pantallas dark) -->
+    <color name="textPrimaryOnDark">#FFFFFFFF</color>
+    <color name="textSubtle">#B3FFFFFF</color>
+    <color name="progressIndicator">#FFFFFFFF</color>
+    <color name="progressTrack">#33FFFFFF</color>
+
+    <!-- Fondo oscuro (si tienes pantallas dark/gráficas) -->
+    <color name="bgStart">#0F172A</color>
+    <color name="bgEnd">#1E293B</color>
+    <color name="glassCard">#1AFFFFFF</color>
+    <color name="cardStroke">#26FFFFFF</color>
+    <color name="dividerSoft">#22FFFFFF</color>
     <color name="tipBg">#14FFFFFF</color>
     <color name="tipStroke">#22FFFFFF</color>
     <color name="tipText">#FFFFFFFF</color>
     <color name="tipIconTint">#FFFFFFFF</color>
 
-    <!-- Texto sobre fondo oscuro -->
-    <color name="textPrimaryOnDark">#FFFFFFFF</color>
-    <color name="textSubtle">#B3FFFFFF</color>   <!-- 70% blanco -->
+    <!-- Aliases para compatibilidad con nombres usados en layouts -->
+    <color name="heroTitle">@color/black</color>
+    <color name="heroSubtitle">@color/black</color>
 
-    <!-- Progreso -->
-    <color name="progressIndicator">#FFFFFFFF</color>
-    <color name="progressTrack">#33FFFFFF</color>
-
-    <!-- Fondo del header -->
-    <color name="toolbarBg">#0F172A</color>
-    <color name="textOnToolbar">#FFFFFFFF</color>
-
-    <!-- Hero (sobre bg del header/gradiente) -->
-    <color name="heroTitle">#111827</color>     <!-- en claro -->
-    <color name="heroSubtitle">#6B7280</color>
-
-    <!-- Cards -->
-    <color name="cardBg">#FFFFFFFF</color>
-
-    <color name="cardTitle">#111827</color>
-    <color name="cardSubtitle">#6B7280</color>
-    <color name="cardIconTint">#1E3A8A</color>  <!-- indigo-800 -->
-
-    <!-- Gradiente dashboard -->
-    <color name="dashStart">#EEF2FF</color>     <!-- indigo-50 -->
-    <color name="dashEnd">#E0E7FF</color>       <!-- indigo-100 -->
 </resources>

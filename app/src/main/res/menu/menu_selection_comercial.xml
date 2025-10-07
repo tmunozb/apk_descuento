@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item android:id="@+id/nav_pendientes"         android:title="Pendientes"           android:icon="@drawable/ic_pending_actions_24"/>
+        <item android:id="@+id/nav_historial"          android:title="Historial"            android:icon="@drawable/ic_history_24"/>
+        <!-- Si usas Soporte para Comercial, descomenta:
+        <item android:id="@+id/nav_soporte"            android:title="Soporte"              android:icon="@drawable/ic_support_agent"/> -->
+    </group>
+
+    <item android:id="@+id/nav_logout" android:title="Cerrar sesión" android:icon="@drawable/ic_logout_24"/>
+</menu>

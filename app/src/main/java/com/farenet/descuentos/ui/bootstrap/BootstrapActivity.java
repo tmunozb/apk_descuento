@@ -286,14 +286,22 @@ public class BootstrapActivity extends AppCompatActivity {
     }
 
     private void routeWhenReady() {
-        // Solo avanzamos si PERFIL + ACCESOS están OK
         if (!(perfilOk.get() && accesosOk.get())) return;
+        String p = session.getPerfil()!=null ? session.getPerfil().perfilId : "";
+        if (p == null) p = "";
+        p = p.trim().toLowerCase();
 
-        // Siempre debe abrir el menú (SelectionActivity)
-        Intent i = new Intent(this, SelectionActivity.class);
-        // Si quisieras abrir Cortesía automáticamente DESPUÉS, podrías usar un extra:
-        // i.putExtra("jump_to", "cortesia");
-        startActivity(i);
+        Class<?> next;
+        switch (p) {
+            case "sistemas":            next = com.farenet.descuentos.ui.selection.sistemas.SelectionSistemasActivity.class; break;
+            case "operaciones":         next = com.farenet.descuentos.ui.selection.operaciones.SelectionOperacionesActivity.class; break;
+            case "comercial":           next = com.farenet.descuentos.ui.selection.comercial.SelectionComercialActivity.class; break;
+            case "asistente_servicio":  next = com.farenet.descuentos.ui.selection.asistente.SelectionAsistenteActivity.class; break;
+            default:
+                // fallback (elige la más segura)
+                next = com.farenet.descuentos.ui.selection.asistente.SelectionAsistenteActivity.class;
+        }
+        startActivity(new Intent(this, next));
         finish();
     }
 

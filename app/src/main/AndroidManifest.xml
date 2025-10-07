@@ -5,11 +5,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <queries>
-
         <!-- Ver apps que manejan ACTION_SEND text/plain -->
         <intent>
             <action android:name="android.intent.action.SEND" />
-
             <data android:mimeType="text/plain" />
         </intent>
 
@@ -28,46 +26,75 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.App"
         android:usesCleartextTraffic="true">
+
+        <!-- Todas las Activities heredan Theme.App (no mezclar MaterialComponents) -->
         <activity
             android:name=".ui.solicitudes.historial.HistorialSolicitudesActivity"
-            android:exported="false"
-            android:theme="@style/Theme.App" />
+            android:exported="false" />
+
         <activity
             android:name=".ui.solicitudes.pendientes.SolicitudesPendientesActivity"
-            android:exported="false"
-            android:theme="@style/Theme.App" />
+            android:exported="false" />
+
         <activity
             android:name=".ui.solicitudes.lista.SolicitudesListaActivity"
-            android:exported="false"
-            android:theme="@style/Theme.App" />
+            android:exported="false" />
+
         <activity
             android:name=".ui.solicitudes.crear.SolicitudCrearActivity"
-            android:exported="false"
-            android:theme="@style/Theme.App" />
+            android:exported="false" />
+
         <activity
             android:name=".ui.selection.SelectionActivity"
-            android:exported="false"
-            android:theme="@style/Theme.App" />
+            android:exported="false" />
+
         <activity
             android:name=".ui.main.MainActivity"
+            android:exported="false"
             android:screenOrientation="portrait" />
+
         <activity
             android:name=".ui.solicitudes.descuento.DescuentoActivity"
             android:exported="false" />
+
         <activity
             android:name=".ui.solicitudes.cortesia.CortesiaActivity"
             android:exported="false" />
 
+        <!-- Corrige: antes tenía Theme.MaterialComponents... cámbialo a Theme.App -->
         <activity
             android:name=".ui.bootstrap.BootstrapActivity"
             android:exported="false"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar"/>
+            android:theme="@style/Theme.App" />
 
-        <activity android:name=".ui.bolsa.BolsaEstadoActivity"/>
+        <activity
+            android:name=".ui.bolsa.BolsaEstadoActivity"
+            android:exported="false" />
 
-        <activity android:name=".ui.bolsa.BolsaBulkActivity"/>
+        <activity
+            android:name=".ui.bolsa.BolsaBulkActivity"
+            android:exported="false" />
 
+        <!-- BaseSelectionActivity puede estar declarado aunque sea base (no se lanzará) -->
+        <activity
+            android:name=".ui.selection.base.BaseSelectionActivity"
+            android:exported="false" />
 
+        <activity
+            android:name=".ui.selection.sistemas.SelectionSistemasActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.selection.operaciones.SelectionOperacionesActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.selection.comercial.SelectionComercialActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.selection.asistente.SelectionAsistenteActivity"
+            android:exported="false" />
 
         <activity
             android:name=".ui.auth.LoginActivity"
@@ -75,10 +102,9 @@
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-    </application>
 
+    </application>
 </manifest>
