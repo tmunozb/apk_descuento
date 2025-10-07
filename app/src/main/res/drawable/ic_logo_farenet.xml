@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- Fondo circular (morado) -->
+    <path
+        android:fillColor="#6C4CE6"
+        android:pathData="M256,32
+                          A224,224 0 1,1 256,480
+                          A224,224 0 1,1 256,32z"/>
+
+    <!-- Aro exterior sutil (morado más oscuro, 12% opacidad) -->
+    <path
+        android:fillColor="#20000000"
+        android:pathData="M256,16
+                          A240,240 0 1,1 256,496
+                          A240,240 0 1,1 256,16z"/>
+
+
+    <path
+        android:fillType="nonZero"
+        android:fillColor="#FFFFFFFF"
+        android:pathData="
+            M180,140
+            L220,140
+            L220,372
+            L180,372
+            Z" />
+
+    <path
+    android:fillColor="#FFFFFFFF"
+    android:pathData="
+            M220,140
+            L360,140
+            L360,180
+            L220,180
+            Z" />
+
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="
+            M220,240
+            L340,240
+            L340,280
+            L220,280
+            Z" />
+
+    <!-- Acento gamer (chip/bolt en ámbar) -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="
+            M372,188
+            a20,20 0 1,1 -40,0
+            a20,20 0 1,1 40,0" />
+
+</vector>
