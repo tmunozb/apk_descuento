@@ -2,83 +2,184 @@
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    android:background="@color/fn_bg">
 
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
-        style="@style/Widget.App.Toolbar"
+    <!-- AppBar -->
+    <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        app:title="Bolsas — Estado" />
+        android:layout_height="wrap_content"
+        android:fitsSystemWindows="true"
+        app:liftOnScroll="true">
 
-    <LinearLayout
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            style="@style/Widget.App.Toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:title="Bolsas — Estado" />
+
+        <!-- Línea neón estilo HUD -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="4dp"
+            android:background="@drawable/bg_neon_divider"/>
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- Contenido -->
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:padding="12dp"
-        android:layout_marginTop="?attr/actionBarSize">
+        android:fillViewport="true"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <!-- Filtros -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:padding="16dp">
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:layout_width="0dp"
+            <!-- Tarjeta de filtros con glow -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.Farenet.KpiCard"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:hint="Período (YYYYMM)"
-                app:counterMaxLength="6"
-                app:counterEnabled="true"
-                app:layout_constraintWidth_percent="0.5"
-                android:layout_weight="1">
+                android:layout_marginBottom="12dp"
+                app:strokeWidth="1dp"
+                android:foreground="@drawable/bg_card_glow">
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etPeriodo"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="number" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:orientation="vertical"
+                    android:padding="12dp">
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:hint="Planta"
-                android:layout_weight="1">
+                    <!-- Encabezado gamer -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingBottom="4dp">
 
-                <AutoCompleteTextView
-                    android:id="@+id/actPlanta"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="text" />
-            </com.google.android.material.textfield.TextInputLayout>
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="FILTROS"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.05"
+                            android:textAllCaps="true"
+                            android:textColor="@color/tile_title"/>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnBuscar"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="Buscar" />
+                        <TextView
+                            android:id="@+id/tvHintResumen"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Selecciona mes y planta"
+                            android:textSize="12sp"
+                            android:textColor="@color/tile_subtitle"/>
+                    </LinearLayout>
+
+                    <!-- Período -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Farenet.Search"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Mes de trabajo"
+                        app:endIconMode="dropdown_menu"
+                        app:helperText="Ej. Octubre 2025 (se convierte a AAAAMM)">
+
+                        <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                            android:id="@+id/actPeriodo"
+                            android:layout_width="match_parent"
+                            android:layout_height="70dp"
+                            android:maxLines="1"
+                            android:ellipsize="end"
+                            android:inputType="none"
+                            android:importantForAutofill="no"
+                            android:dropDownHeight="300dp"
+                            android:dropDownHorizontalOffset="0dp"
+                            android:dropDownVerticalOffset="4dp"/>
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="8dp" />
+
+                    <!-- Planta -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Farenet.Search"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Planta"
+                        app:endIconMode="dropdown_menu">
+
+                        <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                            android:id="@+id/actPlanta"
+                            android:layout_width="match_parent"
+                            android:layout_height="70dp"
+                            android:maxLines="1"
+                            android:ellipsize="end"
+                            android:inputType="none"
+                            android:importantForAutofill="no"
+                            android:dropDownHeight="300dp"
+                            android:dropDownHorizontalOffset="0dp"
+                            android:dropDownVerticalOffset="4dp"/>
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Acciones -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="end"
+                        android:layout_marginTop="12dp">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnLimpiar"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Limpiar"/>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnBuscar"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:minWidth="0dp"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            android:text="Buscar"
+                            app:icon="@drawable/ic_search_24"
+                            app:iconPadding="8dp"
+                            app:iconGravity="textStart"/>
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Lista -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvBolsas"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:paddingBottom="8dp" />
         </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
-        <!-- Lista -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvBolsas"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_marginTop="8dp"
-            android:layout_weight="1" />
+    <!-- Loading flotante -->
+    <com.google.android.material.progressindicator.CircularProgressIndicator
+        android:id="@+id/progress"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:visibility="gone"
+        android:layout_gravity="center"
+        app:indicatorSize="48dp"
+        app:trackCornerRadius="24dp" />
 
-        <!-- Loading -->
-        <ProgressBar
-            android:id="@+id/progress"
-            style="?android:attr/progressBarStyleLarge"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_gravity="center"
-            android:visibility="gone" />
-    </LinearLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

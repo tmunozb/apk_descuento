@@ -7,6 +7,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.farenet.descuentos.R;
+import com.farenet.descuentos.ui.bolsa.BolsaEstadoActivity;
 import com.farenet.descuentos.ui.selection.base.BaseSelectionActivity;
 import com.farenet.descuentos.ui.solicitudes.crear.SolicitudCrearActivity;
 import com.farenet.descuentos.ui.solicitudes.historial.HistorialSolicitudesActivity;
@@ -58,13 +59,13 @@ public class SelectionComercialActivity extends BaseSelectionActivity {
         }
 
         // Configura los tiles (ids del layout comercial)
-        MaterialCardView tileNueva = findViewById(R.id.tileNueva);
+        MaterialCardView tileNueva = findViewById(R.id.bolsa_estado);
         if (tileNueva != null) {
-            ((TextView) tileNueva.findViewById(R.id.tvTitle)).setText("Nueva solicitud");
-            ((TextView) tileNueva.findViewById(R.id.tvSubtitle)).setText("Descuento / Cortesía");
+            ((TextView) tileNueva.findViewById(R.id.tvTitle)).setText("Bolsa");
+            ((TextView) tileNueva.findViewById(R.id.tvSubtitle)).setText("Descuento Autorizado");
             ((ImageView) tileNueva.findViewById(R.id.ivIcon)).setImageResource(R.drawable.ic_add_circle_24);
             tileNueva.setOnClickListener(v ->
-                    startActivity(new Intent(this, SolicitudCrearActivity.class)));
+                    startActivity(new Intent(this, BolsaEstadoActivity.class)));
         }
 
         MaterialCardView tilePend = findViewById(R.id.tilePendientesAut);

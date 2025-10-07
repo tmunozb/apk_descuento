@@ -54,7 +54,7 @@
                 <!-- Hero -->
                 <FrameLayout
                     android:layout_width="match_parent"
-                    android:layout_height="100dp"
+                    android:layout_height="80dp"
                     android:background="@drawable/bg_hero_comercial"
                     android:padding="16dp">
 
@@ -214,7 +214,7 @@
 
                     <!-- Nueva Solicitud -->
                     <include
-                        android:id="@+id/tileNueva"
+                        android:id="@+id/bolsa_estado"
                         layout="@layout/item_action_tile"
                         android:layout_width="10dp"
                         android:layout_height="wrap_content"

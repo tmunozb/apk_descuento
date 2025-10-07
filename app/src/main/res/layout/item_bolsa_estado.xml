@@ -13,71 +13,102 @@
         android:orientation="vertical"
         android:padding="12dp">
 
+        <!-- Cabecera: Planta (izq) + Periodo (der como badge) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
             <TextView
                 android:id="@+id/tvPlanta"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:text="PLANTA"
                 android:textStyle="bold"
                 android:textSize="16sp"
-                android:layout_weight="1"/>
+                android:maxLines="1"
+                android:ellipsize="end" />
 
             <TextView
                 android:id="@+id/tvPeriodo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="202510"
-                android:textStyle="bold"/>
+                android:textStyle="bold"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_badge_chip" />
         </LinearLayout>
 
+        <!-- Estado (chip) -->
         <TextView
             android:id="@+id/tvEstado"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="ACTIVO"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="6dp"
             android:background="@drawable/bg_badge_chip"
-            android:padding="4dp"/>
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp" />
 
+        <!-- Resumen Tope/Usado/Saldo -->
         <TextView
             android:id="@+id/tvTopeUsadoSaldo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Tope: S/ 0.00 | Usado: S/ 0.00 | Saldo: S/ 0.00"
-            android:layout_marginTop="6dp" />
+            android:text="Tope: S/ 0.00  |  Usado: S/ 0.00  |  Saldo: S/ 0.00"
+            android:layout_marginTop="8dp" />
 
+        <!-- Acciones: 3 columnas iguales para que no se descuadre -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
             android:orientation="horizontal"
-            android:layout_marginTop="8dp">
+            android:weightSum="3"
+            android:gravity="center_vertical">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnAuditoria"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Auditoría" />
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:minWidth="0dp"
+                android:text="Auditoría"
+                android:singleLine="true"
+                android:ellipsize="end" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnEditarTope"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:minWidth="0dp"
                 android:text="Editar tope"
-                android:layout_marginStart="8dp" />
+                android:singleLine="true"
+                android:ellipsize="end" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnToggleEstado"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:minWidth="0dp"
                 android:text="Cerrar"
-                android:layout_marginStart="8dp" />
+                android:singleLine="true"
+                android:ellipsize="end" />
         </LinearLayout>
 
     </LinearLayout>

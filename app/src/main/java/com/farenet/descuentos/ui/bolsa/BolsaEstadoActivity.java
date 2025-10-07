@@ -19,8 +19,9 @@ import com.farenet.descuentos.API.Actual.DTO.bolsa.BolsaConfigDto;
 import com.farenet.descuentos.Core.Network.NewApiClient;
 import com.farenet.descuentos.Core.Storage.SessionManager;
 import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 
+import java.text.DateFormatSymbols;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -30,17 +31,27 @@ import retrofit2.Response;
 
 public class BolsaEstadoActivity extends AppCompatActivity implements BolsaEstadoAdapter.Actions {
 
-    private TextInputEditText etPeriodo;
+    // UI
+    private MaterialAutoCompleteTextView actPeriodo;
     private AutoCompleteTextView actPlanta;
     private RecyclerView rv;
     private View progress;
 
-    private final List<String> plantasNombres = new ArrayList<>();
-    private final Map<String,String> plantaNombreToKey = new LinkedHashMap<>();
+    // Períodos (label amigable -> yyyymm)
+    private final LinkedHashMap<String, String> periodLabelToValue = new LinkedHashMap<>();
+    private final List<String> periodLabels = new ArrayList<>();
 
+    // Plantas
+    private final List<String> plantasNombres = new ArrayList<>();
+    private final Map<String, String> plantaNombreToKey = new LinkedHashMap<>();
+    private final Map<String, String> plantaKeyToNombre = new LinkedHashMap<>();
+    private final Set<String> allowedPlantaKeys = new HashSet<>();
+
+    // Infra
     private BolsaEstadoAdapter adapter;
     private SessionManager session;
 
+    // Calls
     private Call<List<BolsaConfigDto>> listCall;
     private Call<BolsaConfigDto> upsertCall;
     private Call<Map<String,Object>> estadoCall;
@@ -51,67 +62,141 @@ public class BolsaEstadoActivity extends AppCompatActivity implements BolsaEstad
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bolsa_estado);
 
-        session = new SessionManager(getApplicationContext());
-
-        MaterialToolbar tb = findViewById(R.id.toolbar);
-        tb.setNavigationOnClickListener(v -> finish());
-
-        etPeriodo = findViewById(R.id.etPeriodo);
+        session   = new SessionManager(getApplicationContext());
+        actPeriodo= findViewById(R.id.actPeriodo);
         actPlanta = findViewById(R.id.actPlanta);
         rv        = findViewById(R.id.rvBolsas);
         progress  = findViewById(R.id.progress);
 
-        // Defaults
-        etPeriodo.setText(yyyymmHoy());
+        // Toolbar back
+        MaterialToolbar tb = findViewById(R.id.toolbar);
+        if (tb != null) tb.setNavigationOnClickListener(v -> finish());
+
+        // Períodos (ej. "Oct 2025 (202510)" -> "202510")
+        buildPeriods(/*mesesHaciaAtrás*/ 24, /*mesesHaciaAdelante*/ 2);
+        actPeriodo.setAdapter(new android.widget.ArrayAdapter<>(this,
+                android.R.layout.simple_list_item_1, periodLabels));
+        // Default: hoy
+        String hoyYYYYMM = yyyymmHoy();
+        String defaultLabel = labelForYYYYMM(hoyYYYYMM);
+        if (defaultLabel == null && !periodLabels.isEmpty()) {
+            defaultLabel = periodLabels.get(0);
+        }
+        if (defaultLabel != null) actPeriodo.setText(defaultLabel, false);
+
+        // Plantas (con "Todos")
         cargarPlantasDesdeSesion();
         actPlanta.setAdapter(new android.widget.ArrayAdapter<>(this,
                 android.R.layout.simple_list_item_1, plantasNombres));
         if (!plantasNombres.isEmpty()) actPlanta.setText(plantasNombres.get(0), false);
 
-        findViewById(R.id.btnBuscar).setOnClickListener(v -> buscar());
-
+        // Recycler
         rv.setLayoutManager(new LinearLayoutManager(this));
         adapter = new BolsaEstadoAdapter(this);
+        adapter.setPlantaKeyToNombre(plantaKeyToNombre); // para mostrar nombre de planta
         rv.setAdapter(adapter);
 
-        buscar(); // primera carga
+        // Acciones
+        findViewById(R.id.btnBuscar).setOnClickListener(v -> buscar());
+
+        // Primera carga
+        buscar();
+    }
+
+    // ---------------- Util Períodos ----------------
+
+    private void buildPeriods(int backMonths, int forwardMonths) {
+        periodLabelToValue.clear();
+        periodLabels.clear();
+
+        Calendar cal = Calendar.getInstance(); // hoy
+        // Generamos desde -back hasta +forward
+        Calendar start = (Calendar) cal.clone();
+        start.add(Calendar.MONTH, -backMonths);
+
+        int total = backMonths + forwardMonths + 1;
+        for (int i = 0; i < total; i++) {
+            Calendar c = (Calendar) start.clone();
+            c.add(Calendar.MONTH, i);
+            String yyyymm = new SimpleDateFormat("yyyyMM", Locale.getDefault()).format(c.getTime());
+            String label = buildFriendlyLabel(c, yyyymm);
+            periodLabelToValue.put(label, yyyymm);
+            periodLabels.add(label);
+        }
+    }
+
+    private String buildFriendlyLabel(Calendar c, String yyyymm) {
+        String[] months = new DateFormatSymbols(Locale.getDefault()).getMonths();
+        String mesCorto = months[c.get(Calendar.MONTH)];
+        if (mesCorto.length() > 3) mesCorto = mesCorto.substring(0, 3);
+        int year = c.get(Calendar.YEAR);
+        return mesCorto + " " + year + " (" + yyyymm + ")";
+    }
+
+    private String labelForYYYYMM(String yyyymm) {
+        for (Map.Entry<String, String> e : periodLabelToValue.entrySet()) {
+            if (yyyymm.equals(e.getValue())) return e.getKey();
+        }
+        return null;
+    }
+
+    private String yyyymmFromLabel(String label) {
+        if (label == null) return null;
+        String val = periodLabelToValue.get(label.trim());
+        if (!TextUtils.isEmpty(val)) return val;
+        // fallback: si el usuario tecleó directamente 202510
+        String s = label.replaceAll("[^0-9]", "");
+        return s.length() == 6 ? s : null;
     }
 
     private String yyyymmHoy() {
         return new SimpleDateFormat("yyyyMM", Locale.getDefault()).format(new Date());
     }
 
+    // ---------------- Plantas ----------------
+
     private void cargarPlantasDesdeSesion() {
         plantasNombres.clear();
         plantaNombreToKey.clear();
+        plantaKeyToNombre.clear();
+        allowedPlantaKeys.clear();
+
+        // "Todos"
+        plantasNombres.add("Todos");
+        plantaNombreToKey.put("Todos", null);
 
         List<AccesoPlantaDto> accesos = session.getAccesos();
-        if (accesos == null) return;
+        if (accesos != null) {
+            for (AccesoPlantaDto a : accesos) {
+                if (a == null) continue;
+                String nombre = safe(a.planta); // p.ej. "Surco"
+                String key    = safe(a.key);    // p.ej. "98"
+                if (TextUtils.isEmpty(nombre) || TextUtils.isEmpty(key)) continue;
 
-        for (AccesoPlantaDto a : accesos) {
-            if (a == null) continue;
-            String nombre = safe(a.planta);
-            String key    = safe(a.key);
-            if (TextUtils.isEmpty(nombre)) continue;
-            if (!plantaNombreToKey.containsKey(nombre)) {
-                plantaNombreToKey.put(nombre, key);
-                plantasNombres.add(nombre);
+                if (!plantaNombreToKey.containsKey(nombre)) {
+                    plantaNombreToKey.put(nombre, key);
+                    plantasNombres.add(nombre);
+                }
+                plantaKeyToNombre.put(key, nombre);
+                allowedPlantaKeys.add(key);
             }
         }
-        Collections.sort(plantasNombres);
+        if (plantasNombres.size() > 1) {
+            Collections.sort(plantasNombres.subList(1, plantasNombres.size()));
+        }
     }
 
-    private void buscar() {
-        String periodo = safe(etPeriodo.getText() != null ? etPeriodo.getText().toString() : "");
-        String plantaNombre = safe(actPlanta.getText() != null ? actPlanta.getText().toString() : "");
-        String plantaKey = plantaNombreToKey.get(plantaNombre);
+    // ---------------- Buscar ----------------
 
-        if (periodo.length() != 6) {
-            Toast.makeText(this, "Período inválido (use YYYYMM)", Toast.LENGTH_LONG).show();
-            return;
-        }
-        if (TextUtils.isEmpty(plantaKey)) {
-            Toast.makeText(this, "Seleccione una planta válida", Toast.LENGTH_LONG).show();
+    private void buscar() {
+        String periodoLabel = safe(actPeriodo.getText() != null ? actPeriodo.getText().toString() : "");
+        String periodo = yyyymmFromLabel(periodoLabel); // <-- convierte etiqueta amigable a YYYYMM
+
+        String plantaNombre = safe(actPlanta.getText() != null ? actPlanta.getText().toString() : "");
+        String plantaKey = plantaNombreToKey.get(plantaNombre); // null si "Todos"
+
+        if (TextUtils.isEmpty(periodo) || periodo.length() != 6) {
+            Toast.makeText(this, "Período inválido (elige de la lista o usa formato YYYYMM)", Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -125,7 +210,19 @@ public class BolsaEstadoActivity extends AppCompatActivity implements BolsaEstad
                     Toast.makeText(BolsaEstadoActivity.this, "Error al obtener bolsas", Toast.LENGTH_LONG).show();
                     return;
                 }
-                adapter.setItems(rsp.body());
+                List<BolsaConfigDto> all = rsp.body();
+
+                // Filtrar por acceso
+                List<BolsaConfigDto> filtered = new ArrayList<>();
+                for (BolsaConfigDto b : all) {
+                    String key = b.planta_key != null ? String.valueOf(b.planta_key).trim() : null;
+                    if (key != null && allowedPlantaKeys.contains(key)) {
+                        filtered.add(b);
+                    }
+                }
+
+                adapter.setPlantaKeyToNombre(plantaKeyToNombre); // aseguramos nombres
+                adapter.setItems(filtered);
             }
             @Override public void onFailure(Call<List<BolsaConfigDto>> call, Throwable t) {
                 if (call.isCanceled()) return;
@@ -134,6 +231,8 @@ public class BolsaEstadoActivity extends AppCompatActivity implements BolsaEstad
             }
         });
     }
+
+    // ---------------- UI helpers ----------------
 
     private void showLoading(boolean show) {
         if (progress != null) progress.setVisibility(show ? View.VISIBLE : View.GONE);
