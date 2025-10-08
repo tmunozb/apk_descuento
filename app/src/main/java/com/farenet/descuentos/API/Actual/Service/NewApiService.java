@@ -23,6 +23,7 @@ import java.util.Map;
 
 import com.farenet.descuentos.API.Actual.DTO.bolsa.BolsaConfigDto;
 import com.farenet.descuentos.API.Actual.DTO.bolsa.BolsaAuditoriaDto;
+import com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto;
 
 import retrofit2.Call;
 import retrofit2.http.Body;
@@ -125,5 +126,20 @@ public interface NewApiService {
             @Query("periodo") String periodo,
             @Query("limit") Integer limit
     );
+
+    @GET("solicitudes/ultimas-aprobadas")
+    Call<List<SolicitudDto>> ultimasAprobadas(@Query("user") String user, @Query("limit") Integer limit);
+
+    @GET("solicitudes")
+    Call<List<SolicitudDto>> listarSolicitudes(
+            @Query("user") String user,
+            @Query("estado") String estado,
+            @Query("tipo") String tipo,
+            @Query("q") String q,
+            @Query("limit") Integer limit,
+            @Query("offset") Integer offset,
+            @Query("orden") String orden
+    );
+
 
 }

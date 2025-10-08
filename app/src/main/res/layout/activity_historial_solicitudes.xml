@@ -1,64 +1,195 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical"
+    android:fitsSystemWindows="true"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
-        style="@style/Widget.MaterialComponents.Toolbar.Primary"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:title="Historial"
-        app:navigationIcon="@drawable/ic_arrow_back_24"/>
-
-    <!-- Filtros -->
-    <LinearLayout
-        android:id="@+id/filters"
-        android:orientation="horizontal"
-        android:padding="12dp"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="Tipo">
-            <AutoCompleteTextView
-                android:id="@+id/act_tipo"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"/>
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:hint="Estado">
-            <AutoCompleteTextView
-                android:id="@+id/act_estado"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"/>
-        </com.google.android.material.textfield.TextInputLayout>
-    </LinearLayout>
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:padding="8dp"
-        android:layout_weight="1"/>
-
-    <TextView
-        android:id="@+id/tv_empty"
+    <!-- AppBar -->
+    <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="16dp"
-        android:text="No hay registros en el historial."
-        android:gravity="center"
-        android:visibility="gone"/>
+        android:theme="@style/ThemeOverlay.Material3.ActionBar">
 
-</LinearLayout>
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            style="@style/Widget.Material3.Toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:title="Historial"
+            app:navigationIcon="@drawable/ic_arrow_back_24" />
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- Contenido -->
+    <FrameLayout
+        android:id="@+id/content_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <!-- Tarjeta de filtros (estilo bolsa) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_filters"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginTop="12dp"
+                app:cardCornerRadius="16dp"
+                app:cardUseCompatPadding="true"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:orientation="vertical"
+                    android:padding="12dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <LinearLayout
+                        android:orientation="horizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+
+                        <!-- Tipo -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="@style/Widget.Material3.TextInputLayout.FilledBox.ExposedDropdownMenu"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:hint="Tipo"
+                            app:endIconMode="clear_text">
+
+                            <AutoCompleteTextView
+                                android:id="@+id/act_tipo"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:ellipsize="end"
+                                android:maxLines="1"
+                                android:inputType="none"
+                                android:importantForAutofill="no" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <!-- Separación -->
+                        <Space
+                            android:layout_width="8dp"
+                            android:layout_height="match_parent" />
+
+                        <!-- Estado -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="@style/Widget.Material3.TextInputLayout.FilledBox.ExposedDropdownMenu"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:hint="Estado"
+                            app:endIconMode="clear_text">
+
+                            <AutoCompleteTextView
+                                android:id="@+id/act_estado"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:ellipsize="end"
+                                android:maxLines="1"
+                                android:inputType="none"
+                                android:importantForAutofill="no" />
+                        </com.google.android.material.textfield.TextInputLayout>
+                    </LinearLayout>
+
+                    <!-- Línea divisoria sutil -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="4dp"
+                        android:background="?attr/colorOutline" />
+
+                    <!-- Chips rápidos -->
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chips_quick"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:singleSelection="true"
+                        app:singleLine="true">
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_all"
+                            style="@style/Widget.Material3.Chip.Assist"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="8dp"
+                            android:text="Todos" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_aprobadas"
+                            style="@style/Widget.Material3.Chip.Assist"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="8dp"
+                            android:text="Aprobadas" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_rechazadas"
+                            style="@style/Widget.Material3.Chip.Assist"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="8dp"
+                            android:text="Rechazadas" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_pendientes"
+                            style="@style/Widget.Material3.Chip.Assist"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Pendientes" />
+                    </com.google.android.material.chip.ChipGroup>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Lista con pull-to-refresh -->
+            <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+                android:id="@+id/swipe"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rv"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingBottom="8dp"
+                    android:clipToPadding="false" />
+            </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+            <!-- Empty state: MISMO id que usas en tu Activity -->
+            <TextView
+                android:id="@+id/tv_empty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="24dp"
+                android:paddingBottom="24dp"
+                android:text="No hay registros en el historial."
+                android:gravity="center"
+                android:visibility="gone"
+                android:drawableTop="@drawable/ic_inbox_24"
+                android:drawablePadding="8dp"
+                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
+
+        <!-- Progress centrado sobre el contenido -->
+        <ProgressBar
+            android:id="@android:id/progress"
+            style="?android:attr/progressBarStyleLarge"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_gravity="center"
+            android:visibility="gone" />
+    </FrameLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -59,7 +59,7 @@ public class SelectionComercialActivity extends BaseSelectionActivity {
         }
 
         // Configura los tiles (ids del layout comercial)
-        MaterialCardView tileNueva = findViewById(R.id.bolsa_estado);
+        MaterialCardView tileNueva = findViewById(R.id.tileBolsaEstado);
         if (tileNueva != null) {
             ((TextView) tileNueva.findViewById(R.id.tvTitle)).setText("Bolsa");
             ((TextView) tileNueva.findViewById(R.id.tvSubtitle)).setText("Descuento Autorizado");

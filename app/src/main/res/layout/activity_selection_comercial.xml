@@ -80,64 +80,6 @@
                     </LinearLayout>
                 </FrameLayout>
 
-                <!-- Chips de estado -->
-                <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/chipsEstados"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:paddingTop="12dp"
-                    android:paddingBottom="4dp"
-                    app:singleSelection="true"
-                    app:selectionRequired="false">
-
-                    <com.google.android.material.chip.Chip
-                        style="@style/Widget.Farenet.FilterChip"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Todos"/>
-
-                    <com.google.android.material.chip.Chip
-                        style="@style/Widget.Farenet.FilterChip"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Pendientes (Aut.)"/>
-
-                    <com.google.android.material.chip.Chip
-                        style="@style/Widget.Farenet.FilterChip"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Aprobadas"/>
-
-                    <com.google.android.material.chip.Chip
-                        style="@style/Widget.Farenet.FilterChip"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Rechazadas"/>
-                </com.google.android.material.chip.ChipGroup>
-
-                <!-- Search -->
-                <com.google.android.material.textfield.TextInputLayout
-                    style="@style/Widget.Farenet.Search"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="16dp"
-                    android:layout_marginTop="8dp"
-                    app:startIconDrawable="@drawable/ic_search_24">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etBuscar"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="Buscar por placa o código…"
-                        android:textColor="@color/tile_title"
-                        android:textColorHint="@color/tile_subtitle"
-                        android:imeOptions="actionSearch"
-                        android:singleLine="true"
-                        android:inputType="text"/>
-                </com.google.android.material.textfield.TextInputLayout>
-
                 <!-- KPIs rápidos -->
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -162,14 +104,14 @@
                                 style="@style/Text.Farenet.KpiLabel"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Pend. Aut."/>
+                                android:text="Pend. Aut." />
 
                             <TextView
                                 android:id="@+id/tvKpiPendientes"
                                 style="@style/Text.Farenet.KpiValue"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="12"/>
+                                android:text="12" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
 
@@ -189,14 +131,14 @@
                                 style="@style/Text.Farenet.KpiLabel"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Aprobadas"/>
+                                android:text="Aprobadas" />
 
                             <TextView
                                 android:id="@+id/tvKpiAprobadas"
                                 style="@style/Text.Farenet.KpiValue"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="38"/>
+                                android:text="38" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
@@ -212,11 +154,11 @@
                     app:alignmentMode="alignMargins"
                     app:useDefaultMargins="true">
 
-                    <!-- Nueva Solicitud -->
+                    <!-- Bolsa Estado -->
                     <include
-                        android:id="@+id/bolsa_estado"
+                        android:id="@+id/tileBolsaEstado"
                         layout="@layout/item_action_tile"
-                        android:layout_width="10dp"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_margin="8dp"
                         app:layout_columnWeight="1" />
@@ -225,7 +167,7 @@
                     <include
                         android:id="@+id/tilePendientesAut"
                         layout="@layout/item_action_tile"
-                        android:layout_width="10dp"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_margin="8dp"
                         app:layout_columnWeight="1" />
@@ -234,7 +176,7 @@
                     <include
                         android:id="@+id/tileHistorial"
                         layout="@layout/item_action_tile"
-                        android:layout_width="10dp"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_margin="8dp"
                         app:layout_columnWeight="1" />
@@ -243,12 +185,42 @@
                     <include
                         android:id="@+id/tileReportes"
                         layout="@layout/item_action_tile"
-                        android:layout_width="10dp"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_margin="8dp"
                         app:layout_columnWeight="1" />
                 </androidx.gridlayout.widget.GridLayout>
 
+                <!-- Buscador (aplica a "Últimas solicitudes") -->
+                <TextView
+                    android:id="@+id/tvSearchSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="16dp"
+                    android:text="Buscar en últimas solicitudes"
+                    android:textStyle="bold"
+                    android:textColor="@color/cardTitle" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilBuscarUltimos"
+                    style="@style/Widget.Farenet.Search"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="16dp"
+                    android:layout_marginTop="4dp"
+                    app:startIconDrawable="@drawable/ic_search_24">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etBuscarUltimos"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Placa o código…"
+                        android:textColor="@color/tile_title"
+                        android:textColorHint="@color/tile_subtitle"
+                        android:imeOptions="actionSearch"
+                        android:singleLine="true"
+                        android:inputType="text" />
+                </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- Lista “últimas solicitudes” -->
                 <TextView
@@ -256,10 +228,10 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:paddingHorizontal="16dp"
-                    android:paddingTop="4dp"
+                    android:paddingTop="8dp"
                     android:text="Últimas solicitudes"
                     android:textStyle="bold"
-                    android:textColor="@color/cardTitle"/>
+                    android:textColor="@color/cardTitle" />
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvUltimos"
@@ -267,10 +239,11 @@
                     android:layout_height="wrap_content"
                     android:padding="16dp"
                     android:clipToPadding="false"
-                    android:background="@color/fn_bg"/>
+                    android:background="@color/fn_bg" />
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
 
+        <!-- Bottom Navigation (solo comercial) -->
         <com.google.android.material.bottomnavigation.BottomNavigationView
             android:id="@+id/bottomNav"
             style="@style/Widget.Farenet.BottomNav"
@@ -278,10 +251,10 @@
             android:layout_height="wrap_content"
             android:layout_gravity="bottom"
             app:layout_behavior="@string/hide_bottom_view_on_scroll_behavior"
-            app:menu="@menu/menu_bottom_comercial"/>
+            app:menu="@menu/menu_bottom_comercial" />
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
-    <!-- MENÚ LATERAL (como en tu selección original) -->
+    <!-- MENÚ LATERAL -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigationView"
         android:layout_width="wrap_content"

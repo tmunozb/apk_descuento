@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.farenet.descuentos.R;
 import com.farenet.descuentos.ui.solicitudes.model.SolicitudUI;
+import com.google.android.material.chip.Chip;
 
 import java.util.List;
 
@@ -27,20 +28,27 @@ public class SolicitudSimpleAdapter extends RecyclerView.Adapter<SolicitudSimple
         this.listener = listener;
     }
 
-    @NonNull @Override
+    @NonNull
+    @Override
     public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_solicitud_simple, parent, false);
+                .inflate(R.layout.item_solicitud_historial, parent, false); // ← usar tu layout real
         return new VH(v);
     }
 
     @Override
     public void onBindViewHolder(@NonNull VH h, int pos) {
         SolicitudUI s = data.get(pos);
-        h.tvTitulo.setText(s.codigo + " · " + s.tipo);
-        h.tvSub.setText("Placa: " + s.placa + " · Planta: " + s.planta + " · Motivo: " + s.motivo);
-        h.tvEstado.setText(s.estado);
-        h.tvFecha.setText(s.fecha == null ? "" : s.fecha);
+
+        // Bindeo 1:1 con los IDs de item_solicitud_creado.xml
+        h.tvCodigo.setText(nz(s.codigo));
+        h.tvFecha.setText(nz(s.fecha));
+        h.chEstado.setText(nz(s.estado));
+
+        h.tvTipo.setText(nz(s.tipo));
+        h.tvPlaca.setText(nz(s.placa));
+        h.tvPlanta.setText(nz(s.planta));
+        h.tvMotivo.setText(nz(s.motivo));
 
         h.itemView.setOnClickListener(v -> {
             if (listener != null) listener.onClick(s);
@@ -48,16 +56,25 @@ public class SolicitudSimpleAdapter extends RecyclerView.Adapter<SolicitudSimple
     }
 
     @Override
-    public int getItemCount() { return data.size(); }
+    public int getItemCount() {
+        return data == null ? 0 : data.size();
+    }
 
     static class VH extends RecyclerView.ViewHolder {
-        TextView tvTitulo, tvSub, tvEstado, tvFecha;
+        TextView tvCodigo, tvFecha, tvTipo, tvPlaca, tvPlanta, tvMotivo;
+        Chip chEstado;
+
         VH(@NonNull View v) {
             super(v);
-            tvTitulo = v.findViewById(R.id.tv_titulo);
-            tvSub    = v.findViewById(R.id.tv_sub);
-            tvEstado = v.findViewById(R.id.tv_estado);
-            tvFecha  = v.findViewById(R.id.tv_fecha);
+            tvCodigo = v.findViewById(R.id.tvCodigo);
+            tvFecha  = v.findViewById(R.id.tvFecha);
+            chEstado = v.findViewById(R.id.chEstado);
+            tvTipo   = v.findViewById(R.id.tvTipo);
+            tvPlaca  = v.findViewById(R.id.tvPlaca);
+            tvPlanta = v.findViewById(R.id.tvPlanta);
+            tvMotivo = v.findViewById(R.id.tvMotivo);
         }
     }
+
+    private static String nz(String s) { return s == null ? "" : s; }
 }
