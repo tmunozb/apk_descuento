@@ -7,7 +7,7 @@
 
     <item
         android:id="@+id/tab_solicitudes"
-        android:title="Solicitudes"
+        android:title="Aprob. Pendientes"
         android:icon="@drawable/ic_assignment_24"/>
 
     <item

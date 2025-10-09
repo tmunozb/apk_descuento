@@ -90,6 +90,7 @@
 
         <activity
             android:name=".ui.selection.comercial.SelectionComercialActivity"
+            android:windowSoftInputMode="adjustResize"
             android:exported="false" />
 
         <activity

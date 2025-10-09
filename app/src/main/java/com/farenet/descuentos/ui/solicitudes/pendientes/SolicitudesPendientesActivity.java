@@ -1,5 +1,6 @@
 package com.farenet.descuentos.ui.solicitudes.pendientes;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
@@ -28,6 +29,7 @@ import com.farenet.descuentos.API.Antigua.Service.DescuentoRepository;
 import com.farenet.descuentos.Core.Storage.SessionManager;
 import com.farenet.descuentos.ui.solicitudes.pendientes.adapter.PendienteSolicitudAdapter;
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -138,6 +140,25 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
 
         descuentoRepository = Constante.getDescuentoRepository();
         sharedPreferences   = getSharedPreferences(Constante.TOKEN, MODE_PRIVATE);
+
+        // Bottom navigation
+        BottomNavigationView bottom = findViewById(R.id.bottomNav);
+        if (bottom != null) {
+            bottom.setOnItemSelectedListener(item -> {
+                int id = item.getItemId();
+                if (id == R.id.tab_home) return true; // ya estás aquí
+                if (id == R.id.tab_solicitudes) {
+                    startActivity(new Intent(this, com.farenet.descuentos.ui.solicitudes.pendientes.SolicitudesPendientesActivity.class));
+                    return true;
+                }
+                if (id == R.id.tab_reportes) {
+                    // abrir reportes
+                    return true;
+                }
+                return false;
+            });
+            bottom.setSelectedItemId(R.id.tab_home);
+        }
 
         cargarPendientes();
     }
