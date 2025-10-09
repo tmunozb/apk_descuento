@@ -14,7 +14,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto;
-import com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudPendienteDto;
+import com.farenet.descuentos.Core.Cache.DashboardCache;
 import com.farenet.descuentos.Core.Network.NewApiClient;
 import com.farenet.descuentos.R;
 import com.farenet.descuentos.ui.bolsa.BolsaEstadoActivity;
@@ -23,9 +23,9 @@ import com.farenet.descuentos.ui.solicitudes.comunes.adapter.SolicitudSimpleAdap
 import com.farenet.descuentos.ui.solicitudes.historial.HistorialSolicitudesActivity;
 import com.farenet.descuentos.ui.solicitudes.model.SolicitudUI;
 import com.farenet.descuentos.ui.solicitudes.pendientes.SolicitudesPendientesActivity;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.card.MaterialCardView;
-import com.google.android.material.appbar.MaterialToolbar;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -55,9 +55,9 @@ public class SelectionComercialActivity extends BaseSelectionActivity {
     private final List<SolicitudUI> ultimosData = new ArrayList<>();
 
     // Llamadas en curso
-    private Call<List<SolicitudPendienteDto>> callPend;
-    private Call<List<SolicitudDto>>          callAprob;
-    private Call<List<SolicitudDto>>          callUltimas;
+    private Call<List<SolicitudDto>> callPendAut;  // ← pendientes AUT (usa SolicitudDto)
+    private Call<List<SolicitudDto>> callAprob;
+    private Call<List<SolicitudDto>> callUltimas;
 
     private String getUser() {
         // TODO: reemplazar por usuario logueado real
@@ -76,7 +76,7 @@ public class SelectionComercialActivity extends BaseSelectionActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Toolbar: logout (igual que tu versión)
+        // Toolbar: logout
         MaterialToolbar tb = toolbar;
         if (tb != null) {
             tb.setOnMenuItemClickListener(item -> {
@@ -170,12 +170,14 @@ public class SelectionComercialActivity extends BaseSelectionActivity {
         if (rvUltimos != null) {
             rvUltimos.setLayoutManager(new LinearLayoutManager(this));
             rvUltimos.setHasFixedSize(true);
-            rvUltimos.setNestedScrollingEnabled(false);  // ← clave para que no “salte”
+            rvUltimos.setNestedScrollingEnabled(false);  // evita “saltos” dentro del NestedScrollView
             rvUltimos.setOverScrollMode(RecyclerView.OVER_SCROLL_NEVER);
-            ultimosAdapter = new SolicitudSimpleAdapter(ultimosData, s -> { /* detalle */ });
+            ultimosAdapter = new SolicitudSimpleAdapter(ultimosData, s -> { /* abrir detalle si aplica */ });
             rvUltimos.setAdapter(ultimosAdapter);
         }
 
+        // Pintar inmediatamente lo precargado en Bootstrap (si existe)
+        applyPreloadedDashboard();
 
         // Buscar al pulsar “buscar” en el teclado
         if (etBuscarUltimos != null) {
@@ -190,9 +192,35 @@ public class SelectionComercialActivity extends BaseSelectionActivity {
             });
         }
 
-        // Cargar datos al abrir
+        // Cargar datos al abrir (refresco)
         loadKpis();
-        loadUltimas(null); // sin filtro
+        loadUltimas(null); // sin filtro: 3 recientes
+    }
+
+    private void applyPreloadedDashboard() {
+        // KPIs
+        int pendAut = DashboardCache.getKpiPendAut();
+        int aprob   = DashboardCache.getKpiAprobadas();
+        if (tvKpiPendientes != null && pendAut >= 0) tvKpiPendientes.setText(String.valueOf(pendAut));
+        if (tvKpiAprobadas  != null && aprob   >= 0) tvKpiAprobadas.setText(String.valueOf(aprob));
+
+        // Últimas 3
+        List<SolicitudDto> cached = DashboardCache.getUltimas();
+        if (cached != null && !cached.isEmpty() && ultimosAdapter != null) {
+            List<SolicitudUI> mapped = new ArrayList<>();
+            for (SolicitudDto d : cached) {
+                mapped.add(new SolicitudUI(
+                        nz(d.codigo),
+                        capFirst(nz(d.tipo)),
+                        nz(d.placa),
+                        nz(d.plantaNombre),
+                        nz(d.motivo),
+                        capFirst(nz(d.estado)),
+                        nz(d.creadoEn)
+                ));
+            }
+            applyUltimas(mapped);
+        }
     }
 
     @Override
@@ -203,13 +231,22 @@ public class SelectionComercialActivity extends BaseSelectionActivity {
         loadUltimas(trimOrEmpty(etBuscarUltimos == null ? null : etBuscarUltimos.getText()));
     }
 
+    private void updateTextIfChanged(TextView tv, int newVal) {
+        if (tv == null) return;
+        CharSequence cur = tv.getText();
+        String next = String.valueOf(newVal);
+        if (cur == null || !next.contentEquals(cur)) {
+            tv.setText(next);
+        }
+    }
+
     /** KPIs **/
     private void loadKpis() {
         setKpiLoading();
 
-        if (callPend != null) callPend.cancel();
-// usamos la misma firma que para aprobadas
-        Call<List<SolicitudDto>> callPendAut = NewApiClient.get().listarSolicitudes(
+        // 1) Pendientes de AUT (solo PENDIENTE_AUT)
+        if (callPendAut != null) callPendAut.cancel();
+        callPendAut = NewApiClient.get().listarSolicitudes(
                 getUser(),              // o null si quieres global
                 "PENDIENTE_AUT",        // ← solo las de autorización
                 null, null,
@@ -218,25 +255,24 @@ public class SelectionComercialActivity extends BaseSelectionActivity {
         );
         callPendAut.enqueue(new Callback<List<SolicitudDto>>() {
             @Override public void onResponse(Call<List<SolicitudDto>> call, Response<List<SolicitudDto>> rsp) {
-                if (!rsp.isSuccessful() || rsp.body() == null) {
-                    tvKpiPendientes.setText("–");
-                    return;
-                }
-                tvKpiPendientes.setText(String.valueOf(rsp.body().size()));
+                int n = 0;
+                if (rsp.isSuccessful() && rsp.body() != null) n = rsp.body().size();
+                DashboardCache.setKpiPendAut(n);
+                updateTextIfChanged(tvKpiPendientes, n);
             }
             @Override public void onFailure(Call<List<SolicitudDto>> call, Throwable t) {
                 if (call.isCanceled()) return;
-                tvKpiPendientes.setText("–");
+                // no pisamos el valor cacheado; solo mostramos “–” si no hay cache
+                if (DashboardCache.getKpiPendAut() < 0 && tvKpiPendientes != null) tvKpiPendientes.setText("–");
             }
         });
 
-
-        // 2) Aprobadas: /solicitudes?estado=APROBADA
+        // 2) Aprobadas
         if (callAprob != null) callAprob.cancel();
         callAprob = NewApiClient.get().listarSolicitudes(
                 getUser(),      // user del comercial
                 "APROBADA",
-                "DESCUENTO",           // tipo
+                "DESCUENTO",    // si quieres solo descuentos; quítalo si es cualquier tipo
                 null,           // q
                 500,            // limit
                 0,              // offset
@@ -245,20 +281,17 @@ public class SelectionComercialActivity extends BaseSelectionActivity {
         callAprob.enqueue(new Callback<List<SolicitudDto>>() {
             @Override public void onResponse(Call<List<SolicitudDto>> call,
                                              Response<List<SolicitudDto>> rsp) {
-                if (!rsp.isSuccessful() || rsp.body() == null) {
-                    tvKpiAprobadas.setText("–");
-                    return;
+                int n = 0;
+                if (rsp.isSuccessful() && rsp.body() != null) {
+                    List<SolicitudDto> list = rsp.body();
+                    n = ONLY_THIS_MONTH_FOR_APPROVED ? filterThisMonthCount(list) : list.size();
                 }
-                List<SolicitudDto> list = rsp.body();
-                if (ONLY_THIS_MONTH_FOR_APPROVED) {
-                    tvKpiAprobadas.setText(String.valueOf(filterThisMonthCount(list)));
-                } else {
-                    tvKpiAprobadas.setText(String.valueOf(list.size()));
-                }
+                DashboardCache.setKpiAprobadas(n);
+                updateTextIfChanged(tvKpiAprobadas, n);
             }
             @Override public void onFailure(Call<List<SolicitudDto>> call, Throwable t) {
                 if (call.isCanceled()) return;
-                tvKpiAprobadas.setText("–");
+                if (DashboardCache.getKpiAprobadas() < 0 && tvKpiAprobadas != null) tvKpiAprobadas.setText("–");
             }
         });
     }
@@ -268,16 +301,16 @@ public class SelectionComercialActivity extends BaseSelectionActivity {
         if (callUltimas != null) callUltimas.cancel();
 
         final boolean hasQuery = q != null && !q.trim().isEmpty();
-        final int limit = hasQuery ? 20 : 3;   // ← 3 recientes; si buscas, muestra más
+        final int limit = hasQuery ? 20 : 3;   // 3 recientes; si buscas, muestra más
 
         callUltimas = NewApiClient.get().listarSolicitudes(
-                getUser(),            // o null si quieres global
-                null,                 // estado => todos
-                null,                 // tipo   => todos
-                hasQuery ? q.trim() : null, // q (placa/código)
-                limit,                // ← aquí
+                getUser(),                    // o null si quieres global
+                null,                         // estado => todos
+                null,                         // tipo   => todos
+                hasQuery ? q.trim() : null,   // q (placa/código)
+                limit,
                 0,
-                "-creado_en"          // más recientes primero
+                "-creado_en"                  // más recientes primero
         );
 
         callUltimas.enqueue(new Callback<List<SolicitudDto>>() {
@@ -290,11 +323,11 @@ public class SelectionComercialActivity extends BaseSelectionActivity {
                 for (SolicitudDto d : rsp.body()) {
                     mapped.add(new SolicitudUI(
                             nz(d.codigo),
-                            nz(capFirst(d.tipo)),
+                            capFirst(nz(d.tipo)),
                             nz(d.placa),
                             nz(d.plantaNombre),
                             nz(d.motivo),
-                            nz(capFirst(d.estado)),
+                            capFirst(nz(d.estado)),
                             nz(d.creadoEn)
                     ));
                 }
@@ -307,7 +340,6 @@ public class SelectionComercialActivity extends BaseSelectionActivity {
         });
     }
 
-
     private void applyUltimas(List<SolicitudUI> items) {
         ultimosData.clear();
         if (items != null) ultimosData.addAll(items);
@@ -316,8 +348,11 @@ public class SelectionComercialActivity extends BaseSelectionActivity {
 
     /** Utils **/
     private void setKpiLoading() {
-        if (tvKpiPendientes != null) tvKpiPendientes.setText("…");
-        if (tvKpiAprobadas  != null) tvKpiAprobadas.setText("…");
+        int pend = DashboardCache.getKpiPendAut();
+        int apr  = DashboardCache.getKpiAprobadas();
+
+        if (tvKpiPendientes != null && pend < 0) tvKpiPendientes.setText("…"); // <0 => sin cache
+        if (tvKpiAprobadas  != null && apr  < 0) tvKpiAprobadas.setText("…");
     }
 
     private int filterThisMonthCount(List<SolicitudDto> list) {
@@ -339,13 +374,7 @@ public class SelectionComercialActivity extends BaseSelectionActivity {
     }
 
     private static String nz(String s) { return s == null ? "" : s; }
-
-    private static boolean isEmpty(String s) { return s == null || s.trim().isEmpty(); }
-
-    private static String trimOrEmpty(CharSequence cs) {
-        return cs == null ? "" : cs.toString().trim();
-    }
-
+    private static String trimOrEmpty(CharSequence cs) { return cs == null ? "" : cs.toString().trim(); }
     private static String capFirst(String s) {
         if (s == null || s.isEmpty()) return "";
         return s.substring(0,1).toUpperCase(Locale.getDefault()) +
@@ -355,7 +384,7 @@ public class SelectionComercialActivity extends BaseSelectionActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (callPend    != null) callPend.cancel();
+        if (callPendAut != null) callPendAut.cancel();
         if (callAprob   != null) callAprob.cancel();
         if (callUltimas != null) callUltimas.cancel();
     }

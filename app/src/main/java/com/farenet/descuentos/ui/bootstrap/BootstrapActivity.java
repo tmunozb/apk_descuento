@@ -25,9 +25,15 @@ import com.farenet.descuentos.API.Actual.Service.NewApiService;
 import com.farenet.descuentos.API.Antigua.Service.MaestroRepository;
 import com.farenet.descuentos.Core.Storage.SessionManager;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto;
+import com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudPendienteDto;
+import com.farenet.descuentos.Core.Cache.DashboardCache;
+
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -172,6 +178,7 @@ public class BootstrapActivity extends AppCompatActivity {
         // 2) Disparar precargas no críticas (no bloquean el enrutamiento)
         prefetchMaestros(token);
         prefetchMotivos();
+        prefetchDashboard();
     }
 
     // ===== PERFIL + ACCESOS (gating obligatorio) =====
@@ -313,6 +320,63 @@ public class BootstrapActivity extends AppCompatActivity {
         inc(); maestroRepo.getConceptoinspeccion(token).enqueue(doneList("Conceptos"));
         inc(); maestroRepo.getTipoPagoDescuento(token).enqueue(doneList("TipoPago"));
     }
+
+    // ===== DASHBOARD (KPIs + ultimas) NO CRÍTICO =====
+    private void prefetchDashboard() {
+        // 1) Pendiente Aut.
+        NewApiClient.get().listarSolicitudes(
+                resolveUsername(),     // o null si los quieres globales
+                "PENDIENTE_AUT",
+                null, null,
+                500, 0,
+                "-creado_en"
+        ).enqueue(new retrofit2.Callback<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>>() {
+            @Override public void onResponse(retrofit2.Call<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>> call,
+                                             retrofit2.Response<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>> rsp) {
+                int n = (rsp.isSuccessful() && rsp.body() != null) ? rsp.body().size() : 0;
+                com.farenet.descuentos.Core.Cache.DashboardCache.setKpiPendAut(n);
+            }
+            @Override public void onFailure(retrofit2.Call<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>> call, Throwable t) {
+                com.farenet.descuentos.Core.Cache.DashboardCache.setKpiPendAut(0);
+            }
+        });
+
+        // 2) Aprobadas
+        NewApiClient.get().listarSolicitudes(
+                resolveUsername(),     // o null
+                "APROBADA",
+                "DESCUENTO",           // si quieres solo descuentos
+                null,
+                500, 0,
+                "-creado_en"
+        ).enqueue(new retrofit2.Callback<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>>() {
+            @Override public void onResponse(retrofit2.Call<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>> call,
+                                             retrofit2.Response<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>> rsp) {
+                int n = (rsp.isSuccessful() && rsp.body() != null) ? rsp.body().size() : 0;
+                com.farenet.descuentos.Core.Cache.DashboardCache.setKpiAprobadas(n);
+            }
+            @Override public void onFailure(retrofit2.Call<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>> call, Throwable t) {
+                com.farenet.descuentos.Core.Cache.DashboardCache.setKpiAprobadas(0);
+            }
+        });
+
+        // 3) Últimas 3 (si aún no lo haces aquí)
+        NewApiClient.get().listarSolicitudes(
+                resolveUsername(),  // o null
+                null, null, null,
+                3, 0, "-creado_en"
+        ).enqueue(new retrofit2.Callback<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>>() {
+            @Override public void onResponse(retrofit2.Call<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>> call,
+                                             retrofit2.Response<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>> rsp) {
+                if (rsp.isSuccessful() && rsp.body() != null) {
+                    com.farenet.descuentos.Core.Cache.DashboardCache.setUltimas(rsp.body());
+                }
+            }
+            @Override public void onFailure(retrofit2.Call<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>> call, Throwable t) { }
+        });
+    }
+
+
 
     /** Helper genérico para cerrar un pending luego de cualquier llamada que devuelve List<T>. */
     private <T> Callback<List<T>> doneList(String tag) {
