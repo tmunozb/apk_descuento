@@ -32,7 +32,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent">
 
-            <!-- Tarjeta de filtros (estilo bolsa) -->
+            <!-- Tarjeta de filtros -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_filters"
                 android:layout_width="match_parent"
@@ -62,10 +62,9 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:hint="Tipo"
-                            app:endIconMode="clear_text">
+                            android:hint="Tipo">
 
-                            <AutoCompleteTextView
+                            <com.google.android.material.textfield.MaterialAutoCompleteTextView
                                 android:id="@+id/act_tipo"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
@@ -75,7 +74,6 @@
                                 android:importantForAutofill="no" />
                         </com.google.android.material.textfield.TextInputLayout>
 
-                        <!-- Separación -->
                         <Space
                             android:layout_width="8dp"
                             android:layout_height="match_parent" />
@@ -86,10 +84,9 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:hint="Estado"
-                            app:endIconMode="clear_text">
+                            android:hint="Estado">
 
-                            <AutoCompleteTextView
+                            <com.google.android.material.textfield.MaterialAutoCompleteTextView
                                 android:id="@+id/act_estado"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
@@ -100,28 +97,28 @@
                         </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
 
-                    <!-- Línea divisoria sutil -->
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:layout_marginTop="8dp"
-                        android:layout_marginBottom="4dp"
+                        android:layout_marginBottom="8dp"
                         android:background="?attr/colorOutline" />
 
-                    <!-- Chips rápidos -->
+                    <!-- Chips rápidos (añadido width/height) -->
                     <com.google.android.material.chip.ChipGroup
                         android:id="@+id/chips_quick"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="4dp"
                         app:singleSelection="true"
-                        app:singleLine="true">
+                        app:singleLine="false">
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_all"
                             style="@style/Widget.Material3.Chip.Assist"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="8dp"
                             android:text="Todos" />
 
                         <com.google.android.material.chip.Chip
@@ -129,7 +126,6 @@
                             style="@style/Widget.Material3.Chip.Assist"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="8dp"
                             android:text="Aprobadas" />
 
                         <com.google.android.material.chip.Chip
@@ -137,8 +133,14 @@
                             style="@style/Widget.Material3.Chip.Assist"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="8dp"
                             android:text="Rechazadas" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_enviadas"
+                            style="@style/Widget.Material3.Chip.Assist"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Enviadas" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_pendientes"
@@ -167,7 +169,7 @@
                     android:clipToPadding="false" />
             </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-            <!-- Empty state: MISMO id que usas en tu Activity -->
+            <!-- Empty state -->
             <TextView
                 android:id="@+id/tv_empty"
                 android:layout_width="match_parent"
@@ -183,7 +185,6 @@
                 android:textColor="?attr/colorOnSurfaceVariant" />
         </LinearLayout>
 
-        <!-- Progress centrado sobre el contenido -->
         <ProgressBar
             android:id="@android:id/progress"
             style="?android:attr/progressBarStyleLarge"

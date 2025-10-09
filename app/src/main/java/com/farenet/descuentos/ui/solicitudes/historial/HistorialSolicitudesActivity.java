@@ -2,7 +2,6 @@ package com.farenet.descuentos.ui.solicitudes.historial;
 
 import android.os.Bundle;
 import android.view.View;
-import android.widget.AutoCompleteTextView;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
@@ -18,6 +17,7 @@ import com.farenet.descuentos.ui.solicitudes.comunes.adapter.SolicitudSimpleAdap
 import com.farenet.descuentos.ui.solicitudes.model.SolicitudUI;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.chip.ChipGroup;
+import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +29,7 @@ import retrofit2.Response;
 
 public class HistorialSolicitudesActivity extends AppCompatActivity {
 
-    private AutoCompleteTextView actTipo, actEstado;
+    private MaterialAutoCompleteTextView actTipo, actEstado;
     private TextView tvEmpty;
     private RecyclerView rv;
     private View progress;
@@ -43,8 +43,12 @@ public class HistorialSolicitudesActivity extends AppCompatActivity {
 
     private String getUser() {
         // TODO: reemplazar por usuario logueado real
-        return "jperez";
+        return "tmunoz";
     }
+
+    // Fuente del dropdown (mismo orden que verás en UI)
+    private static final String[] TIPOS_UI = {"Todos", "Descuento", "Cortesía", "Bolsa"};
+    private static final String[] ESTADOS_UI = {"Todos", "Aprobada", "Rechazada", "Pendiente", "Enviada"};
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -64,49 +68,43 @@ public class HistorialSolicitudesActivity extends AppCompatActivity {
 
         rv.setLayoutManager(new LinearLayoutManager(this));
         rv.setHasFixedSize(true);
-
-        // Usa el adapter que te paso abajo (asegúrate de importarlo)
         adapter = new SolicitudSimpleAdapter(data, s -> {
-            // TODO abrir detalle si aplica
+            // TODO: abrir detalle si aplica
         });
         rv.setAdapter(adapter);
 
-        // Adapters de filtros (dropdowns)
-        actTipo.setAdapter(new android.widget.ArrayAdapter<>(this,
-                android.R.layout.simple_list_item_1,
-                new String[]{"Todos", "Descuento", "Cortesía"}));
+        // --- DROPDOWNS Material (usa layout/material correcto) ---
+        // ¡Más limpio que ArrayAdapter! y asegura estilos M3
+        actTipo.setSimpleItems(TIPOS_UI);
+        actEstado.setSimpleItems(ESTADOS_UI);
 
-        actEstado.setAdapter(new android.widget.ArrayAdapter<>(this,
-                android.R.layout.simple_list_item_1,
-                new String[]{"Todos", "Aprobada", "Rechazada", "Pendiente"}));
-
-        // Defaults
+        // Valores por defecto
         actTipo.setText("Todos", false);
-        actEstado.setText("Aprobada", false);
+        actEstado.setText("Todos", false);
 
-        // Listeners de dropdowns -> recargar
-        actTipo.setOnItemClickListener((p, v, i, id) -> fetch());
-        actEstado.setOnItemClickListener((p, v, i, id) -> fetch());
-
-        // Swipe-to-refresh
+        // Pull-to-refresh
         if (swipe != null) swipe.setOnRefreshListener(this::fetch);
 
-        // Chips rápidos (usar if/else, no switch, por non-final R)
+        // Dropdown listeners -> recargar y sincronizar chips
+        actTipo.setOnItemClickListener((p, v, i, id) -> fetch());
+        actEstado.setOnItemClickListener((p, v, i, id) -> {
+            syncChipsWithEstado(value(actEstado.getText()));
+            fetch();
+        });
+
+        // Chips rápidos -> sincronizar dropdown
         if (chipsQuick != null) {
             chipsQuick.setOnCheckedChangeListener((group, checkedId) -> {
                 if (checkedId == View.NO_ID) return;
-
-                if (checkedId == R.id.chip_all) {
-                    actEstado.setText("Todos", false);
-                } else if (checkedId == R.id.chip_aprobadas) {
-                    actEstado.setText("Aprobada", false);
-                } else if (checkedId == R.id.chip_rechazadas) {
-                    actEstado.setText("Rechazada", false);
-                } else if (checkedId == R.id.chip_pendientes) {
-                    actEstado.setText("Pendiente", false);
-                }
+                String sel = "Todos";
+                if (checkedId == R.id.chip_aprobadas)   sel = "Aprobada";
+                else if (checkedId == R.id.chip_rechazadas) sel = "Rechazada";
+                else if (checkedId == R.id.chip_pendientes) sel = "Pendiente";
+                else if (checkedId == R.id.chip_enviadas)   sel = "Enviada";
+                actEstado.setText(sel, false);
                 fetch();
             });
+            chipsQuick.check(R.id.chip_all);
         }
 
         // Primera carga
@@ -114,23 +112,24 @@ public class HistorialSolicitudesActivity extends AppCompatActivity {
     }
 
     private void fetch() {
-        String tipoUI   = value(actTipo.getText());
-        String estadoUI = value(actEstado.getText());
+        final String tipoUI   = value(actTipo == null ? "" : actTipo.getText());
+        final String estadoUI = value(actEstado == null ? "" : actEstado.getText());
 
-        String tipo   = mapTipoToApi(tipoUI);
-        String estado = mapEstadoToApi(estadoUI);
+        final String tipoApi   = mapTipoToApi(tipoUI);     // null si "Todos"
+        final String estadoApi = mapEstadoToApi(estadoUI); // null si "Todos"
 
         setRefreshing(true);
         showLoading(true);
 
         if (listCall != null) listCall.cancel();
 
+        // Orden por más reciente
         listCall = NewApiClient.get().listarSolicitudes(
-                getUser(),
-                estado,
-                tipo,
-                null,
-                50,
+                getUser(),           // user global (evitas limitar por usuario)
+                null,           // estado en server (lo filtramos cliente para ver efecto inmediato)
+                null,           // tipo    en server (ídem)
+                null,           // q
+                200,
                 0,
                 "-creado_en"
         );
@@ -144,23 +143,30 @@ public class HistorialSolicitudesActivity extends AppCompatActivity {
                     applyData(new ArrayList<>());
                     return;
                 }
+
+                // 1) Mapeo
                 List<SolicitudUI> mapped = new ArrayList<>();
                 for (SolicitudDto d : rsp.body()) {
-                    // FIX: fallback correcto de fecha
-                    String fecha = nz(d.creadoEn);
-                    if (fecha.isEmpty()) fecha = nz(d.creadoEn);
-
                     mapped.add(new SolicitudUI(
-                            nz(d.id),
+                            nz(d.codigo),                 // mostrar CÓDIGO
                             nz(capFirst(d.tipo)),
                             nz(d.placa),
                             nz(d.plantaNombre),
                             nz(d.motivo),
                             nz(capFirst(d.estado)),
-                            nz(fecha)
+                            nz(d.creadoEn)
                     ));
                 }
-                applyData(mapped);
+
+                // 2) Filtro en memoria (fallback si server no filtra)
+                List<SolicitudUI> filtered = new ArrayList<>();
+                for (SolicitudUI s : mapped) {
+                    if (tipoApi != null && !tipoApi.equalsIgnoreCase(mapTipoToApi(s.tipo))) continue;
+                    if (estadoApi != null && !estadoApi.equalsIgnoreCase(mapEstadoToApi(s.estado))) continue;
+                    filtered.add(s);
+                }
+
+                applyData(filtered);
             }
             @Override public void onFailure(Call<List<SolicitudDto>> call, Throwable t) {
                 if (call.isCanceled()) return;
@@ -180,6 +186,21 @@ public class HistorialSolicitudesActivity extends AppCompatActivity {
         boolean empty = data.isEmpty();
         tvEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
         rv.setVisibility(empty ? View.GONE : View.VISIBLE);
+    }
+
+    private void syncChipsWithEstado(String estadoUI) {
+        if (chipsQuick == null) return;
+        if ("Aprobada".equalsIgnoreCase(estadoUI)) {
+            chipsQuick.check(R.id.chip_aprobadas);
+        } else if ("Rechazada".equalsIgnoreCase(estadoUI)) {
+            chipsQuick.check(R.id.chip_rechazadas);
+        } else if ("Pendiente".equalsIgnoreCase(estadoUI)) {
+            chipsQuick.check(R.id.chip_pendientes);
+        } else if ("Enviada".equalsIgnoreCase(estadoUI)) {
+            chipsQuick.check(R.id.chip_enviadas);
+        } else {
+            chipsQuick.check(R.id.chip_all);
+        }
     }
 
     private void setRefreshing(boolean refreshing) {
@@ -203,18 +224,22 @@ public class HistorialSolicitudesActivity extends AppCompatActivity {
                 s.substring(1).toLowerCase(Locale.getDefault());
     }
 
+    // Normalización UI -> API
     private String mapTipoToApi(String t) {
         if ("Todos".equalsIgnoreCase(t) || t.isEmpty()) return null;
-        if (t.toLowerCase(Locale.ROOT).startsWith("descu")) return "DESCUENTO";
-        if (t.toLowerCase(Locale.ROOT).startsWith("corte")) return "CORTESIA";
+        String x = t.toLowerCase(Locale.ROOT);
+        if (x.startsWith("descu")) return "DESCUENTO";
+        if (x.startsWith("corte")) return "CORTESIA";
         return t.toUpperCase(Locale.ROOT);
     }
 
     private String mapEstadoToApi(String e) {
         if ("Todos".equalsIgnoreCase(e) || e.isEmpty()) return null;
-        if (e.toLowerCase(Locale.ROOT).startsWith("apro")) return "APROBADA";
-        if (e.toLowerCase(Locale.ROOT).startsWith("recha")) return "RECHAZADA";
-        if (e.toLowerCase(Locale.ROOT).startsWith("pend")) return "PENDIENTE";
+        String x = e.toLowerCase(Locale.ROOT);
+        if (x.startsWith("apro")) return "APROBADA";
+        if (x.startsWith("recha")) return "RECHAZADA";
+        if (x.startsWith("pend")) return "PENDIENTE";
+        if (x.startsWith("envi")) return "ENVIADA";
         return e.toUpperCase(Locale.ROOT);
     }
 

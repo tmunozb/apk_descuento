@@ -58,7 +58,7 @@
                     android:layout_height="72dp"
                     android:layout_gravity="center_horizontal"
                     android:contentDescription="@string/app_name"
-                    android:src="@mipmap/ico_descuento" />
+                    android:src="@drawable/ic_logo_farenet" />
 
                 <!-- Título -->
                 <TextView
