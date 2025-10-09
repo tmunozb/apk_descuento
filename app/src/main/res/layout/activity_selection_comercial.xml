@@ -30,8 +30,6 @@
                 app:logo="@drawable/ic_logo_farenet"
                 app:logoDescription="@string/app_name"
                 app:title="" />
-
-            <!-- OJO: sin app:menu: el menú vive en el NavigationView -->
         </com.google.android.material.appbar.AppBarLayout>
 
         <!-- Contenido scrollable -->
@@ -89,6 +87,7 @@
                     android:paddingTop="12dp"
                     android:weightSum="2">
 
+                    <!-- KPI: Pend. Aut. -->
                     <com.google.android.material.card.MaterialCardView
                         style="@style/Widget.Farenet.KpiCard"
                         android:layout_width="0dp"
@@ -98,23 +97,47 @@
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="vertical">
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:padding="12dp">
 
-                            <TextView
-                                style="@style/Text.Farenet.KpiLabel"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Pend. Aut." />
+                            <!-- avatar/iconito circular -->
+                            <com.google.android.material.imageview.ShapeableImageView
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:contentDescription="@string/desc_kpi_pend_aut"
+                                android:src="@drawable/ic_pending_actions_24"
+                                app:tint="@color/fn_accent_warning"
+                                app:shapeAppearanceOverlay="@style/ShapeAppearance.Farenet.Circle"
+                                app:strokeColor="@color/fn_accent_warning"
+                                app:strokeWidth="1dp"
+                                android:padding="6dp"/>
 
-                            <TextView
-                                android:id="@+id/tvKpiPendientes"
-                                style="@style/Text.Farenet.KpiValue"
-                                android:layout_width="wrap_content"
+                            <LinearLayout
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:text="12" />
+                                android:layout_marginStart="12dp"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:id="@+id/tvLabelPend"
+                                    style="@style/Text.Farenet.KpiLabel"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Pend. Aut." />
+
+                                <TextView
+                                    android:id="@+id/tvKpiPendientes"
+                                    style="@style/Text.Farenet.KpiValue"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="…" />
+                            </LinearLayout>
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
 
+                    <!-- KPI: Aprobadas -->
                     <com.google.android.material.card.MaterialCardView
                         style="@style/Widget.Farenet.KpiCard"
                         android:layout_width="0dp"
@@ -125,20 +148,43 @@
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="vertical">
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:padding="12dp">
 
-                            <TextView
-                                style="@style/Text.Farenet.KpiLabel"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Aprobadas" />
+                            <!-- avatar/iconito circular -->
+                            <com.google.android.material.imageview.ShapeableImageView
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:contentDescription="@string/desc_kpi_aprobadas"
+                                android:src="@drawable/ic_verified_24"
+                                app:tint="@color/fn_accent_success"
+                                app:shapeAppearanceOverlay="@style/ShapeAppearance.Farenet.Circle"
+                                app:strokeColor="@color/fn_accent_success"
+                                app:strokeWidth="1dp"
+                                android:padding="6dp"/>
 
-                            <TextView
-                                android:id="@+id/tvKpiAprobadas"
-                                style="@style/Text.Farenet.KpiValue"
-                                android:layout_width="wrap_content"
+                            <LinearLayout
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:text="38" />
+                                android:layout_marginStart="12dp"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:id="@+id/tvLabelAprob"
+                                    style="@style/Text.Farenet.KpiLabel"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Aprobadas" />
+
+                                <TextView
+                                    android:id="@+id/tvKpiAprobadas"
+                                    style="@style/Text.Farenet.KpiValue"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="…" />
+                            </LinearLayout>
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>

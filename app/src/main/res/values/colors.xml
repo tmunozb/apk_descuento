@@ -86,6 +86,9 @@
     <color name="tipText">#FFFFFFFF</color>
     <color name="tipIconTint">#FFFFFFFF</color>
 
+    <color name="fn_accent_warning">#FFC107</color>  <!-- Amber 500 -->
+    <color name="fn_accent_success">#4CAF50</color>  <!-- Green 500 -->
+
     <!-- Aliases para compatibilidad con nombres usados en layouts -->
     <color name="heroTitle">@color/black</color>
     <color name="heroSubtitle">@color/black</color>
