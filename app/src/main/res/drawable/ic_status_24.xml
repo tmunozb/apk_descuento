@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="?attr/colorControlNormal">
+
+    <!-- Círculo -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M12,2 A10,10 0 1 1 12,22 A10,10 0 1 1 12,2 Z" />
+
+    <!-- Indicador (check simple) -->
+    <path
+        android:fillColor="?attr/colorSurface"
+        android:pathData="M10.2,14.6 L7.9,12.3 L6.8,13.4 L10.2,16.8 L17.2,9.8 L16.1,8.7 Z" />
+</vector>

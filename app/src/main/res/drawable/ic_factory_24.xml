@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="?attr/colorControlNormal">
+
+    <!-- Base del edificio -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M3,10 L21,10 L21,21 L3,21 Z" />
+
+    <!-- Chimenea -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M15,3 L18,3 L18,10 L15,10 Z" />
+
+    <!-- ‘Dientes’ de techo (simplificados) -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M3,10 L7,6 L9,8 L11,6 L13,8 L15,6 L17,8 L21,10 Z" />
+
+    <!-- Puerta -->
+    <path
+        android:fillColor="?attr/colorSurface"
+        android:pathData="M6,14 L10,14 L10,21 L6,21 Z" />
+
+    <!-- Ventanas -->
+    <path
+        android:fillColor="?attr/colorSurface"
+        android:pathData="M12,14 L14.5,14 L14.5,16.5 L12,16.5 Z" />
+    <path
+        android:fillColor="?attr/colorSurface"
+        android:pathData="M16,14 L18.5,14 L18.5,16.5 L16,16.5 Z" />
+</vector>

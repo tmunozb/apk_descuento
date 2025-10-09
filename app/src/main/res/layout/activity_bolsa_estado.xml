@@ -15,16 +15,12 @@
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
-            style="@style/Widget.App.Toolbar"
+            style="@style/Widget.Farenet.Toolbar.Comercial"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            app:title="Bolsas — Estado" />
-
-        <!-- Línea neón estilo HUD -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="4dp"
-            android:background="@drawable/bg_neon_divider"/>
+            app:logo="@drawable/ic_logo_farenet"
+            app:logoDescription="@string/app_name"
+            app:title="" />
     </com.google.android.material.appbar.AppBarLayout>
 
     <!-- Contenido -->

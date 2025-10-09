@@ -141,24 +141,41 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
         descuentoRepository = Constante.getDescuentoRepository();
         sharedPreferences   = getSharedPreferences(Constante.TOKEN, MODE_PRIVATE);
 
-        // Bottom navigation
+        // Bottom navigation: desde PENDIENTES poder ir a INICIO y REPORTES.
+// Asegúrate de que el layout activity_solicitudes_pendientes tenga un BottomNavigationView con id @+id/bottomNav
         BottomNavigationView bottom = findViewById(R.id.bottomNav);
         if (bottom != null) {
+            // Marca esta pestaña como seleccionada (estamos en Solicitudes)
+            bottom.setSelectedItemId(R.id.tab_solicitudes);
+
             bottom.setOnItemSelectedListener(item -> {
                 int id = item.getItemId();
-                if (id == R.id.tab_home) return true; // ya estás aquí
+
                 if (id == R.id.tab_solicitudes) {
-                    startActivity(new Intent(this, com.farenet.descuentos.ui.solicitudes.pendientes.SolicitudesPendientesActivity.class));
+                    // Ya estás aquí; no navegues de nuevo
                     return true;
                 }
+
+                if (id == R.id.tab_home) {
+                    // Volver a Inicio (Selección Comercial)
+                    startActivity(new Intent(this, com.farenet.descuentos.ui.selection.comercial.SelectionComercialActivity.class)
+                            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+                    // Opcional: si quieres cerrar esta Activity para no apilarla
+                    // finish();
+                    return true;
+                }
+
                 if (id == R.id.tab_reportes) {
-                    // abrir reportes
+                    // Aún no tienes reportes; deja un TODO o muestra un aviso
+                    // TODO: startActivity(new Intent(this, ReportesActivity.class));
+                    android.widget.Toast.makeText(this, "Módulo de reportes en construcción", android.widget.Toast.LENGTH_SHORT).show();
                     return true;
                 }
+
                 return false;
             });
-            bottom.setSelectedItemId(R.id.tab_home);
         }
+
 
         cargarPendientes();
     }
