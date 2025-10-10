@@ -1,3 +1,4 @@
+// ui/bootstrap/BootstrapActivity.java
 package com.farenet.descuentos.ui.bootstrap;
 
 import android.content.Intent;
@@ -11,53 +12,47 @@ import android.widget.TextView;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.farenet.descuentos.Core.config.Constante;
-import com.farenet.descuentos.ui.auth.LoginActivity;
-import com.farenet.descuentos.R;
-import com.farenet.descuentos.ui.selection.SelectionActivity;
-import com.farenet.descuentos.data.local.realm.entity.MotivoCortesia;
-import com.farenet.descuentos.API.Actual.DTO.maestros.AccesoPlantaDto;
-import com.farenet.descuentos.API.Actual.DTO.auth.LoginRsp;
-import com.farenet.descuentos.API.Actual.DTO.maestros.MotivoDescuento;
-import com.farenet.descuentos.API.Actual.DTO.auth.UsuarioPerfil;
-import com.farenet.descuentos.Core.Network.NewApiClient;
-import com.farenet.descuentos.API.Actual.Service.NewApiService;
 import com.farenet.descuentos.API.Antigua.Service.MaestroRepository;
+import com.farenet.descuentos.API.Actual.DTO.auth.LoginRsp;
+import com.farenet.descuentos.API.Actual.DTO.auth.UsuarioPerfil;
+import com.farenet.descuentos.API.Actual.DTO.maestros.AccesoPlantaDto;
+import com.farenet.descuentos.API.Actual.DTO.maestros.MotivoDescuento;
+import com.farenet.descuentos.Core.Cache.BolsaCache;
+import com.farenet.descuentos.Core.Cache.DashboardCache;
+import com.farenet.descuentos.Core.Network.NewApiClient;
 import com.farenet.descuentos.Core.Storage.SessionManager;
+import com.farenet.descuentos.Core.config.Constante;
+import com.farenet.descuentos.R;
+import com.farenet.descuentos.data.local.realm.entity.MotivoCortesia;
+import com.farenet.descuentos.ui.auth.LoginActivity;
+import com.google.android.material.progressindicator.CircularProgressIndicator;
+import com.google.android.material.progressindicator.LinearProgressIndicator;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto;
-import com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudPendienteDto;
-import com.farenet.descuentos.Core.Cache.DashboardCache;
-
-
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-
 
 public class BootstrapActivity extends AppCompatActivity {
 
     private SessionManager session;
     private SharedPreferences legacyPrefs;
     private MaestroRepository maestroRepo;
-    private NewApiService newApi;
 
     // Banderas de gating duro (deben estar true para continuar)
     private final AtomicBoolean perfilOk  = new AtomicBoolean(false);
     private final AtomicBoolean accesosOk = new AtomicBoolean(false);
 
-    // Contador de precargas no críticas (maestros / motivos)
+    // Contador de precargas no críticas (solo catálogos/maestros/motivos/bolsa)
     private final AtomicInteger pending = new AtomicInteger(0);
 
-    // UI moderno
+    // UI
     private TextView tvStep, tvSub, tvTip;
-    private com.google.android.material.progressindicator.LinearProgressIndicator progressLinear;
-    private com.google.android.material.progressindicator.CircularProgressIndicator progressCircular;
+    private LinearProgressIndicator progressLinear;
+    private CircularProgressIndicator progressCircular; // si lo usas en el layout
     private ImageView imgLogo;
 
     @Override
@@ -65,7 +60,6 @@ public class BootstrapActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bootstrap);
 
-        // Edge-to-edge sutil
         if (Build.VERSION.SDK_INT >= 21) {
             getWindow().setStatusBarColor(Color.TRANSPARENT);
             getWindow().setNavigationBarColor(Color.TRANSPARENT);
@@ -74,11 +68,9 @@ public class BootstrapActivity extends AppCompatActivity {
         session     = new SessionManager(this);
         legacyPrefs = getSharedPreferences(Constante.TOKEN, MODE_PRIVATE);
         maestroRepo = Constante.getMaestroRespository();
-        newApi      = NewApiClient.get();
 
         bindUi();
         startTipsRotator();
-
         startBootstrap();
     }
 
@@ -89,26 +81,18 @@ public class BootstrapActivity extends AppCompatActivity {
         tvSub  = findViewById(R.id.tvSub);
         tvTip  = findViewById(R.id.tvTip);
         imgLogo = findViewById(R.id.imgLogo);
-        progressLinear = findViewById(R.id.progressLinear);
+        progressLinear   = findViewById(R.id.progressLinear);
         progressCircular = findViewById(R.id.progressCircular);
 
-        // Animación sutil al logo (pulse initial)
         if (imgLogo != null) {
             imgLogo.setScaleX(0.9f);
             imgLogo.setScaleY(0.9f);
-            imgLogo.animate()
-                    .scaleX(1f).scaleY(1f)
-                    .setDuration(600)
-                    .setStartDelay(150)
-                    .start();
+            imgLogo.animate().scaleX(1f).scaleY(1f).setDuration(600).setStartDelay(150).start();
         }
-
-        // "latido" suave al tip
         if (tvTip != null) {
             tvTip.setAlpha(0f);
             tvTip.animate().alpha(0.9f).setDuration(600).setStartDelay(500).start();
         }
-
         setStep("Validando perfil…", "Un momento por favor", 8);
     }
 
@@ -142,19 +126,11 @@ public class BootstrapActivity extends AppCompatActivity {
         }
     }
 
-    private void onPerfilInicio() {
-        setStep("Validando perfil…", "Comprobando credenciales", 18);
-    }
-    private void onPerfilOk() {
-        setStep("Perfil verificado", "Cargando accesos a plantas", 35);
-    }
-    private void onAccesosOk() {
-        setStep("Accesos listos", "Sincronizando catálogos", 65);
-    }
-    private void onCatalogosOk() {
-        setStep("Catálogos sincronizados", "Listo para despegar", 90);
-    }
-    private void onFinalizando() {
+    private void onPerfilInicio() { setStep("Validando perfil…", "Comprobando credenciales", 18); }
+    private void onPerfilOk()     { setStep("Perfil verificado", "Cargando accesos a plantas", 35); }
+    private void onAccesosOk()    { setStep("Accesos listos", "Sincronizando catálogos", 65); }
+    private void onCatalogosOk()  { setStep("Catálogos sincronizados", "Listo para despegar", 90); }
+    private void onFinalizando()  {
         setStep("Iniciando aplicación…", "Bienvenido(a)", 100);
         if (tvStep != null) tvStep.postDelayed(this::routeWhenReady, 250);
         else routeWhenReady();
@@ -165,7 +141,6 @@ public class BootstrapActivity extends AppCompatActivity {
     private void startBootstrap() {
         String token = legacyPrefs.getString("token", null);
         if (token == null || token.trim().isEmpty()) {
-            // No hay token legacy -> regresar a login
             setStep("Sesión no encontrada", "Redirigiendo a inicio de sesión…", 5);
             goToLogin();
             return;
@@ -175,10 +150,10 @@ public class BootstrapActivity extends AppCompatActivity {
         onPerfilInicio();
         ensurePerfilYAccesos();
 
-        // 2) Disparar precargas no críticas (no bloquean el enrutamiento)
+        // 2) Precargas no críticas (no bloquean enrutamiento)
         prefetchMaestros(token);
         prefetchMotivos();
-        prefetchDashboard();
+        prefetchDashboard();      // KPIs/Últimas para la Selection
     }
 
     // ===== PERFIL + ACCESOS (gating obligatorio) =====
@@ -187,12 +162,13 @@ public class BootstrapActivity extends AppCompatActivity {
         boolean needsPerfil  = (up == null || up.perfilId == null || up.perfilId.trim().isEmpty());
         boolean needsAccesos = (session.getAccesos() == null || session.getAccesos().isEmpty());
 
-        if (!needsPerfil) perfilOk.set(true);
+        if (!needsPerfil)  perfilOk.set(true);
         if (!needsAccesos) accesosOk.set(true);
 
         if (!needsPerfil && !needsAccesos) {
-            // Ya estamos listos para enrutar (catálogos seguirán cargando)
             onAccesosOk();
+            // Precarga Bolsa antes de finalizar
+            prefetchBolsaEstadoSilencioso();
             onFinalizando();
             return;
         }
@@ -227,14 +203,14 @@ public class BootstrapActivity extends AppCompatActivity {
                     perfilOk.set(true);
                     onPerfilOk();
 
-                    // Si vinieron accesos, guárdalos ya
                     if (body.accesos != null && !body.accesos.isEmpty()) {
                         session.saveAccesos(body.accesos);
                         accesosOk.set(true);
                         onAccesosOk();
+                        // Precarga Bolsa también en este camino
+                        prefetchBolsaEstadoSilencioso();
                         onFinalizando();
                     } else {
-                        // Faltan accesos, pedirlos
                         fetchAccesos(body.username);
                     }
                 }
@@ -262,6 +238,8 @@ public class BootstrapActivity extends AppCompatActivity {
                     session.saveAccesos(rsp.body());
                     accesosOk.set(true);
                     onAccesosOk();
+                    // Precarga Bolsa también aquí
+                    prefetchBolsaEstadoSilencioso();
                     onFinalizando();
                 } else {
                     // Fallback ?user=
@@ -272,6 +250,7 @@ public class BootstrapActivity extends AppCompatActivity {
                                         session.saveAccesos(rsp2.body());
                                         accesosOk.set(true);
                                         onAccesosOk();
+                                        prefetchBolsaEstadoSilencioso();
                                         onFinalizando();
                                     } else {
                                         setStep("Sin accesos", "No se encontraron accesos para el usuario", 48);
@@ -300,83 +279,148 @@ public class BootstrapActivity extends AppCompatActivity {
 
         Class<?> next;
         switch (p) {
-            case "sistemas":            next = com.farenet.descuentos.ui.selection.sistemas.SelectionSistemasActivity.class; break;
-            case "operaciones":         next = com.farenet.descuentos.ui.selection.operaciones.SelectionOperacionesActivity.class; break;
-            case "comercial":           next = com.farenet.descuentos.ui.selection.comercial.SelectionComercialActivity.class; break;
-            case "asistente_servicio":  next = com.farenet.descuentos.ui.selection.asistente.SelectionAsistenteActivity.class; break;
+            case "sistemas":
+                next = com.farenet.descuentos.ui.selection.sistemas.SelectionSistemasActivity.class; break;
+            case "operaciones":
+                next = com.farenet.descuentos.ui.selection.operaciones.SelectionOperacionesActivity.class; break;
+            case "comercial":
+                next = com.farenet.descuentos.ui.selection.comercial.SelectionComercialActivity.class; break;
+            case "asistente_servicio":
+                next = com.farenet.descuentos.ui.selection.asistente.SelectionAsistenteActivity.class; break;
             default:
-                // fallback (elige la más segura)
                 next = com.farenet.descuentos.ui.selection.asistente.SelectionAsistenteActivity.class;
         }
         startActivity(new Intent(this, next));
         finish();
     }
 
-    // ===== PRECARGAS NO CRÍTICAS (no bloquean navegación) =====
+    // ===== PRECARGAS NO CRÍTICAS =====
+
     private void prefetchMaestros(String token) {
-        // Estos no bloquean el enrutamiento. Sólo mejoran la experiencia al llegar al menú.
-        inc(); maestroRepo.getPlantas(token).enqueue(doneList("Plantas"));
-        inc(); maestroRepo.getAutorizadores(token).enqueue(doneList("Autorizadores"));
+        // No bloquean el enrutamiento, pero sí actualizan el “progreso” visual
+        inc(); maestroRepo.getPlantas(token)           .enqueue(doneList("Plantas"));
+        inc(); maestroRepo.getAutorizadores(token)     .enqueue(doneList("Autorizadores"));
         inc(); maestroRepo.getConceptoinspeccion(token).enqueue(doneList("Conceptos"));
-        inc(); maestroRepo.getTipoPagoDescuento(token).enqueue(doneList("TipoPago"));
+        inc(); maestroRepo.getTipoPagoDescuento(token) .enqueue(doneList("TipoPago"));
     }
 
-    // ===== DASHBOARD (KPIs + ultimas) NO CRÍTICO =====
+    private void prefetchMotivos() {
+        // Motivos Cortesía
+        inc();
+        NewApiClient.get().getMotivosCortesia(true).enqueue(new Callback<List<MotivoCortesia>>() {
+            @Override public void onResponse(Call<List<MotivoCortesia>> call, Response<List<MotivoCortesia>> response) { dec(); }
+            @Override public void onFailure(Call<List<MotivoCortesia>> call, Throwable t) { dec(); }
+        });
+
+        // Motivos Descuento (si existe en tu API)
+        try {
+            inc();
+            NewApiClient.get().getMotivosDescuento(true).enqueue(new Callback<List<MotivoDescuento>>() {
+                @Override public void onResponse(Call<List<MotivoDescuento>> call, Response<List<MotivoDescuento>> response) { dec(); }
+                @Override public void onFailure(Call<List<MotivoDescuento>> call, Throwable t) { dec(); }
+            });
+        } catch (Throwable ignore) {
+            // Si no está implementado todavía, no romper
+        }
+    }
+
+    /** Precarga Dashboard (no crítica, NO toca el pending). */
     private void prefetchDashboard() {
         // 1) Pendiente Aut.
         NewApiClient.get().listarSolicitudes(
-                resolveUsername(),     // o null si los quieres globales
-                "PENDIENTE_AUT",
-                null, null,
-                500, 0,
-                "-creado_en"
+                resolveUsername(), "PENDIENTE_AUT",
+                null, null, 500, 0, "-creado_en"
         ).enqueue(new retrofit2.Callback<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>>() {
             @Override public void onResponse(retrofit2.Call<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>> call,
                                              retrofit2.Response<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>> rsp) {
                 int n = (rsp.isSuccessful() && rsp.body() != null) ? rsp.body().size() : 0;
-                com.farenet.descuentos.Core.Cache.DashboardCache.setKpiPendAut(n);
+                DashboardCache.setKpiPendAut(n);
             }
             @Override public void onFailure(retrofit2.Call<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>> call, Throwable t) {
-                com.farenet.descuentos.Core.Cache.DashboardCache.setKpiPendAut(0);
+                DashboardCache.setKpiPendAut(0);
             }
         });
 
         // 2) Aprobadas
         NewApiClient.get().listarSolicitudes(
-                resolveUsername(),     // o null
-                "APROBADA",
-                "DESCUENTO",           // si quieres solo descuentos
-                null,
-                500, 0,
-                "-creado_en"
+                resolveUsername(), "APROBADA",
+                "DESCUENTO", null, 500, 0, "-creado_en"
         ).enqueue(new retrofit2.Callback<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>>() {
             @Override public void onResponse(retrofit2.Call<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>> call,
                                              retrofit2.Response<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>> rsp) {
                 int n = (rsp.isSuccessful() && rsp.body() != null) ? rsp.body().size() : 0;
-                com.farenet.descuentos.Core.Cache.DashboardCache.setKpiAprobadas(n);
+                DashboardCache.setKpiAprobadas(n);
             }
             @Override public void onFailure(retrofit2.Call<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>> call, Throwable t) {
-                com.farenet.descuentos.Core.Cache.DashboardCache.setKpiAprobadas(0);
+                DashboardCache.setKpiAprobadas(0);
             }
         });
 
-        // 3) Últimas 3 (si aún no lo haces aquí)
+        // 3) Últimas 3
         NewApiClient.get().listarSolicitudes(
-                resolveUsername(),  // o null
-                null, null, null,
+                resolveUsername(), null, null, null,
                 3, 0, "-creado_en"
         ).enqueue(new retrofit2.Callback<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>>() {
             @Override public void onResponse(retrofit2.Call<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>> call,
                                              retrofit2.Response<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>> rsp) {
                 if (rsp.isSuccessful() && rsp.body() != null) {
-                    com.farenet.descuentos.Core.Cache.DashboardCache.setUltimas(rsp.body());
+                    DashboardCache.setUltimas(rsp.body());
                 }
             }
             @Override public void onFailure(retrofit2.Call<java.util.List<com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto>> call, Throwable t) { }
         });
     }
 
+    /** Precarga de Bolsa: best-effort por reflexión, suma a pending para feedback de progreso. */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void prefetchBolsaEstadoSilencioso() {
+        try {
+            Object service = NewApiClient.get();
+            java.lang.reflect.Method m;
+            Object callObj;
 
+            try {
+                m = service.getClass().getMethod("bolsaEstado", String.class);
+                callObj = m.invoke(service, resolveUsername());
+            } catch (NoSuchMethodException noUser) {
+                try {
+                    m = service.getClass().getMethod("bolsaEstado");
+                    callObj = m.invoke(service);
+                } catch (NoSuchMethodException noParam) {
+                    try {
+                        m = service.getClass().getMethod("obtenerBolsaEstado", String.class);
+                        callObj = m.invoke(service, resolveUsername());
+                    } catch (NoSuchMethodException nope) {
+                        try {
+                            m = service.getClass().getMethod("obtenerBolsaEstado");
+                            callObj = m.invoke(service);
+                        } catch (NoSuchMethodException nope2) {
+                            return; // no hay endpoint
+                        }
+                    }
+                }
+            }
+
+            if (!(callObj instanceof retrofit2.Call)) return;
+
+            retrofit2.Call call = (retrofit2.Call) callObj;
+            inc();
+            call.enqueue(new retrofit2.Callback() {
+                @Override public void onResponse(retrofit2.Call c, retrofit2.Response rsp) {
+                    try {
+                        if (rsp.isSuccessful()) {
+                            BolsaCache.set(rsp.body());
+                        }
+                    } finally {
+                        dec();
+                    }
+                }
+                @Override public void onFailure(retrofit2.Call c, Throwable t) { dec(); }
+            });
+        } catch (Throwable ignore) {
+            // best-effort
+        }
+    }
 
     /** Helper genérico para cerrar un pending luego de cualquier llamada que devuelve List<T>. */
     private <T> Callback<List<T>> doneList(String tag) {
@@ -386,37 +430,11 @@ public class BootstrapActivity extends AppCompatActivity {
         };
     }
 
-    private void prefetchMotivos() {
-        if (newApi == null) return;
-
-        // Motivos Cortesía
-        inc();
-        newApi.getMotivosCortesia(true).enqueue(new Callback<List<MotivoCortesia>>() {
-            @Override public void onResponse(Call<List<MotivoCortesia>> call, Response<List<MotivoCortesia>> response) { dec(); }
-            @Override public void onFailure(Call<List<MotivoCortesia>> call, Throwable t) { dec(); }
-        });
-
-        // Motivos Descuento (si existe en tu API)
-        try {
-            inc();
-            newApi.getMotivosDescuento(true).enqueue(new Callback<List<MotivoDescuento>>() {
-                @Override public void onResponse(Call<List<MotivoDescuento>> call, Response<List<MotivoDescuento>> response) { dec(); }
-                @Override public void onFailure(Call<List<MotivoDescuento>> call, Throwable t) { dec(); }
-            });
-        } catch (Throwable ignore) {
-            // Si no está implementado todavía, no romper
-        }
-    }
-
     // ===== pending helpers =====
-    private void inc() {
-        pending.incrementAndGet();
-    }
+    private void inc() { pending.incrementAndGet(); }
     private void dec() {
         int left = pending.decrementAndGet();
-        if (left <= 0) {
-            onCatalogosOk();
-        }
+        if (left <= 0) onCatalogosOk();
     }
 
     // ===== Util =====
