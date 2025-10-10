@@ -145,6 +145,13 @@
                             android:text="Enviadas" />
 
                         <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_procesadas"
+                            style="@style/Widget.Material3.Chip.Assist"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Procesadas" />
+
+                        <com.google.android.material.chip.Chip
                             android:id="@+id/chip_pendientes"
                             style="@style/Widget.Material3.Chip.Assist"
                             android:layout_width="wrap_content"

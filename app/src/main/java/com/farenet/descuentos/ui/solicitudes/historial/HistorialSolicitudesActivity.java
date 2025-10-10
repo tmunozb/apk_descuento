@@ -48,7 +48,7 @@ public class HistorialSolicitudesActivity extends AppCompatActivity {
 
     // Fuente del dropdown (mismo orden que verás en UI)
     private static final String[] TIPOS_UI = {"Todos", "Descuento", "Cortesía", "Bolsa"};
-    private static final String[] ESTADOS_UI = {"Todos", "Aprobada", "Rechazada", "Pendiente", "Enviada"};
+    private static final String[] ESTADOS_UI = {"Todos", "Aprobada","Procesada", "Rechazada", "Pendiente", "Enviada"};
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -99,6 +99,7 @@ public class HistorialSolicitudesActivity extends AppCompatActivity {
                 String sel = "Todos";
                 if (checkedId == R.id.chip_aprobadas)   sel = "Aprobada";
                 else if (checkedId == R.id.chip_rechazadas) sel = "Rechazada";
+                else if (checkedId == R.id.chip_procesadas) sel = "Procesada";
                 else if (checkedId == R.id.chip_pendientes) sel = "Pendiente";
                 else if (checkedId == R.id.chip_enviadas)   sel = "Enviada";
                 actEstado.setText(sel, false);
@@ -194,6 +195,8 @@ public class HistorialSolicitudesActivity extends AppCompatActivity {
             chipsQuick.check(R.id.chip_aprobadas);
         } else if ("Rechazada".equalsIgnoreCase(estadoUI)) {
             chipsQuick.check(R.id.chip_rechazadas);
+        } else if ("Procesada".equalsIgnoreCase(estadoUI)) {
+            chipsQuick.check(R.id.chip_procesadas);
         } else if ("Pendiente".equalsIgnoreCase(estadoUI)) {
             chipsQuick.check(R.id.chip_pendientes);
         } else if ("Enviada".equalsIgnoreCase(estadoUI)) {
@@ -238,6 +241,7 @@ public class HistorialSolicitudesActivity extends AppCompatActivity {
         String x = e.toLowerCase(Locale.ROOT);
         if (x.startsWith("apro")) return "APROBADA";
         if (x.startsWith("recha")) return "RECHAZADA";
+        if (x.startsWith("proce")) return "PROCESADA";
         if (x.startsWith("pend")) return "PENDIENTE";
         if (x.startsWith("envi")) return "ENVIADA";
         return e.toUpperCase(Locale.ROOT);
