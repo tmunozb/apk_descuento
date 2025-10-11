@@ -33,21 +33,24 @@
         </com.google.android.material.appbar.AppBarLayout>
 
         <!-- Contenido scrollable -->
+
+        <!-- Bottom Navigation (solo comercial) -->
+
         <androidx.core.widget.NestedScrollView
             android:id="@+id/scroll"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:background="@color/fn_bg"
             android:clipToPadding="true"
             android:paddingBottom="80dp"
-            android:background="@color/fn_bg"
             app:layout_behavior="@string/appbar_scrolling_view_behavior"
             app:layout_dodgeInsetEdges="bottom">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@color/fn_bg">
+                android:background="@color/fn_bg"
+                android:orientation="vertical">
 
                 <!-- Hero -->
                 <FrameLayout
@@ -59,8 +62,8 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:gravity="bottom">
+                        android:gravity="bottom"
+                        android:orientation="vertical">
 
                         <TextView
                             android:id="@+id/tvWelcome"
@@ -97,8 +100,8 @@
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal"
                             android:gravity="center_vertical"
+                            android:orientation="horizontal"
                             android:padding="12dp">
 
                             <!-- avatar/iconito circular -->
@@ -106,12 +109,12 @@
                                 android:layout_width="36dp"
                                 android:layout_height="36dp"
                                 android:contentDescription="@string/desc_kpi_pend_aut"
+                                android:padding="6dp"
                                 android:src="@drawable/ic_pending_actions_24"
-                                app:tint="@color/fn_accent_warning"
                                 app:shapeAppearanceOverlay="@style/ShapeAppearance.Farenet.Circle"
                                 app:strokeColor="@color/fn_accent_warning"
                                 app:strokeWidth="1dp"
-                                android:padding="6dp"/>
+                                app:tint="@color/fn_accent_warning" />
 
                             <LinearLayout
                                 android:layout_width="0dp"
@@ -142,14 +145,14 @@
                         style="@style/Widget.Farenet.KpiCard"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="8dp">
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1">
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal"
                             android:gravity="center_vertical"
+                            android:orientation="horizontal"
                             android:padding="12dp">
 
                             <!-- avatar/iconito circular -->
@@ -157,12 +160,12 @@
                                 android:layout_width="36dp"
                                 android:layout_height="36dp"
                                 android:contentDescription="@string/desc_kpi_aprobadas"
+                                android:padding="6dp"
                                 android:src="@drawable/ic_verified_24"
-                                app:tint="@color/fn_accent_success"
                                 app:shapeAppearanceOverlay="@style/ShapeAppearance.Farenet.Circle"
                                 app:strokeColor="@color/fn_accent_success"
                                 app:strokeWidth="1dp"
-                                android:padding="6dp"/>
+                                app:tint="@color/fn_accent_success" />
 
                             <LinearLayout
                                 android:layout_width="0dp"
@@ -195,9 +198,9 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:padding="16dp"
+                    app:alignmentMode="alignMargins"
                     app:columnCount="2"
                     app:rowOrderPreserved="false"
-                    app:alignmentMode="alignMargins"
                     app:useDefaultMargins="true">
 
                     <!-- Bolsa Estado -->
@@ -225,6 +228,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_margin="8dp"
+                        android:visibility="gone"
                         app:layout_columnWeight="1" />
 
                     <!-- Reportes -->
@@ -234,6 +238,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_margin="8dp"
+                        android:visibility="gone"
                         app:layout_columnWeight="1" />
                 </androidx.gridlayout.widget.GridLayout>
 
@@ -244,8 +249,9 @@
                     android:layout_height="wrap_content"
                     android:paddingHorizontal="16dp"
                     android:text="Buscar en últimas solicitudes"
+                    android:textColor="@color/cardTitle"
                     android:textStyle="bold"
-                    android:textColor="@color/cardTitle" />
+                    android:visibility="gone" />
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/tilBuscarUltimos"
@@ -254,6 +260,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginHorizontal="16dp"
                     android:layout_marginTop="4dp"
+                    android:visibility="gone"
                     app:startIconDrawable="@drawable/ic_search_24">
 
                     <com.google.android.material.textfield.TextInputEditText
@@ -261,11 +268,11 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="Placa o código…"
-                        android:textColor="@color/tile_title"
-                        android:textColorHint="@color/tile_subtitle"
                         android:imeOptions="actionSearch"
+                        android:inputType="text"
                         android:singleLine="true"
-                        android:inputType="text" />
+                        android:textColor="@color/tile_title"
+                        android:textColorHint="@color/tile_subtitle" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- Lista “últimas solicitudes” -->
@@ -276,20 +283,21 @@
                     android:paddingHorizontal="16dp"
                     android:paddingTop="8dp"
                     android:text="Últimas solicitudes"
+                    android:textColor="@color/cardTitle"
                     android:textStyle="bold"
-                    android:textColor="@color/cardTitle" />
+                    android:visibility="gone" />
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvUltimos"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="16dp"
+                    android:background="@color/fn_bg"
                     android:clipToPadding="false"
-                    android:background="@color/fn_bg" />
+                    android:padding="16dp"
+                    android:visibility="gone" />
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
 
-        <!-- Bottom Navigation (solo comercial) -->
         <com.google.android.material.bottomnavigation.BottomNavigationView
             android:id="@+id/bottomNav"
             style="@style/Widget.Farenet.BottomNav"

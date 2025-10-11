@@ -115,15 +115,15 @@ public class SelectionComercialActivity extends BaseSelectionActivity {
         MaterialCardView tileNueva = findViewById(R.id.tileBolsaEstado);
         if (tileNueva != null) {
             ((TextView) tileNueva.findViewById(R.id.tvTitle)).setText("Bolsa");
-            ((TextView) tileNueva.findViewById(R.id.tvSubtitle)).setText("Descuento Autorizado");
+            ((TextView) tileNueva.findViewById(R.id.tvSubtitle)).setText("Plantas");
             ((ImageView) tileNueva.findViewById(R.id.ivIcon)).setImageResource(R.drawable.ic_add_circle_24);
             tileNueva.setOnClickListener(v -> startActivity(new Intent(this, BolsaEstadoActivity.class)));
         }
 
         MaterialCardView tilePend = findViewById(R.id.tilePendientesAut);
         if (tilePend != null) {
-            ((TextView) tilePend.findViewById(R.id.tvTitle)).setText("Pendientes (Aut.)");
-            ((TextView) tilePend.findViewById(R.id.tvSubtitle)).setText("Aprobar / Autorizar");
+            ((TextView) tilePend.findViewById(R.id.tvTitle)).setText("Pendientes");
+            ((TextView) tilePend.findViewById(R.id.tvSubtitle)).setText("Aprobar");
             ((ImageView) tilePend.findViewById(R.id.ivIcon)).setImageResource(R.drawable.ic_pending_actions_24);
             tilePend.setOnClickListener(v -> startActivity(new Intent(this, SolicitudesPendientesActivity.class)));
         }
@@ -154,8 +154,8 @@ public class SelectionComercialActivity extends BaseSelectionActivity {
                     startActivity(new Intent(this, SolicitudesPendientesActivity.class));
                     return true;
                 }
-                if (id == R.id.tab_reportes) {
-                    // abrir reportes
+                if (id == R.id.tab_Bolsa) {
+                    startActivity(new Intent(this, BolsaEstadoActivity.class));
                     return true;
                 }
                 return false;

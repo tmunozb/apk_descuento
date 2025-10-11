@@ -25,6 +25,9 @@ import com.farenet.descuentos.Core.config.Constante;
 import com.farenet.descuentos.R;
 import com.farenet.descuentos.data.local.realm.entity.MotivoCortesia;
 import com.farenet.descuentos.ui.auth.LoginActivity;
+// ⬇️ Asegúrate que esta ruta es la correcta de tu host Activity (ViewPager2)
+import com.farenet.descuentos.ui.comercialhost.ComercialHostActivity;
+
 import com.google.android.material.progressindicator.CircularProgressIndicator;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
 
@@ -42,18 +45,21 @@ public class BootstrapActivity extends AppCompatActivity {
     private SharedPreferences legacyPrefs;
     private MaestroRepository maestroRepo;
 
-    // Banderas de gating duro (deben estar true para continuar)
+    // Gating
     private final AtomicBoolean perfilOk  = new AtomicBoolean(false);
     private final AtomicBoolean accesosOk = new AtomicBoolean(false);
 
-    // Contador de precargas no críticas (solo catálogos/maestros/motivos/bolsa)
+    // Precargas no críticas
     private final AtomicInteger pending = new AtomicInteger(0);
 
     // UI
     private TextView tvStep, tvSub, tvTip;
     private LinearProgressIndicator progressLinear;
-    private CircularProgressIndicator progressCircular; // si lo usas en el layout
+    private CircularProgressIndicator progressCircular;
     private ImageView imgLogo;
+
+    // Evitar doble enrutamiento
+    private final AtomicBoolean routed = new AtomicBoolean(false);
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -102,19 +108,25 @@ public class BootstrapActivity extends AppCompatActivity {
             "Tip: mantén tu sesión activa para autologin"
     };
     private int tipIndex = 0;
+    private final Runnable tipsRunnable = new Runnable() {
+        @Override public void run() {
+            if (tvTip == null) return;
+            tipIndex = (tipIndex + 1) % tips.length;
+            tvTip.animate().alpha(0f).setDuration(150).withEndAction(() -> {
+                tvTip.setText(tips[tipIndex]);
+                tvTip.animate().alpha(0.9f).setDuration(250).start();
+            }).start();
+            tvTip.postDelayed(this, 3000);
+        }
+    };
 
     private void startTipsRotator() {
         if (tvTip == null) return;
-        tvTip.postDelayed(new Runnable() {
-            @Override public void run() {
-                tipIndex = (tipIndex + 1) % tips.length;
-                tvTip.animate().alpha(0f).setDuration(150).withEndAction(() -> {
-                    tvTip.setText(tips[tipIndex]);
-                    tvTip.animate().alpha(0.9f).setDuration(250).start();
-                }).start();
-                tvTip.postDelayed(this, 3000);
-            }
-        }, 3000);
+        tvTip.postDelayed(tipsRunnable, 3000);
+    }
+
+    private void stopTipsRotator() {
+        if (tvTip != null) tvTip.removeCallbacks(tipsRunnable);
     }
 
     private void setStep(String title, String subtitle, int progressPercent) {
@@ -146,17 +158,17 @@ public class BootstrapActivity extends AppCompatActivity {
             return;
         }
 
-        // 1) Asegurar PERFIL y ACCESOS (gating)
+        // 1) Gating: PERFIL + ACCESOS
         onPerfilInicio();
         ensurePerfilYAccesos();
 
-        // 2) Precargas no críticas (no bloquean enrutamiento)
+        // 2) Precargas no críticas
         prefetchMaestros(token);
         prefetchMotivos();
-        prefetchDashboard();      // KPIs/Últimas para la Selection
+        prefetchDashboard();
     }
 
-    // ===== PERFIL + ACCESOS (gating obligatorio) =====
+    // ===== PERFIL + ACCESOS =====
     private void ensurePerfilYAccesos() {
         UsuarioPerfil up = session.getPerfil();
         boolean needsPerfil  = (up == null || up.perfilId == null || up.perfilId.trim().isEmpty());
@@ -167,7 +179,6 @@ public class BootstrapActivity extends AppCompatActivity {
 
         if (!needsPerfil && !needsAccesos) {
             onAccesosOk();
-            // Precarga Bolsa antes de finalizar
             prefetchBolsaEstadoSilencioso();
             onFinalizando();
             return;
@@ -207,7 +218,6 @@ public class BootstrapActivity extends AppCompatActivity {
                         session.saveAccesos(body.accesos);
                         accesosOk.set(true);
                         onAccesosOk();
-                        // Precarga Bolsa también en este camino
                         prefetchBolsaEstadoSilencioso();
                         onFinalizando();
                     } else {
@@ -238,7 +248,6 @@ public class BootstrapActivity extends AppCompatActivity {
                     session.saveAccesos(rsp.body());
                     accesosOk.set(true);
                     onAccesosOk();
-                    // Precarga Bolsa también aquí
                     prefetchBolsaEstadoSilencioso();
                     onFinalizando();
                 } else {
@@ -271,33 +280,44 @@ public class BootstrapActivity extends AppCompatActivity {
         });
     }
 
+    /** ⬇️ CORRECCIÓN: Enrutar SIEMPRE a una Activity, no a un Fragment */
     private void routeWhenReady() {
         if (!(perfilOk.get() && accesosOk.get())) return;
-        String p = session.getPerfil()!=null ? session.getPerfil().perfilId : "";
-        if (p == null) p = "";
-        p = p.trim().toLowerCase();
+        if (routed.getAndSet(true)) return; // evita doble start
+
+        String perfil = session.getPerfil() != null ? session.getPerfil().perfilId : "";
+        if (perfil == null) perfil = "";
+        perfil = perfil.trim();
 
         Class<?> next;
-        switch (p) {
-            case "sistemas":
-                next = com.farenet.descuentos.ui.selection.sistemas.SelectionSistemasActivity.class; break;
-            case "operaciones":
-                next = com.farenet.descuentos.ui.selection.operaciones.SelectionOperacionesActivity.class; break;
-            case "comercial":
-                next = com.farenet.descuentos.ui.selection.comercial.SelectionComercialActivity.class; break;
-            case "asistente_servicio":
-                next = com.farenet.descuentos.ui.selection.asistente.SelectionAsistenteActivity.class; break;
-            default:
-                next = com.farenet.descuentos.ui.selection.asistente.SelectionAsistenteActivity.class;
+
+        if ("sistemas".equalsIgnoreCase(perfil)) {
+            next = com.farenet.descuentos.ui.selection.sistemas.SelectionSistemasActivity.class;
+        } else if ("operaciones".equalsIgnoreCase(perfil)) {
+            next = com.farenet.descuentos.ui.selection.operaciones.SelectionOperacionesActivity.class;
+        } else if ("comercial".equalsIgnoreCase(perfil)) {
+            // ⬅️ ANTES: HomeFragment.class (crash)
+            // AHORA: host Activity con ViewPager2
+            next = ComercialHostActivity.class;
+        } else if ("asistente_servicio".equalsIgnoreCase(perfil)) {
+            next = com.farenet.descuentos.ui.selection.asistente.SelectionAsistenteActivity.class;
+        } else {
+            // Fallback razonable
+            next = com.farenet.descuentos.ui.selection.asistente.SelectionAsistenteActivity.class;
         }
-        startActivity(new Intent(this, next));
+
+        Intent i = new Intent(this, next);
+        // Si Bootstrap es tu launcher, limpia el back stack:
+        i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
+                | Intent.FLAG_ACTIVITY_NEW_TASK
+                | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(i);
         finish();
     }
 
     // ===== PRECARGAS NO CRÍTICAS =====
 
     private void prefetchMaestros(String token) {
-        // No bloquean el enrutamiento, pero sí actualizan el “progreso” visual
         inc(); maestroRepo.getPlantas(token)           .enqueue(doneList("Plantas"));
         inc(); maestroRepo.getAutorizadores(token)     .enqueue(doneList("Autorizadores"));
         inc(); maestroRepo.getConceptoinspeccion(token).enqueue(doneList("Conceptos"));
@@ -305,14 +325,12 @@ public class BootstrapActivity extends AppCompatActivity {
     }
 
     private void prefetchMotivos() {
-        // Motivos Cortesía
         inc();
         NewApiClient.get().getMotivosCortesia(true).enqueue(new Callback<List<MotivoCortesia>>() {
             @Override public void onResponse(Call<List<MotivoCortesia>> call, Response<List<MotivoCortesia>> response) { dec(); }
             @Override public void onFailure(Call<List<MotivoCortesia>> call, Throwable t) { dec(); }
         });
 
-        // Motivos Descuento (si existe en tu API)
         try {
             inc();
             NewApiClient.get().getMotivosDescuento(true).enqueue(new Callback<List<MotivoDescuento>>() {
@@ -320,13 +338,11 @@ public class BootstrapActivity extends AppCompatActivity {
                 @Override public void onFailure(Call<List<MotivoDescuento>> call, Throwable t) { dec(); }
             });
         } catch (Throwable ignore) {
-            // Si no está implementado todavía, no romper
+            // endpoint aún no disponible
         }
     }
 
-    /** Precarga Dashboard (no crítica, NO toca el pending). */
     private void prefetchDashboard() {
-        // 1) Pendiente Aut.
         NewApiClient.get().listarSolicitudes(
                 resolveUsername(), "PENDIENTE_AUT",
                 null, null, 500, 0, "-creado_en"
@@ -341,7 +357,6 @@ public class BootstrapActivity extends AppCompatActivity {
             }
         });
 
-        // 2) Aprobadas
         NewApiClient.get().listarSolicitudes(
                 resolveUsername(), "APROBADA",
                 "DESCUENTO", null, 500, 0, "-creado_en"
@@ -356,7 +371,6 @@ public class BootstrapActivity extends AppCompatActivity {
             }
         });
 
-        // 3) Últimas 3
         NewApiClient.get().listarSolicitudes(
                 resolveUsername(), null, null, null,
                 3, 0, "-creado_en"
@@ -371,7 +385,7 @@ public class BootstrapActivity extends AppCompatActivity {
         });
     }
 
-    /** Precarga de Bolsa: best-effort por reflexión, suma a pending para feedback de progreso. */
+    /** Precarga de Bolsa por reflexión (best-effort). */
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void prefetchBolsaEstadoSilencioso() {
         try {
@@ -422,7 +436,6 @@ public class BootstrapActivity extends AppCompatActivity {
         }
     }
 
-    /** Helper genérico para cerrar un pending luego de cualquier llamada que devuelve List<T>. */
     private <T> Callback<List<T>> doneList(String tag) {
         return new Callback<List<T>>() {
             @Override public void onResponse(Call<List<T>> call, Response<List<T>> rsp) { dec(); }
@@ -430,14 +443,14 @@ public class BootstrapActivity extends AppCompatActivity {
         };
     }
 
-    // ===== pending helpers =====
+    // pending helpers
     private void inc() { pending.incrementAndGet(); }
     private void dec() {
         int left = pending.decrementAndGet();
         if (left <= 0) onCatalogosOk();
     }
 
-    // ===== Util =====
+    // Util
     private String resolveUsername() {
         String u = session.getUsername();
         if (u != null && !u.trim().isEmpty()) return u.trim();
@@ -455,5 +468,11 @@ public class BootstrapActivity extends AppCompatActivity {
                 | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(i);
         finish();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        stopTipsRotator();
     }
 }

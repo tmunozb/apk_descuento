@@ -1,28 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
     android:background="@color/fn_bg">
 
-    <com.google.android.material.appbar.AppBarLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:fitsSystemWindows="true"
-        app:liftOnScroll="true">
-
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar"
-            style="@style/Widget.Farenet.Toolbar.Comercial"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            app:logo="@drawable/ic_logo_farenet"
-            app:logoDescription="@string/app_name"
-            app:title="" />
-    </com.google.android.material.appbar.AppBarLayout>
-
-    <!-- Contenido -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -35,7 +19,7 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- Tarjeta compacta: SOLO chips + buscar -->
+            <!-- Tarjeta compacta: chips + buscar -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Widget.Farenet.KpiCard"
                 android:layout_width="match_parent"
@@ -112,15 +96,6 @@
                 android:paddingBottom="8dp" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
-
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottomNav"
-        style="@style/Widget.Farenet.BottomNav"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        app:layout_behavior="@string/hide_bottom_view_on_scroll_behavior"
-        app:menu="@menu/menu_bottom_comercial" />
 
     <!-- Loading flotante -->
     <com.google.android.material.progressindicator.CircularProgressIndicator

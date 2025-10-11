@@ -1,15 +1,16 @@
 package com.farenet.descuentos.ui.solicitudes.pendientes;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AutoCompleteTextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.annotation.NonNull;
+import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -23,14 +24,15 @@ import com.farenet.descuentos.API.Actual.DTO.solicitudes.AprobarSolicitudReq;
 import com.farenet.descuentos.API.Actual.DTO.solicitudes.RechazarSolicitudReq;
 import com.farenet.descuentos.API.Actual.DTO.solicitudes.AccionSolicitudRsp;
 import com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudPendienteDto;
-import com.farenet.descuentos.ui.bolsa.BolsaEstadoActivity;
 import com.farenet.descuentos.ui.solicitudes.model.SolicitudUI;
 import com.farenet.descuentos.Core.Network.NewApiClient;
 import com.farenet.descuentos.API.Antigua.Service.DescuentoRepository;
 import com.farenet.descuentos.Core.Storage.SessionManager;
 import com.farenet.descuentos.ui.solicitudes.pendientes.adapter.PendienteSolicitudAdapter;
-import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.bottomnavigation.BottomNavigationView;
+
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+
+import androidx.appcompat.app.AlertDialog;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -42,8 +44,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 import android.content.SharedPreferences;
 
-public class SolicitudesPendientesActivity extends AppCompatActivity
-        implements PendienteSolicitudAdapter.Actions {
+public class PendientesFragment extends Fragment implements PendienteSolicitudAdapter.Actions {
 
     private AutoCompleteTextView actPlanta, actTipo, actEstado;
     private RecyclerView rv;
@@ -62,71 +63,52 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
     private Call<AccionSolicitudRsp> rechazarCall;
 
     private static final String[] TIPOS = new String[]{"Todos", "Descuento", "Cortesía"};
-    // Elimina la constante ESTADOS actual y agrega esto:
-    private String[] estadosAdapterArray() {
-        // Comercial SOLO ve “Pendiente (Autorización)”
-        if (isSoloComercial()) {
-            return new String[]{"Pendiente (Autorización)"};
-        }
-
-        List<String> estados = new ArrayList<>();
-        estados.add("Pendiente"); // ENVIADA/OBSERVADA
-        if (canVerPendienteAut()) {
-            estados.add("Pendiente (Autorización)");
-        }
-        estados.add("Aprobada");
-        estados.add("Rechazada");
-        return estados.toArray(new String[0]);
-    }
-
 
     private DescuentoRepository descuentoRepository;
     private SharedPreferences sharedPreferences;
 
-    // Flags de rol (se calculan al iniciar)
+    // Flags
     private boolean isSistemas = false;
     private boolean isOperaciones = false;
     private boolean isComercial = false;
 
+    @Nullable @Override
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_solicitudes_pendientes, container, false);
+    }
 
     @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_solicitudes_pendientes);
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
 
-        session = new SessionManager(getApplicationContext());
+        session = new SessionManager(requireContext());
         computeRoleFlags();
 
-        MaterialToolbar tb = findViewById(R.id.toolbar);
-        tb.setNavigationOnClickListener(v -> finish());
+        actPlanta = view.findViewById(R.id.act_planta);
+        actTipo   = view.findViewById(R.id.act_tipo);
+        actEstado = view.findViewById(R.id.act_estado);
+        rv        = view.findViewById(R.id.rv_pendientes);
+        progress  = view.findViewById(android.R.id.progress);
 
-        actPlanta = findViewById(R.id.act_planta);
-        actTipo   = findViewById(R.id.act_tipo);
-        actEstado = findViewById(R.id.act_estado);
-        rv        = findViewById(R.id.rv_pendientes);
-        progress  = findViewById(android.R.id.progress);
-
-        rv.setLayoutManager(new LinearLayoutManager(this));
+        rv.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new PendienteSolicitudAdapter(data, this);
         rv.setAdapter(adapter);
 
         cargarPlantasDesdeSesion();
-        actPlanta.setAdapter(new android.widget.ArrayAdapter<>(this,
+        actPlanta.setAdapter(new android.widget.ArrayAdapter<>(requireContext(),
                 android.R.layout.simple_list_item_1,
                 plantasAdapterArray()));
-        actTipo.setAdapter(new android.widget.ArrayAdapter<>(this,
+        actTipo.setAdapter(new android.widget.ArrayAdapter<>(requireContext(),
                 android.R.layout.simple_list_item_1, TIPOS));
-        actEstado.setAdapter(new android.widget.ArrayAdapter<>(this,
+        actEstado.setAdapter(new android.widget.ArrayAdapter<>(requireContext(),
                 android.R.layout.simple_list_item_1, estadosAdapterArray()));
 
-// Estado por defecto
         if (canVerTodasPlantas()) {
             actPlanta.setText("Todas", false);
-        } else {
-            // Si no hay “Todas”, selecciona la primera planta disponible si existe
-            if (!plantasNombres.isEmpty()) {
-                actPlanta.setText(plantasNombres.get(0), false);
-            }
+        } else if (!plantasNombres.isEmpty()) {
+            actPlanta.setText(plantasNombres.get(0), false);
         }
         actTipo.setText("Todos", false);
         if (isSoloComercial()) {
@@ -140,52 +122,58 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
         actEstado.setOnItemClickListener((p, v, pos, id) -> filtrar());
 
         descuentoRepository = Constante.getDescuentoRepository();
-        sharedPreferences   = getSharedPreferences(Constante.TOKEN, MODE_PRIVATE);
-
-        // Bottom navigation: desde PENDIENTES poder ir a INICIO y REPORTES.
-// Asegúrate de que el layout activity_solicitudes_pendientes tenga un BottomNavigationView con id @+id/bottomNav
-        BottomNavigationView bottom = findViewById(R.id.bottomNav);
-        if (bottom != null) {
-            // Marca esta pestaña como seleccionada (estamos en Solicitudes)
-            bottom.setSelectedItemId(R.id.tab_solicitudes);
-
-            bottom.setOnItemSelectedListener(item -> {
-                int id = item.getItemId();
-
-                if (id == R.id.tab_solicitudes) {
-                    // Ya estás aquí; no navegues de nuevo
-                    return true;
-                }
-
-                if (id == R.id.tab_home) {
-                    // Volver a Inicio (Selección Comercial)
-                    startActivity(new Intent(this, com.farenet.descuentos.ui.selection.comercial.SelectionComercialActivity.class)
-                            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
-                    // Opcional: si quieres cerrar esta Activity para no apilarla
-                    // finish();
-                    return true;
-                }
-
-                if (id == R.id.tab_Bolsa) {
-                    startActivity(new Intent(this, BolsaEstadoActivity.class));
-                    return true;
-                }
-
-                return false;
-            });
-        }
-
+        sharedPreferences   = requireContext().getSharedPreferences(Constante.TOKEN, requireContext().MODE_PRIVATE);
 
         cargarPendientes();
     }
 
+    // ===== Roles / permisos =====
+    private String[] estadosAdapterArray() {
+        if (isSoloComercial()) {
+            return new String[]{"Pendiente (Autorización)"};
+        }
+        List<String> estados = new ArrayList<>();
+        estados.add("Pendiente");
+        if (canVerPendienteAut()) estados.add("Pendiente (Autorización)");
+        estados.add("Aprobada");
+        estados.add("Rechazada");
+        return estados.toArray(new String[0]);
+    }
+
+    private void computeRoleFlags() {
+        UsuarioPerfil up = session.getPerfil();
+        String p = perfilUpper(up);
+
+        String[] sis = {"SIS", "SISTEMAS"};
+        String[] ope = {"OPE", "OPERACION", "OPERACIONES"};
+        String[] com = {"COM", "COMERCIAL", "VENTAS"};
+
+        isSistemas    = matchesAny(p, sis);
+        isOperaciones = matchesAny(p, ope);
+        isComercial   = matchesAny(p, com);
+    }
+
+    private String perfilUpper(UsuarioPerfil up) {
+        if (up == null || up.perfilId == null) return "";
+        return up.perfilId.trim().toUpperCase();
+    }
+
+    private boolean matchesAny(String value, String[] options) {
+        if (value == null) return false;
+        for (String opt : options) if (value.equalsIgnoreCase(opt)) return true;
+        return false;
+    }
+
+    private boolean isSoloComercial() { return isComercial && !isSistemas; }
+    private boolean canVerTodasPlantas() { return isSistemas || isOperaciones || isComercial; }
+    private boolean canVerPendienteAut() { return isSistemas || isComercial; }
+
+    // ===== Datos / filtros =====
     private void cargarPlantasDesdeSesion() {
         plantasNombres.clear();
         plantaNombreToKey.clear();
 
-        if (canVerTodasPlantas()) {
-            plantasNombres.add("Todas");
-        }
+        if (canVerTodasPlantas()) plantasNombres.add("Todas");
 
         List<AccesoPlantaDto> accesos = session.getAccesos();
         if (accesos == null) return;
@@ -202,50 +190,6 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
         }
     }
 
-    private String perfilUpper(UsuarioPerfil up) {
-        if (up == null || up.perfilId == null) return "";
-        return up.perfilId.trim().toUpperCase();
-    }
-
-    private void computeRoleFlags() {
-        UsuarioPerfil up = session.getPerfil();
-        String p = perfilUpper(up);
-
-        // Alias reconocidos (ajusta a tus valores reales)
-        String[] sis = {"SIS", "SISTEMAS"};
-        String[] ope = {"OPE", "OPERACION", "OPERACIONES"};
-        String[] com = {"COM", "COMERCIAL", "VENTAS"};
-
-        isSistemas    = matchesAny(p, sis);
-        isOperaciones = matchesAny(p, ope);
-        isComercial   = matchesAny(p, com);
-    }
-
-    private boolean matchesAny(String value, String[] options) {
-        if (value == null) return false;
-        for (String opt : options) {
-            if (value.equalsIgnoreCase(opt)) return true;
-        }
-        return false;
-    }
-
-    // Permisos derivados
-
-    private boolean isSoloComercial() {
-        return isComercial && !isSistemas;
-    }
-
-
-    private boolean canVerTodasPlantas() {
-        return isSistemas || isOperaciones || isComercial;
-    }
-
-    private boolean canVerPendienteAut() {
-        return isSistemas || isComercial;
-    }
-
-
-
     private String[] plantasAdapterArray() {
         return plantasNombres.toArray(new String[0]);
     }
@@ -259,12 +203,11 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
             public void onResponse(Call<List<SolicitudPendienteDto>> call, Response<List<SolicitudPendienteDto>> response) {
                 showLoading(false);
                 if (!response.isSuccessful() || response.body() == null) {
-                    Toast.makeText(SolicitudesPendientesActivity.this, "No se pudo cargar pendientes", Toast.LENGTH_LONG).show();
+                    Toast.makeText(requireContext(), "No se pudo cargar pendientes", Toast.LENGTH_LONG).show();
                     return;
                 }
                 all.clear();
                 for (SolicitudPendienteDto d : response.body()) {
-                    // ⛔ Para COMERCIAL: solo incorporar PENDIENTE_AUT
                     if (isSoloComercial() && (d.estado == null || !d.estado.equalsIgnoreCase("PENDIENTE_AUT"))) {
                         continue;
                     }
@@ -273,14 +216,6 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
                     String estadoNice = mapEstadoUI(d.estado);
                     String fechaNice  = niceDate(d.creado_en);
 
-                    String idStr          = s(d.id);
-                    String plantaKeyStr   = s(d.planta_key);
-                    String conceptoKeyStr = s(d.concepto_key);
-                    String tipoPagoKeyStr = s(d.tipo_pago_key);
-                    Double montoVal       = d.monto != null ? d.monto : 0d;
-                    String tipoDescVal    = s(d.tipo_desc);
-                    String campaniaVal    = s(d.campania_nombre);
-
                     SolicitudUI ui = new SolicitudUI(
                             d.codigo,
                             tipoNice,
@@ -288,16 +223,15 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
                             s(d.planta_nombre),
                             s(d.motivo),
                             estadoNice,
-                            idStr,
+                            s(d.id),
                             fechaNice,
-                            plantaKeyStr,
-                            conceptoKeyStr,
-                            tipoPagoKeyStr,
-                            montoVal,
-                            tipoDescVal,
-                            campaniaVal
+                            s(d.planta_key),
+                            s(d.concepto_key),
+                            s(d.tipo_pago_key),
+                            d.monto != null ? d.monto : 0d,
+                            s(d.tipo_desc),
+                            s(d.campania_nombre)
                     );
-
                     all.add(ui);
                 }
                 filtrar();
@@ -318,73 +252,7 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
             public void onFailure(Call<List<SolicitudPendienteDto>> call, Throwable t) {
                 if (call.isCanceled()) return;
                 showLoading(false);
-                Toast.makeText(SolicitudesPendientesActivity.this, "Error al cargar pendientes", Toast.LENGTH_LONG).show();
-            }
-        });
-    }
-
-    private void generarDescuentoSiCorresponde(SolicitudUI s, String aprobNom, AccionSolicitudRsp rsp) {
-        String estadoBk = rsp != null ? rsp.estado : null;
-        boolean aprobadaOk = "APROBADA".equalsIgnoreCase(estadoBk);
-        if (!aprobadaOk) return; // sólo cuando queda aprobada final
-        generarDescuentoDesdeSolicitud(s, aprobNom);
-    }
-
-    private void generarDescuentoDesdeSolicitud(SolicitudUI s, String aprobNom) {
-        if (!s.isCompletaParaDescuento()) {
-            Toast.makeText(this, "Solicitud incompleta para generar descuento", Toast.LENGTH_LONG).show();
-            return;
-        }
-
-        Descuento d = new Descuento();
-        d.setConceptoinspeccion(s.conceptoKey);
-        d.setPlanta(s.plantaKey);
-        d.setTipoPagoDescuento(s.tipoPagoKey);
-        d.setPlaca(s.placa);
-        d.setMonto(s.monto != null ? s.monto : 0d);
-        d.setMotivo(!TextUtils.isEmpty(s.motivo) ? s.motivo : "Aprobado desde solicitudes");
-        d.setAutoriza(!TextUtils.isEmpty(aprobNom) ? aprobNom : "APROBADOR");
-
-        if ("CAMPAÑA".equalsIgnoreCase(s.tipoDesc) && !TextUtils.isEmpty(s.campaniaNombre)) {
-            d.setNomDescuento(s.campaniaNombre);
-        }
-
-        String token = sharedPreferences != null ? sharedPreferences.getString("token", null) : null;
-        if (TextUtils.isEmpty(token)) {
-            Toast.makeText(this, "Sesión no válida para registrar descuento", Toast.LENGTH_LONG).show();
-            return;
-        }
-
-        retrofit2.Call<String> call;
-        if ("AUTORIZADO".equalsIgnoreCase(s.tipoDesc)) {
-            call = descuentoRepository.saveDescuento(d, token);
-        } else if ("CARTA".equalsIgnoreCase(s.tipoDesc)) {
-            call = descuentoRepository.saveCarta(d, token);
-        } else if ("CAMPAÑA".equalsIgnoreCase(s.tipoDesc)) {
-            call = descuentoRepository.saveCampana(d, token);
-        } else {
-            call = descuentoRepository.saveDescuento(d, token);
-        }
-
-        call.enqueue(new retrofit2.Callback<String>() {
-            @Override
-            public void onResponse(retrofit2.Call<String> c, retrofit2.Response<String> rsp) {
-                if (rsp.isSuccessful()) {
-                    Toast.makeText(SolicitudesPendientesActivity.this,
-                            "Descuento registrado correctamente", Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(SolicitudesPendientesActivity.this,
-                            "Aprobada, pero falló el registro de descuento (" + rsp.code() + ")",
-                            Toast.LENGTH_LONG).show();
-                }
-            }
-
-            @Override
-            public void onFailure(retrofit2.Call<String> c, Throwable t) {
-                Toast.makeText(SolicitudesPendientesActivity.this,
-                        "Aprobada, error registrando descuento: " +
-                                (t.getMessage()!=null?t.getMessage():""),
-                        Toast.LENGTH_LONG).show();
+                Toast.makeText(requireContext(), "Error al cargar pendientes", Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -417,7 +285,6 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
         return "pendiente".equals(e) || "pendiente (observada)".equals(e);
     }
 
-
     private String mapEstadoUI(String backendEstado) {
         if (backendEstado == null) return "Pendiente";
         switch (backendEstado.toUpperCase()) {
@@ -430,12 +297,11 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
         }
     }
 
+    // ===== Acciones =====
     @Override
     public void onAprobar(SolicitudUI s) {
-
         if ("Pendiente (Autorización)".equalsIgnoreCase(s.estado)) {
-            // Segunda aprobación
-            new AlertDialog.Builder(this)
+            new AlertDialog.Builder(requireContext())
                     .setTitle("Autorización final")
                     .setMessage("La solicitud está pendiente de autorización.\n¿Cómo deseas proceder?")
                     .setPositiveButton("Autorizar sin bolsa", (d, w) -> autorizar(s, "AUTORIZADO"))
@@ -445,7 +311,7 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
             return;
         }
 
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(requireContext())
                 .setTitle("Aprobar solicitud")
                 .setMessage("¿Aprobar " + s.codigo + "?")
                 .setPositiveButton("Aprobar", (d, w) -> aprobar(s))
@@ -465,30 +331,19 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
         }
         if (TextUtils.isEmpty(nom)) nom = user;
 
-        // ⬇️ Variables finales para usarlas dentro del Callback
         final String nomFinal  = nom;
         final String userFinal = user;
         final String modoFinal = modo;
 
-        // ===== Variante A: tu req tiene constructor (user, id, nom, modo)
-        retrofit2.Call<AccionSolicitudRsp> call = NewApiClient.get().autorizarSolicitud(
-                s.id,
-                new AutorizarSolicitudReq(userFinal, null, nomFinal, modoFinal)
+        Call<AccionSolicitudRsp> call = NewApiClient.get().autorizarSolicitud(
+                s.id, new AutorizarSolicitudReq(userFinal, null, nomFinal, modoFinal)
         );
-
-        // ===== Variante B: si tu req NO tiene constructor con args, usa setters
-        // com.farenet.descuentos.API.Actual.DTO.solicitudes.AutorizarSolicitudReq body = new com.farenet.descuentos.API.Actual.DTO.solicitudes.AutorizarSolicitudReq();
-        // body.setAprobado_por_username(userFinal);
-        // body.setAprobado_por_id(null);
-        // body.setAprobado_por_nombre(nomFinal);
-        // body.setModo(modoFinal);
-        // retrofit2.Call<AccionSolicitudRsp> call = NewApiClient.get().autorizarSolicitud(s.id, body);
 
         call.enqueue(new Callback<AccionSolicitudRsp>() {
             @Override public void onResponse(Call<AccionSolicitudRsp> call, Response<AccionSolicitudRsp> rsp) {
                 showLoading(false);
                 if (!rsp.isSuccessful() || rsp.body()==null) {
-                    Toast.makeText(SolicitudesPendientesActivity.this, "No se pudo autorizar", Toast.LENGTH_LONG).show();
+                    Toast.makeText(requireContext(), "No se pudo autorizar", Toast.LENGTH_LONG).show();
                     return;
                 }
                 String est = rsp.body().estado != null ? rsp.body().estado : "ENVIADA";
@@ -496,17 +351,16 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
                 adapter.notifyDataSetChanged();
 
                 if ("APROBADA".equalsIgnoreCase(est)) {
-                    Toast.makeText(SolicitudesPendientesActivity.this, "Aprobada", Toast.LENGTH_SHORT).show();
-                    // ✅ ahora sí existe nomFinal y es final
+                    Toast.makeText(requireContext(), "Aprobada", Toast.LENGTH_SHORT).show();
                     generarDescuentoSiCorresponde(s, nomFinal, rsp.body());
                 } else {
-                    Toast.makeText(SolicitudesPendientesActivity.this, "Sigue pendiente de autorización", Toast.LENGTH_LONG).show();
+                    Toast.makeText(requireContext(), "Sigue pendiente de autorización", Toast.LENGTH_LONG).show();
                 }
                 cargarPendientes();
             }
             @Override public void onFailure(Call<AccionSolicitudRsp> call, Throwable t) {
                 showLoading(false);
-                Toast.makeText(SolicitudesPendientesActivity.this, "Error al autorizar", Toast.LENGTH_LONG).show();
+                Toast.makeText(requireContext(), "Error al autorizar", Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -528,14 +382,7 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
 
         final String aprobNomFinal = aprobNom;
 
-        // ===== Variante A: tu req tiene constructor (user, id, nombre)
         AprobarSolicitudReq req = new AprobarSolicitudReq(aprobUser, null, aprobNomFinal);
-
-        // ===== Variante B: si NO tiene ese constructor, usa setters
-        // AprobarSolicitudReq req = new AprobarSolicitudReq();
-        // req.setAprobado_por_username(aprobUser);
-        // req.setAprobado_por_id(null);
-        // req.setAprobado_por_nombre(aprobNomFinal);
 
         if (aprobarCall != null) aprobarCall.cancel();
         aprobarCall = NewApiClient.get().aprobarSolicitud(s.id, req);
@@ -544,7 +391,7 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
             public void onResponse(Call<AccionSolicitudRsp> call, Response<AccionSolicitudRsp> response) {
                 showLoading(false);
                 if (!response.isSuccessful() || response.body() == null) {
-                    Toast.makeText(SolicitudesPendientesActivity.this, "No se pudo aprobar", Toast.LENGTH_LONG).show();
+                    Toast.makeText(requireContext(), "No se pudo aprobar", Toast.LENGTH_LONG).show();
                     return;
                 }
                 AccionSolicitudRsp rsp = response.body();
@@ -554,11 +401,11 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
                 adapter.notifyDataSetChanged();
 
                 if ("Aprobada".equalsIgnoreCase(nuevoEstado)) {
-                    Toast.makeText(SolicitudesPendientesActivity.this, "Aprobada", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), "Aprobada", Toast.LENGTH_SHORT).show();
                 } else if ("Pendiente (Autorización)".equalsIgnoreCase(nuevoEstado)) {
-                    Toast.makeText(SolicitudesPendientesActivity.this, "Sin saldo: queda pendiente de autorización", Toast.LENGTH_LONG).show();
+                    Toast.makeText(requireContext(), "Sin saldo: queda pendiente de autorización", Toast.LENGTH_LONG).show();
                 } else {
-                    Toast.makeText(SolicitudesPendientesActivity.this, "Aprobación realizada", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), "Aprobación realizada", Toast.LENGTH_SHORT).show();
                 }
 
                 generarDescuentoSiCorresponde(s, aprobNomFinal, rsp);
@@ -569,15 +416,14 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
             public void onFailure(Call<AccionSolicitudRsp> call, Throwable t) {
                 if (call.isCanceled()) return;
                 showLoading(false);
-                Toast.makeText(SolicitudesPendientesActivity.this, "Error al aprobar", Toast.LENGTH_LONG).show();
+                Toast.makeText(requireContext(), "Error al aprobar", Toast.LENGTH_LONG).show();
             }
         });
     }
 
-
     @Override
     public void onRechazar(SolicitudUI s) {
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(requireContext())
                 .setTitle("Rechazar solicitud")
                 .setMessage("¿Rechazar " + s.codigo + "?\nMotivo: se registrará como 'No corresponde'.")
                 .setPositiveButton("Rechazar", (d, w) -> rechazar(s, "No corresponde"))
@@ -596,12 +442,12 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
             public void onResponse(Call<AccionSolicitudRsp> call, Response<AccionSolicitudRsp> response) {
                 showLoading(false);
                 if (!response.isSuccessful() || response.body() == null) {
-                    Toast.makeText(SolicitudesPendientesActivity.this, "No se pudo rechazar", Toast.LENGTH_LONG).show();
+                    Toast.makeText(requireContext(), "No se pudo rechazar", Toast.LENGTH_LONG).show();
                     return;
                 }
                 s.estado = "Rechazada";
                 adapter.notifyDataSetChanged();
-                Toast.makeText(SolicitudesPendientesActivity.this, "Rechazada", Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), "Rechazada", Toast.LENGTH_SHORT).show();
                 cargarPendientes();
             }
 
@@ -609,7 +455,73 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
             public void onFailure(Call<AccionSolicitudRsp> call, Throwable t) {
                 if (call.isCanceled()) return;
                 showLoading(false);
-                Toast.makeText(SolicitudesPendientesActivity.this, "Error al rechazar", Toast.LENGTH_LONG).show();
+                Toast.makeText(requireContext(), "Error al rechazar", Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void generarDescuentoSiCorresponde(SolicitudUI s, String aprobNom, AccionSolicitudRsp rsp) {
+        String estadoBk = rsp != null ? rsp.estado : null;
+        boolean aprobadaOk = "APROBADA".equalsIgnoreCase(estadoBk);
+        if (!aprobadaOk) return;
+        generarDescuentoDesdeSolicitud(s, aprobNom);
+    }
+
+    private void generarDescuentoDesdeSolicitud(SolicitudUI s, String aprobNom) {
+        if (!s.isCompletaParaDescuento()) {
+            Toast.makeText(requireContext(), "Solicitud incompleta para generar descuento", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        Descuento d = new Descuento();
+        d.setConceptoinspeccion(s.conceptoKey);
+        d.setPlanta(s.plantaKey);
+        d.setTipoPagoDescuento(s.tipoPagoKey);
+        d.setPlaca(s.placa);
+        d.setMonto(s.monto != null ? s.monto : 0d);
+        d.setMotivo(!TextUtils.isEmpty(s.motivo) ? s.motivo : "Aprobado desde solicitudes");
+        d.setAutoriza(!TextUtils.isEmpty(aprobNom) ? aprobNom : "APROBADOR");
+
+        if ("CAMPAÑA".equalsIgnoreCase(s.tipoDesc) && !TextUtils.isEmpty(s.campaniaNombre)) {
+            d.setNomDescuento(s.campaniaNombre);
+        }
+
+        String token = sharedPreferences != null ? sharedPreferences.getString("token", null) : null;
+        if (TextUtils.isEmpty(token)) {
+            Toast.makeText(requireContext(), "Sesión no válida para registrar descuento", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        retrofit2.Call<String> call;
+        if ("AUTORIZADO".equalsIgnoreCase(s.tipoDesc)) {
+            call = descuentoRepository.saveDescuento(d, token);
+        } else if ("CARTA".equalsIgnoreCase(s.tipoDesc)) {
+            call = descuentoRepository.saveCarta(d, token);
+        } else if ("CAMPAÑA".equalsIgnoreCase(s.tipoDesc)) {
+            call = descuentoRepository.saveCampana(d, token);
+        } else {
+            call = descuentoRepository.saveDescuento(d, token);
+        }
+
+        call.enqueue(new retrofit2.Callback<String>() {
+            @Override
+            public void onResponse(retrofit2.Call<String> c, retrofit2.Response<String> rsp) {
+                if (rsp.isSuccessful()) {
+                    Toast.makeText(requireContext(),
+                            "Descuento registrado correctamente", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(requireContext(),
+                            "Aprobada, pero falló el registro de descuento (" + rsp.code() + ")",
+                            Toast.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            public void onFailure(retrofit2.Call<String> c, Throwable t) {
+                Toast.makeText(requireContext(),
+                        "Aprobada, error registrando descuento: " +
+                                (t.getMessage()!=null?t.getMessage():""),
+                        Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -619,12 +531,11 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
     }
 
     private String safe(String s) { return s == null ? "" : s.trim(); }
-
     private String s(Object o) { return o == null ? "" : String.valueOf(o).trim(); }
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
+    public void onDestroyView() {
+        super.onDestroyView();
         if (listarCall != null) listarCall.cancel();
         if (aprobarCall != null) aprobarCall.cancel();
         if (rechazarCall != null) rechazarCall.cancel();

@@ -1,19 +1,25 @@
-
 package com.farenet.descuentos.API.Actual.DTO.solicitudes;
 
 import com.google.gson.annotations.SerializedName;
 
 public class SolicitudDto {
-    @SerializedName("id")               public String id;
-    @SerializedName("codigo")           public String codigo;
+    @SerializedName("id")                 public String id;
+    @SerializedName("codigo")             public String codigo;
 
-    @SerializedName("tipo")             public String tipo;
-    @SerializedName("estado")           public String estado;
+    @SerializedName("tipo")               public String tipo;
+    @SerializedName("estado")             public String estado;
 
-    @SerializedName("placa")            public String placa;
-    @SerializedName("planta_nombre")    public String plantaNombre;
-    @SerializedName("motivo")           public String motivo;
+    @SerializedName("placa")              public String placa;
+    @SerializedName("planta_nombre")      public String plantaNombre;
+    @SerializedName("motivo")             public String motivo;
 
-    @SerializedName("creado_en")        public String creadoEn;    // ISO8601
-    @SerializedName("aprobada_en")      public String aprobadaEn;  // opcional
+    @SerializedName("creado_en")          public String creadoEn;     // ISO8601
+    @SerializedName("aprobada_en")        public String aprobadaEn;   // ISO8601 (opcional)
+
+    // ===== Campos de monto (opcionales, según cómo responda tu API) =====
+    @SerializedName("monto")              public Double monto;
+    @SerializedName("monto_aprobado")     public Double montoAprobado;
+    @SerializedName("monto_solicitado")   public Double montoSolicitado;
+    @SerializedName("importe")            public Double importe;
+    @SerializedName("total")              public Double total;         // por si acaso
 }

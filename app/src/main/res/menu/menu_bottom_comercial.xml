@@ -6,12 +6,12 @@
         android:icon="@drawable/ic_home_24"/>
 
     <item
-        android:id="@+id/tab_solicitudes"
-        android:title="Aprob. Pendientes"
-        android:icon="@drawable/ic_assignment_24"/>
+        android:id="@+id/tab_Bolsa"
+        android:title="Bolsa"
+        android:icon="@drawable/ic_descuento"/>
 
     <item
-        android:id="@+id/tab_reportes"
-        android:title="Reportes"
-        android:icon="@drawable/ic_bar_chart"/>
+        android:id="@+id/tab_solicitudes"
+        android:title="Aprob. Pendientes"
+        android:icon="@drawable/ic_history_24"/>
 </menu>

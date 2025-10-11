@@ -9,4 +9,5 @@
     <dimen name="titulo_home">25sp</dimen>
     <dimen name="centro_login">25dp</dimen>
     <dimen name="fab_margin">16dp</dimen>
+    <dimen name="bottom_nav_height">56dp</dimen>
 </resources>

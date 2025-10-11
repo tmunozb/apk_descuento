@@ -1,15 +1,16 @@
 package com.farenet.descuentos.ui.bolsa;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.annotation.NonNull;
+import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -19,13 +20,12 @@ import com.farenet.descuentos.API.Actual.DTO.bolsa.BolsaConfigDto;
 import com.farenet.descuentos.API.Actual.DTO.maestros.AccesoPlantaDto;
 import com.farenet.descuentos.Core.Network.NewApiClient;
 import com.farenet.descuentos.Core.Storage.SessionManager;
-import com.farenet.descuentos.ui.solicitudes.pendientes.SolicitudesPendientesActivity;
-import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
+
+import androidx.appcompat.app.AlertDialog;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -42,125 +42,77 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class BolsaEstadoActivity extends AppCompatActivity implements BolsaEstadoAdapter.Actions {
+public class BolsaFragment extends Fragment implements BolsaEstadoAdapter.Actions {
 
-    // UI principales
     private RecyclerView rv;
     private View progress;
 
-    // Períodos (label amigable -> yyyymm)
     private final List<String> periodoLabels = new ArrayList<>();
     private final Map<String, String> labelToYyyymm = new LinkedHashMap<>();
 
-    // Plantas (Nombre -> Key) y listado de nombres
     private final List<String> plantasNombres = new ArrayList<>();
     private final Map<String, String> plantaNombreToKey = new LinkedHashMap<>();
-
-    // Mapa inverso para mostrar nombre en el Adapter (key -> nombre)
     private final Map<String, String> plantaKeyToNombre = new LinkedHashMap<>();
 
-    // Infra
     private BolsaEstadoAdapter adapter;
     private SessionManager session;
 
-    // Llamadas en vuelo
     private Call<List<BolsaConfigDto>> listCall;
     private Call<BolsaConfigDto> upsertCall;
     private Call<Map<String, Object>> estadoCall;
     private Call<List<BolsaAuditoriaDto>> auditCall;
 
-    // Selección actual
     private String selectedPeriodoLabel = "";
     private String selectedPeriodoKey   = "";
     private String selectedPlantaNombre = "";
     private String selectedPlantaKey    = null;
 
+    @Nullable @Override
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_bolsa_estado, container, false);
+    }
+
     @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_bolsa_estado);
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
 
-        // Toolbar
-        MaterialToolbar tb = findViewById(R.id.toolbar);
-        if (tb != null) tb.setNavigationOnClickListener(v -> finish());
+        rv = view.findViewById(R.id.rvBolsas);
+        progress = view.findViewById(R.id.progress);
+        Chip chipPeriodo = view.findViewById(R.id.chipPeriodo);
+        Chip chipPlanta  = view.findViewById(R.id.chipPlanta);
+        View btnBuscar   = view.findViewById(R.id.btnBuscar);
+        TextView tvHintResumen = view.findViewById(R.id.tvHintResumen);
 
-        // Views
-        rv = findViewById(R.id.rvBolsas);
-        progress = findViewById(R.id.progress);
-        Chip chipPeriodo = findViewById(R.id.chipPeriodo);
-        Chip chipPlanta  = findViewById(R.id.chipPlanta);
-        View btnBuscar   = findViewById(R.id.btnBuscar);
-        TextView tvHintResumen = findViewById(R.id.tvHintResumen);
-
-        // Infra
-        session = new SessionManager(getApplicationContext());
-        rv.setLayoutManager(new LinearLayoutManager(this));
+        session = new SessionManager(requireContext());
+        rv.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new BolsaEstadoAdapter(this);
         rv.setAdapter(adapter);
 
-        // Datos base
-        buildPeriodoOptions();      // llena periodoLabels y labelToYyyymm (12 meses)
-        cargarPlantasDesdeSesion(); // llena plantasNombres, plantaNombreToKey y plantaKeyToNombre
-
-        // Inyecta el mapping key->nombre al adapter (para mostrar el nombre de planta)
+        buildPeriodoOptions();
+        cargarPlantasDesdeSesion();
         adapter.setPlantaKeyToNombre(plantaKeyToNombre);
 
-        // Valores por defecto
         selectedPeriodoLabel = periodoLabels.isEmpty() ? "" : periodoLabels.get(0);
         selectedPeriodoKey   = labelToYyyymm.getOrDefault(selectedPeriodoLabel, yyyymmHoy());
 
         if (!plantasNombres.isEmpty()) {
-            selectedPlantaNombre = plantasNombres.get(0); // "Todos" o la primera
-            selectedPlantaKey    = plantaNombreToKey.get(selectedPlantaNombre); // null si "Todos"
+            selectedPlantaNombre = plantasNombres.get(0);
+            selectedPlantaKey    = plantaNombreToKey.get(selectedPlantaNombre);
         }
 
         chipPeriodo.setText(selectedPeriodoLabel.isEmpty() ? "Mes de trabajo" : selectedPeriodoLabel);
         chipPlanta.setText(selectedPlantaNombre.isEmpty() ? "Planta" : selectedPlantaNombre);
         tvHintResumen.setText(makeHintResumen());
 
-        // Listeners
         chipPeriodo.setOnClickListener(v -> showFiltrosBottomSheet(true, false));
         chipPlanta.setOnClickListener(v  -> showFiltrosBottomSheet(false, true));
         btnBuscar.setOnClickListener(v -> buscar());
 
-
-        BottomNavigationView bottom = findViewById(R.id.bottomNav);
-        if (bottom != null) {
-            // Marca esta pestaña como seleccionada (estamos en Solicitudes)
-            bottom.setSelectedItemId(R.id.tab_Bolsa);
-
-            bottom.setOnItemSelectedListener(item -> {
-                int id = item.getItemId();
-
-                if (id == R.id.tab_Bolsa) {
-                    // Ya estás aquí; no navegues de nuevo
-                    return true;
-                }
-
-                if (id == R.id.tab_home) {
-                    // Volver a Inicio (Selección Comercial)
-                    startActivity(new Intent(this, com.farenet.descuentos.ui.selection.comercial.SelectionComercialActivity.class)
-                            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
-                    // Opcional: si quieres cerrar esta Activity para no apilarla
-                    // finish();
-                    return true;
-                }
-
-                if (id == R.id.tab_solicitudes) {
-                    startActivity(new Intent(this, SolicitudesPendientesActivity.class));
-                    return true;
-                }
-
-                return false;
-            });
-        }
-        // Primera carga
         buscar();
     }
 
-    // ---------------- Periodos ----------------
-
-    /** Genera 12 opciones: mes actual y 11 previos, e.g. "Octubre 2025" -> "202510" */
     private void buildPeriodoOptions() {
         periodoLabels.clear();
         labelToYyyymm.clear();
@@ -170,46 +122,39 @@ public class BolsaEstadoActivity extends AppCompatActivity implements BolsaEstad
         SimpleDateFormat label  = new SimpleDateFormat("MMMM yyyy", new Locale("es", "PE"));
 
         for (int i = 0; i < 12; i++) {
-            String key = yyyymm.format(cal.getTime()); // "202510"
-            String lbl = capitalize(label.format(cal.getTime())); // "octubre 2025" -> "Octubre 2025"
+            String key = yyyymm.format(cal.getTime());
+            String lbl = capitalize(label.format(cal.getTime()));
             periodoLabels.add(lbl);
             labelToYyyymm.put(lbl, key);
             cal.add(Calendar.MONTH, -1);
         }
     }
 
-    // ---------------- BottomSheet de filtros ----------------
-
     private void showFiltrosBottomSheet(boolean editPeriodo, boolean editPlanta) {
-        BottomSheetDialog bs = new BottomSheetDialog(this);
-        View view = getLayoutInflater().inflate(R.layout.bottomsheet_filtros_bolsa, null, false);
-        bs.setContentView(view);
+        BottomSheetDialog bs = new BottomSheetDialog(requireContext());
+        View v = getLayoutInflater().inflate(R.layout.bottomsheet_filtros_bolsa, null, false);
+        bs.setContentView(v);
 
-        MaterialAutoCompleteTextView bsPeriodo =
-                view.findViewById(R.id.bs_actPeriodo);
-        MaterialAutoCompleteTextView bsPlanta  =
-                view.findViewById(R.id.bs_actPlanta);
-        MaterialButton btnCancelar = view.findViewById(R.id.bs_btnCancelar);
-        MaterialButton btnAplicar  = view.findViewById(R.id.bs_btnAplicar);
+        MaterialAutoCompleteTextView bsPeriodo = v.findViewById(R.id.bs_actPeriodo);
+        MaterialAutoCompleteTextView bsPlanta  = v.findViewById(R.id.bs_actPlanta);
+        MaterialButton btnCancelar = v.findViewById(R.id.bs_btnCancelar);
+        MaterialButton btnAplicar  = v.findViewById(R.id.bs_btnAplicar);
 
-        // Adapters
         bsPeriodo.setAdapter(new android.widget.ArrayAdapter<>(
-                this, android.R.layout.simple_list_item_1, periodoLabels));
+                requireContext(), android.R.layout.simple_list_item_1, periodoLabels));
         bsPlanta.setAdapter(new android.widget.ArrayAdapter<>(
-                this, android.R.layout.simple_list_item_1, plantasNombres));
+                requireContext(), android.R.layout.simple_list_item_1, plantasNombres));
 
-        // Preselección
         if (!TextUtils.isEmpty(selectedPeriodoLabel)) bsPeriodo.setText(selectedPeriodoLabel, false);
         if (!TextUtils.isEmpty(selectedPlantaNombre)) bsPlanta.setText(selectedPlantaNombre, false);
 
-        // Mostrar solo lo que se edita (opcional)
         View periodoContainer = (View) bsPeriodo.getParent().getParent();
         View plantaContainer  = (View) bsPlanta.getParent().getParent();
         if (periodoContainer != null) periodoContainer.setVisibility(editPeriodo ? View.VISIBLE : View.GONE);
         if (plantaContainer  != null) plantaContainer.setVisibility(editPlanta  ? View.VISIBLE : View.GONE);
 
-        btnCancelar.setOnClickListener(v -> bs.dismiss());
-        btnAplicar.setOnClickListener(v -> {
+        btnCancelar.setOnClickListener(x -> bs.dismiss());
+        btnAplicar.setOnClickListener(x -> {
             String newLblPeriodo = safe(bsPeriodo.getText() != null ? bsPeriodo.getText().toString() : "");
             String newPlantaNom  = safe(bsPlanta.getText()   != null ? bsPlanta.getText().toString()   : "");
 
@@ -219,13 +164,12 @@ public class BolsaEstadoActivity extends AppCompatActivity implements BolsaEstad
             }
             if (editPlanta && !TextUtils.isEmpty(newPlantaNom)) {
                 selectedPlantaNombre = newPlantaNom;
-                selectedPlantaKey    = plantaNombreToKey.get(selectedPlantaNombre); // puede ser null ("Todos")
+                selectedPlantaKey    = plantaNombreToKey.get(selectedPlantaNombre);
             }
 
-            // Refresca chips y hint
-            Chip chipPeriodo = findViewById(R.id.chipPeriodo);
-            Chip chipPlanta  = findViewById(R.id.chipPlanta);
-            TextView tvHintResumen = findViewById(R.id.tvHintResumen);
+            Chip chipPeriodo = requireView().findViewById(R.id.chipPeriodo);
+            Chip chipPlanta  = requireView().findViewById(R.id.chipPlanta);
+            TextView tvHintResumen = requireView().findViewById(R.id.tvHintResumen);
 
             chipPeriodo.setText(TextUtils.isEmpty(selectedPeriodoLabel) ? "Mes de trabajo" : selectedPeriodoLabel);
             chipPlanta.setText(TextUtils.isEmpty(selectedPlantaNombre) ? "Planta" : selectedPlantaNombre);
@@ -252,15 +196,11 @@ public class BolsaEstadoActivity extends AppCompatActivity implements BolsaEstad
         return new SimpleDateFormat("yyyyMM", Locale.getDefault()).format(new java.util.Date());
     }
 
-    // ---------------- Plantas ----------------
-
-    /** Carga plantas desde sesión, agrega "Todos", y ordena a partir del segundo. Además llena key->nombre. */
     private void cargarPlantasDesdeSesion() {
         plantasNombres.clear();
         plantaNombreToKey.clear();
         plantaKeyToNombre.clear();
 
-        // Opción "Todos"
         plantasNombres.add("Todos");
         plantaNombreToKey.put("Todos", null);
 
@@ -272,12 +212,10 @@ public class BolsaEstadoActivity extends AppCompatActivity implements BolsaEstad
                 String key    = safe(a.key);
                 if (TextUtils.isEmpty(nombre) || TextUtils.isEmpty(key)) continue;
 
-                // Para el combo (nombre -> key)
                 if (!plantaNombreToKey.containsKey(nombre)) {
                     plantaNombreToKey.put(nombre, key);
                     plantasNombres.add(nombre);
                 }
-                // Para el adapter (key -> nombre)
                 if (!plantaKeyToNombre.containsKey(key)) {
                     plantaKeyToNombre.put(key, nombre);
                 }
@@ -288,14 +226,12 @@ public class BolsaEstadoActivity extends AppCompatActivity implements BolsaEstad
         }
     }
 
-    // ---------------- Buscar ----------------
-
     private void buscar() {
         String periodo   = safe(selectedPeriodoKey);
-        String plantaKey = selectedPlantaKey; // null = "Todos"
+        String plantaKey = selectedPlantaKey;
 
         if (TextUtils.isEmpty(periodo) || periodo.length() != 6) {
-            Toast.makeText(this, "Período inválido (use el selector)", Toast.LENGTH_LONG).show();
+            Toast.makeText(requireContext(), "Período inválido (use el selector)", Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -306,15 +242,13 @@ public class BolsaEstadoActivity extends AppCompatActivity implements BolsaEstad
             @Override public void onResponse(Call<List<BolsaConfigDto>> call, Response<List<BolsaConfigDto>> rsp) {
                 showLoading(false);
                 if (!rsp.isSuccessful() || rsp.body() == null) {
-                    Toast.makeText(BolsaEstadoActivity.this, "Error al obtener bolsas", Toast.LENGTH_LONG).show();
+                    Toast.makeText(requireContext(), "Error al obtener bolsas", Toast.LENGTH_LONG).show();
                     return;
                 }
-
-                // Defensa: filtra por accesos del usuario usando keys válidas
                 Set<String> allowedKeys = new HashSet<>(plantaKeyToNombre.keySet());
                 List<BolsaConfigDto> soloAcceso = new ArrayList<>();
                 for (BolsaConfigDto b : rsp.body()) {
-                    if (plantaKey == null) { // "Todos": sólo agregamos las que estén en allowedKeys
+                    if (plantaKey == null) {
                         if (allowedKeys.contains(b.planta_key)) soloAcceso.add(b);
                     } else if (TextUtils.equals(plantaKey, b.planta_key)) {
                         soloAcceso.add(b);
@@ -325,12 +259,10 @@ public class BolsaEstadoActivity extends AppCompatActivity implements BolsaEstad
             @Override public void onFailure(Call<List<BolsaConfigDto>> call, Throwable t) {
                 if (call.isCanceled()) return;
                 showLoading(false);
-                Toast.makeText(BolsaEstadoActivity.this, "Error de red", Toast.LENGTH_LONG).show();
+                Toast.makeText(requireContext(), "Error de red", Toast.LENGTH_LONG).show();
             }
         });
     }
-
-    // ---------------- UI helpers ----------------
 
     private void showLoading(boolean show) {
         if (progress != null) progress.setVisibility(show ? View.VISIBLE : View.GONE);
@@ -349,7 +281,7 @@ public class BolsaEstadoActivity extends AppCompatActivity implements BolsaEstad
             @Override public void onResponse(Call<List<BolsaAuditoriaDto>> call, Response<List<BolsaAuditoriaDto>> rsp) {
                 showLoading(false);
                 if (!rsp.isSuccessful() || rsp.body() == null) {
-                    Toast.makeText(BolsaEstadoActivity.this, "No se pudo cargar auditoría", Toast.LENGTH_LONG).show();
+                    Toast.makeText(requireContext(), "No se pudo cargar auditoría", Toast.LENGTH_LONG).show();
                     return;
                 }
                 mostrarDialogoAuditoria(rsp.body());
@@ -357,7 +289,7 @@ public class BolsaEstadoActivity extends AppCompatActivity implements BolsaEstad
             @Override public void onFailure(Call<List<BolsaAuditoriaDto>> call, Throwable t) {
                 if (call.isCanceled()) return;
                 showLoading(false);
-                Toast.makeText(BolsaEstadoActivity.this, "Error de red", Toast.LENGTH_LONG).show();
+                Toast.makeText(requireContext(), "Error de red", Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -377,7 +309,7 @@ public class BolsaEstadoActivity extends AppCompatActivity implements BolsaEstad
                 ));
             }
         }
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(requireContext())
                 .setTitle("Auditoría")
                 .setMessage(sb.toString())
                 .setPositiveButton("OK", null)
@@ -394,7 +326,7 @@ public class BolsaEstadoActivity extends AppCompatActivity implements BolsaEstad
             et.setText(String.format(Locale.getDefault(), "%.2f", item.monto_tope));
         }
 
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(requireContext())
                 .setTitle("Editar tope")
                 .setView(dialog)
                 .setPositiveButton("Guardar", (d, w) -> {
@@ -402,7 +334,7 @@ public class BolsaEstadoActivity extends AppCompatActivity implements BolsaEstad
                     double nuevo;
                     try { nuevo = Double.parseDouble(sVal); }
                     catch (Exception ex) {
-                        Toast.makeText(this, "Monto inválido", Toast.LENGTH_LONG).show();
+                        Toast.makeText(requireContext(), "Monto inválido", Toast.LENGTH_LONG).show();
                         return;
                     }
                     upsertTope(item.planta_key, item.periodo_yyyymm, nuevo, item.estado);
@@ -425,16 +357,16 @@ public class BolsaEstadoActivity extends AppCompatActivity implements BolsaEstad
             @Override public void onResponse(Call<BolsaConfigDto> call, Response<BolsaConfigDto> rsp) {
                 showLoading(false);
                 if (!rsp.isSuccessful() || rsp.body() == null) {
-                    Toast.makeText(BolsaEstadoActivity.this, "No se pudo guardar tope", Toast.LENGTH_LONG).show();
+                    Toast.makeText(requireContext(), "No se pudo guardar tope", Toast.LENGTH_LONG).show();
                     return;
                 }
-                Toast.makeText(BolsaEstadoActivity.this, "Actualizado", Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), "Actualizado", Toast.LENGTH_SHORT).show();
                 buscar();
             }
             @Override public void onFailure(Call<BolsaConfigDto> call, Throwable t) {
                 if (call.isCanceled()) return;
                 showLoading(false);
-                Toast.makeText(BolsaEstadoActivity.this, "Error de red", Toast.LENGTH_LONG).show();
+                Toast.makeText(requireContext(), "Error de red", Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -443,7 +375,7 @@ public class BolsaEstadoActivity extends AppCompatActivity implements BolsaEstad
     public void onToggleEstado(BolsaConfigDto item) {
         if (item == null) return;
         final String nuevo = "CERRADO".equalsIgnoreCase(item.estado) ? "ACTIVO" : "CERRADO";
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(requireContext())
                 .setTitle(("CERRADO".equalsIgnoreCase(item.estado) ? "Abrir" : "Cerrar") + " período")
                 .setMessage("¿Seguro que deseas cambiar a: " + nuevo + "?")
                 .setPositiveButton("Sí", (d, w) -> setEstado(item.planta_key, item.periodo_yyyymm, nuevo))
@@ -464,23 +396,23 @@ public class BolsaEstadoActivity extends AppCompatActivity implements BolsaEstad
             @Override public void onResponse(Call<Map<String, Object>> call, Response<Map<String, Object>> rsp) {
                 showLoading(false);
                 if (!rsp.isSuccessful() || rsp.body() == null) {
-                    Toast.makeText(BolsaEstadoActivity.this, "No se pudo actualizar estado", Toast.LENGTH_LONG).show();
+                    Toast.makeText(requireContext(), "No se pudo actualizar estado", Toast.LENGTH_LONG).show();
                     return;
                 }
-                Toast.makeText(BolsaEstadoActivity.this, "Estado actualizado", Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), "Estado actualizado", Toast.LENGTH_SHORT).show();
                 buscar();
             }
             @Override public void onFailure(Call<Map<String, Object>> call, Throwable t) {
                 if (call.isCanceled()) return;
                 showLoading(false);
-                Toast.makeText(BolsaEstadoActivity.this, "Error de red", Toast.LENGTH_LONG).show();
+                Toast.makeText(requireContext(), "Error de red", Toast.LENGTH_LONG).show();
             }
         });
     }
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
+    public void onDestroyView() {
+        super.onDestroyView();
         if (listCall != null) listCall.cancel();
         if (upsertCall != null) upsertCall.cancel();
         if (estadoCall != null) estadoCall.cancel();
