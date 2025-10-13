@@ -4,7 +4,7 @@
 
     <item
         android:id="@+id/nav_logout"
-        android:title="@string/cerrarsesion"
-        android:icon="@drawable/ic_logout_24"
-        app:showAsAction="ifRoom"/>
+        android:title="Cerrar sesión"
+        android:icon="@drawable/ic_cerrar"
+        app:showAsAction="ifRoom|withText"/>
 </menu>

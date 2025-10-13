@@ -22,7 +22,8 @@
             android:layout_height="?attr/actionBarSize"
             app:logo="@drawable/ic_logo_farenet"
             app:logoDescription="@string/app_name"
-            app:title="" />
+            app:title=""
+            app:menu="@menu/menu_home_comercial"/>
     </com.google.android.material.appbar.AppBarLayout>
 
     <!-- Contenido swipe entre tabs -->
