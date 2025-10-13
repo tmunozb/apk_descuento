@@ -72,6 +72,9 @@
     <string name="previous">Previous</string>
     <string name="desc_kpi_pend_aut">Cantidad de solicitudes pendientes de autorización</string>
     <string name="desc_kpi_aprobadas">Cantidad de solicitudes aprobadas</string>
+    <string name="operaciones_title">Operaciones</string>
+    <string name="tab_pendientes">Pendientes</string>
+    <string name="tab_bolsas">Bolsas</string>
 
     <string name="lorem_ipsum">
         Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam in scelerisque sem. Mauris

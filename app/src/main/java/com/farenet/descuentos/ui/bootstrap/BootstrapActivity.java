@@ -28,6 +28,7 @@ import com.farenet.descuentos.ui.auth.LoginActivity;
 // ⬇️ Asegúrate que esta ruta es la correcta de tu host Activity (ViewPager2)
 import com.farenet.descuentos.ui.comercialhost.ComercialHostActivity;
 
+import com.farenet.descuentos.ui.operacioneshost.OperacionesHostActivity;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
 
@@ -294,10 +295,9 @@ public class BootstrapActivity extends AppCompatActivity {
         if ("sistemas".equalsIgnoreCase(perfil)) {
             next = com.farenet.descuentos.ui.selection.sistemas.SelectionSistemasActivity.class;
         } else if ("operaciones".equalsIgnoreCase(perfil)) {
-            next = com.farenet.descuentos.ui.selection.operaciones.SelectionOperacionesActivity.class;
+            next = OperacionesHostActivity.class;
         } else if ("comercial".equalsIgnoreCase(perfil)) {
-            // ⬅️ ANTES: HomeFragment.class (crash)
-            // AHORA: host Activity con ViewPager2
+
             next = ComercialHostActivity.class;
         } else if ("asistente_servicio".equalsIgnoreCase(perfil)) {
             next = com.farenet.descuentos.ui.selection.asistente.SelectionAsistenteActivity.class;

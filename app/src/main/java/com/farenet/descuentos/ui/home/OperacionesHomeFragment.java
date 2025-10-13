@@ -11,11 +11,10 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toolbar;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.text.HtmlCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -28,10 +27,12 @@ import com.farenet.descuentos.Core.Network.NewApiClient;
 import com.farenet.descuentos.Core.Storage.SessionManager;
 import com.farenet.descuentos.R;
 import com.farenet.descuentos.ui.auth.LoginActivity;
+import com.farenet.descuentos.ui.operacioneshost.OperacionesHostActivity;
 import com.farenet.descuentos.ui.solicitudes.comunes.adapter.SolicitudSimpleAdapter;
 import com.farenet.descuentos.ui.solicitudes.model.SolicitudUI;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -52,14 +53,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-import com.google.android.material.appbar.MaterialToolbar;
-import androidx.appcompat.app.AppCompatActivity;
-
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import androidx.core.text.HtmlCompat;
-
-
-public class HomeFragment extends Fragment {
+public class OperacionesHomeFragment extends Fragment {
 
     private static final boolean ONLY_THIS_MONTH_FOR_APPROVED = false;
 
@@ -84,13 +78,9 @@ public class HomeFragment extends Fragment {
     private Call<List<SolicitudDto>> callUltimas;
     private Call<List<BolsaConfigDto>> callBolsas;
 
-    // Resumen Descuentos (mes)
-    private TextView tvDescCountMes, tvDescMontoMes, tvDescPromMes;
-    private Call<List<SolicitudDto>> callDescMes;
-
     private String getUser() {
         String u = session != null ? session.getUsername() : null;
-        if (u != null && !u.trim().isEmpty()) return u.trim();
+        if (!TextUtils.isEmpty(u)) return u.trim();
         return "tmunoz"; // fallback
     }
 
@@ -102,7 +92,7 @@ public class HomeFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_home_comercial, container, false);
+        return inflater.inflate(R.layout.fragment_home_operaciones, container, false);
     }
 
     @Override
@@ -110,22 +100,14 @@ public class HomeFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         session = new SessionManager(requireContext());
 
-        // Usa la toolbar de la Activity
+        // Toolbar (logout)
         MaterialToolbar toolbar = requireActivity().findViewById(R.id.toolbar);
         if (toolbar != null) {
-            // Título para esta pantalla (opcional)
             toolbar.setTitle(getString(R.string.app_name));
-
-            // Si la activity deja el menú por XML, no inflamos nada aquí para evitar duplicados.
-            // Solo manejamos el click:
             toolbar.setOnMenuItemClickListener(item -> {
                 if (item.getItemId() == R.id.nav_logout) {
                     session.clear();
-                    // Si también limpias caches propios:
-                    // DashboardCache.clear(); BolsaCache.clear(); ...
-
-                    // Vuelve al Login
-                    Intent i = new Intent(requireContext(), com.farenet.descuentos.ui.auth.LoginActivity.class);
+                    Intent i = new Intent(requireContext(), LoginActivity.class);
                     i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                     startActivity(i);
                     requireActivity().finish();
@@ -135,34 +117,23 @@ public class HomeFragment extends Fragment {
             });
         }
 
-
+        // Saludo
         TextView tvWelcome = view.findViewById(R.id.tvWelcome);
         if (tvWelcome != null) {
             String nombre = session.getNombreVisible();
-            tvWelcome.setText("¡Hola, " + (nombre == null ? "Comercial" : nombre) + "!");
+            tvWelcome.setText("¡Hola, " + (nombre == null ? "Operaciones" : nombre) + "!");
         }
 
         // KPI
         tvKpiPendientes = view.findViewById(R.id.tvKpiPendientes);
         tvKpiAprobadas  = view.findViewById(R.id.tvKpiAprobadas);
 
-        // Resumen de bolsa
+        // Resumen de bolsa (Tope / Usado / Saldo)
         tvTopeTotal  = view.findViewById(R.id.tvTopeTotal);
         tvUsadoTotal = view.findViewById(R.id.tvUsadoTotal);
         tvSaldoTotal = view.findViewById(R.id.tvSaldoTotal);
 
-        // Resumen Descuentos (mes actual)
-        tvDescCountMes = view.findViewById(R.id.tvDescCountMes);
-        tvDescMontoMes = view.findViewById(R.id.tvDescMontoMes);
-        tvDescPromMes  = view.findViewById(R.id.tvDescPromMes);
-
-        // Tiles (solo UI)
-        MaterialCardView tileNueva = view.findViewById(R.id.tileBolsaEstado);
-        if (tileNueva != null) {
-            ((TextView) tileNueva.findViewById(R.id.tvTitle)).setText("Bolsa");
-            ((TextView) tileNueva.findViewById(R.id.tvSubtitle)).setText("Plantas");
-            ((ImageView) tileNueva.findViewById(R.id.ivIcon)).setImageResource(R.drawable.ic_add_circle_24);
-        }
+        // Tile “Pendientes”
         MaterialCardView tilePend = view.findViewById(R.id.tilePendientesAut);
         if (tilePend != null) {
             ((TextView) tilePend.findViewById(R.id.tvTitle)).setText("Pendientes");
@@ -199,8 +170,7 @@ public class HomeFragment extends Fragment {
         // Cargar datos al abrir
         loadKpis();
         loadUltimas(null);
-        cargarResumenBolsaGeneral();
-        cargarResumenDescuentosMes();
+        cargarResumenBolsaGeneral(); // ⬅️ resumen de bolsa visible
     }
 
     @Override
@@ -208,8 +178,7 @@ public class HomeFragment extends Fragment {
         super.onResume();
         loadKpis();
         loadUltimas(trimOrEmpty(etBuscarUltimos == null ? null : etBuscarUltimos.getText()));
-        cargarResumenBolsaGeneral();
-        cargarResumenDescuentosMes();
+        cargarResumenBolsaGeneral(); // ⬅️ refresca resumen al volver
     }
 
     private void applyPreloadedDashboard() {
@@ -226,13 +195,16 @@ public class HomeFragment extends Fragment {
         if (cur == null || !next.contentEquals(cur)) tv.setText(next);
     }
 
-    /** KPIs **/
+    /** KPIs (sin acciones de bolsa) **/
     private void loadKpis() {
-        setKpiLoading();
+        // Pinta “…” siempre para evitar que se vea el dato viejo del caché
+        if (tvKpiPendientes != null) tvKpiPendientes.setText("…");
+        if (tvKpiAprobadas  != null) tvKpiAprobadas.setText("…");
 
+        // --- Pendientes (OPERACIONES usa "PENDIENTE") ---
         if (callPendAut != null) callPendAut.cancel();
         callPendAut = NewApiClient.get().listarSolicitudes(
-                getUser(), "PENDIENTE_AUT", null, null, 500, 0, "-creado_en"
+                getUser(), "PENDIENTE", null, null, 500, 0, "-creado_en"
         );
         callPendAut.enqueue(new Callback<List<SolicitudDto>>() {
             @Override public void onResponse(Call<List<SolicitudDto>> call, Response<List<SolicitudDto>> rsp) {
@@ -242,61 +214,31 @@ public class HomeFragment extends Fragment {
                 maybePromptPendientes(n);
             }
             @Override public void onFailure(Call<List<SolicitudDto>> call, Throwable t) {
-                if (DashboardCache.getKpiPendAut() < 0 && tvKpiPendientes != null) tvKpiPendientes.setText("–");
+                DashboardCache.setKpiPendAut(0);
+                updateTextIfChanged(tvKpiPendientes, 0);
             }
         });
 
+        // --- “Aprobadas” (aquí realmente: INGRESADAS de tipo BOLSA) ---
         if (callAprob != null) callAprob.cancel();
         callAprob = NewApiClient.get().listarSolicitudes(
-                getUser(), "INGRESADA", "DESCUENTO", null, 500, 0, "-creado_en"
+                getUser(), "INGRESADA", "BOLSA", null, 500, 0, "-creado_en"
         );
         callAprob.enqueue(new Callback<List<SolicitudDto>>() {
             @Override public void onResponse(Call<List<SolicitudDto>> call, Response<List<SolicitudDto>> rsp) {
                 int n = 0;
                 if (rsp.isSuccessful() && rsp.body() != null) {
-                    n = ONLY_THIS_MONTH_FOR_APPROVED ? filterThisMonthCount(rsp.body()) : rsp.body().size();
+                    // ✅ Revalidamos en cliente por si el API no filtra exactamente
+                    n = countIngresadasBolsa(rsp.body(), ONLY_THIS_MONTH_FOR_APPROVED);
                 }
                 DashboardCache.setKpiAprobadas(n);
                 updateTextIfChanged(tvKpiAprobadas, n);
             }
             @Override public void onFailure(Call<List<SolicitudDto>> call, Throwable t) {
-                if (DashboardCache.getKpiAprobadas() < 0 && tvKpiAprobadas != null) tvKpiAprobadas.setText("–");
+                DashboardCache.setKpiAprobadas(0);
+                updateTextIfChanged(tvKpiAprobadas, 0);
             }
         });
-    }
-
-    private void maybePromptPendientes(int n) {
-        if (n <= 0) return;
-        if (!isAdded() || !isResumed()) return;
-
-        if (promptShownThisSession && lastPromptForCount == n) return;
-        promptShownThisSession = true;
-        lastPromptForCount = n;
-
-        // Título y mensaje dinámicos (singular/plural) + numerito en negrita
-        final boolean uno = (n == 1);
-        String title = (uno ? "⚠️  Tienes 1 descuento por aprobar"
-                : "⚠️  Tienes " + n + " descuentos por aprobar");
-
-        String msgRaw = (uno
-                ? "Hay <b>1</b> solicitud pendiente de autorización. ¿Deseas aprobarla ahora?"
-                : "Hay <b>" + n + "</b> solicitudes pendientes de autorización. ¿Deseas revisarlas ahora?");
-
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                .setIcon(R.drawable.ic_notifications) // usa tu ícono de alerta (o android.R.drawable.ic_dialog_alert)
-                .setTitle(title)
-                .setMessage(HtmlCompat.fromHtml(msgRaw, HtmlCompat.FROM_HTML_MODE_LEGACY))
-                .setPositiveButton(uno ? "Sí, aprobar ahora" : "Sí, ir ahora", (d, w) -> {
-                    if (requireActivity() instanceof com.farenet.descuentos.ui.comercialhost.ComercialHostActivity) {
-                        ((com.farenet.descuentos.ui.comercialhost.ComercialHostActivity) requireActivity())
-                                .goToPendingApprovals();
-                    } else if (requireActivity() instanceof com.farenet.descuentos.ui.operacioneshost.OperacionesHostActivity) {
-                        ((com.farenet.descuentos.ui.operacioneshost.OperacionesHostActivity) requireActivity())
-                                .goToPendingApprovals();
-                    }
-                })
-                .setNegativeButton("No, luego", (d, w) -> { /* cerrar */ })
-                .show();
     }
 
 
@@ -325,6 +267,42 @@ public class HomeFragment extends Fragment {
         }
         return count;
     }
+
+    private int countIngresadasBolsa(List<SolicitudDto> list, boolean onlyThisMonth) {
+        if (list == null || list.isEmpty()) return 0;
+
+        int count = 0;
+        for (SolicitudDto d : list) {
+            if (d == null) continue;
+
+            String est  = d.estado != null ? d.estado.trim().toUpperCase(Locale.ROOT) : "";
+            String tipo = d.tipo   != null ? d.tipo.trim().toUpperCase(Locale.ROOT)   : "";
+
+            if (!"INGRESADA".equals(est)) continue;
+            if (!"BOLSA".equals(tipo))     continue;
+
+            if (onlyThisMonth) {
+                String date = !TextUtils.isEmpty(d.aprobadaEn) ? d.aprobadaEn : d.creadoEn;
+                if (!isFromThisMonth(date)) continue;
+            }
+            count++;
+        }
+        return count;
+    }
+
+    private boolean isFromThisMonth(String isoDate) {
+        if (TextUtils.isEmpty(isoDate)) return false;
+        try {
+            OffsetDateTime odt = OffsetDateTime.parse(isoDate);
+            LocalDate item = odt.toLocalDate();
+            LocalDate now  = LocalDate.now(ZoneOffset.systemDefault());
+            return item.getYear() == now.getYear() && item.getMonthValue() == now.getMonthValue();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+
 
     /** Últimas **/
     private void loadUltimas(String q) {
@@ -366,7 +344,37 @@ public class HomeFragment extends Fragment {
         if (ultimosAdapter != null) ultimosAdapter.notifyDataSetChanged();
     }
 
-    // ===== Resumen de bolsa (general) =====
+    /** Prompt para pendientes */
+    private void maybePromptPendientes(int n) {
+        if (n <= 0) return;
+        if (!isAdded() || !isResumed()) return;
+
+        if (promptShownThisSession && lastPromptForCount == n) return;
+        promptShownThisSession = true;
+        lastPromptForCount = n;
+
+        final boolean uno = (n == 1);
+        String title = (uno ? "⚠️  Tienes 1 descuento por aprobar"
+                : "⚠️  Tienes " + n + " descuentos por aprobar");
+
+        String msgRaw = (uno
+                ? "Hay <b>1</b> solicitud pendiente de autorización. ¿Deseas aprobarla ahora?"
+                : "Hay <b>" + n + "</b> solicitudes pendientes de autorización. ¿Deseas revisarlas ahora?");
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setIcon(R.drawable.ic_notifications)
+                .setTitle(title)
+                .setMessage(HtmlCompat.fromHtml(msgRaw, HtmlCompat.FROM_HTML_MODE_LEGACY))
+                .setPositiveButton(uno ? "Sí, aprobar ahora" : "Sí, ir ahora", (d, w) -> {
+                    if (requireActivity() instanceof OperacionesHostActivity) {
+                        ((OperacionesHostActivity) requireActivity()).goToPendingApprovals();
+                    }
+                })
+                .setNegativeButton("No, luego", (d, w) -> { /* cerrar */ })
+                .show();
+    }
+
+    // ===== Resumen de bolsa (solo lectura) =====
     private void cargarResumenBolsaGeneral() {
         if (tvTopeTotal == null || tvUsadoTotal == null || tvSaldoTotal == null) return;
 
@@ -409,57 +417,6 @@ public class HomeFragment extends Fragment {
         });
     }
 
-    // ===== Resumen DESCUENTOS (mes actual) =====
-    private void cargarResumenDescuentosMes() {
-        if (callDescMes != null) callDescMes.cancel();
-
-        // Trae DESCUENTO y filtramos localmente por estado y por mes (aprobadaEn si existe; si no, creadoEn)
-        callDescMes = NewApiClient.get().listarSolicitudes(
-                getUser(),
-                null,            // estado -> filtramos local
-                "DESCUENTO",     // solo descuentos
-                null,            // q
-                1000,            // limit
-                0,               // offset
-                "-creado_en"     // orden
-        );
-
-        callDescMes.enqueue(new Callback<List<SolicitudDto>>() {
-            @Override public void onResponse(Call<List<SolicitudDto>> call, Response<List<SolicitudDto>> rsp) {
-                int count = 0;
-                double total = 0d;
-
-                if (rsp.isSuccessful() && rsp.body() != null) {
-                    for (SolicitudDto d : rsp.body()) {
-                        if (d == null) continue;
-
-                        // Estados válidos
-                        String est = d.estado != null ? d.estado.trim().toUpperCase(Locale.ROOT) : "";
-                        if (!("INGRESADA".equals(est) || "PROCESADA".equals(est))) continue;
-
-                        // Mes actual (usa aprobadaEn si existe; si no, creadoEn)
-                        if (!isFromThisMonthForResumen(d)) continue;
-
-                        total += readMonto(d);
-                        count++;
-                    }
-                }
-
-                double prom = count > 0 ? (total / count) : 0d;
-                setInt(tvDescCountMes, count);
-                setMoney(tvDescMontoMes, total);
-                setMoney(tvDescPromMes,  prom);
-            }
-
-            @Override public void onFailure(Call<List<SolicitudDto>> call, Throwable t) {
-                setInt(tvDescCountMes, 0);
-                setMoney(tvDescMontoMes, 0d);
-                setMoney(tvDescPromMes,  0d);
-            }
-        });
-    }
-
-    // ===== Helpers =====
     private Set<String> allowedPlantas() {
         Set<String> keys = new HashSet<>();
         List<AccesoPlantaDto> accesos = session.getAccesos();
@@ -476,25 +433,6 @@ public class HomeFragment extends Fragment {
                 .format(Calendar.getInstance().getTime());
     }
 
-    private boolean isFromThisMonth(String isoDate) {
-        if (TextUtils.isEmpty(isoDate)) return false;
-        try {
-            OffsetDateTime odt = OffsetDateTime.parse(isoDate);
-            LocalDate item = odt.toLocalDate();
-            LocalDate now  = LocalDate.now(ZoneOffset.systemDefault());
-            return item.getYear() == now.getYear() && item.getMonthValue() == now.getMonthValue();
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    // Usa aprobadaEn si existe; si no, creadoEn
-    private boolean isFromThisMonthForResumen(SolicitudDto d) {
-        String candidate = (d != null && !TextUtils.isEmpty(d.aprobadaEn)) ? d.aprobadaEn : (d != null ? d.creadoEn : null);
-        return isFromThisMonth(candidate);
-    }
-
-    // Lee “usado” con tolerancia de nombre de campo
     private double readUsado(BolsaConfigDto b) {
         try { if (b.monto_usado != null) return b.monto_usado; } catch (Throwable ignore) {}
         try {
@@ -514,7 +452,6 @@ public class HomeFragment extends Fragment {
         return 0d;
     }
 
-    // Lee “disponible/saldo” si viene desde backend
     @Nullable
     private Double readDisponible(BolsaConfigDto b) {
         try {
@@ -534,74 +471,6 @@ public class HomeFragment extends Fragment {
         return null;
     }
 
-    // === MONTO de la solicitud (acepta Number o String) ===
-    private double readMonto(SolicitudDto d) {
-        if (d == null) return 0d;
-
-        // Getters comunes (camelCase y snake_case)
-        Double viaGetter = callNumericGetter(d, "getMonto");
-        if (viaGetter != null) return viaGetter;
-
-        viaGetter = callNumericGetter(d, "getMontoAprobado");
-        if (viaGetter != null) return viaGetter;
-        viaGetter = callNumericGetter(d, "getMonto_aprobado");
-        if (viaGetter != null) return viaGetter;
-
-        viaGetter = callNumericGetter(d, "getMontoSolicitado");
-        if (viaGetter != null) return viaGetter;
-        viaGetter = callNumericGetter(d, "getMonto_solicitado");
-        if (viaGetter != null) return viaGetter;
-
-        viaGetter = callNumericGetter(d, "getImporte");
-        if (viaGetter != null) return viaGetter;
-
-        viaGetter = callNumericGetter(d, "getTotal");
-        if (viaGetter != null) return viaGetter;
-
-        // Campos (camelCase / snake_case)
-        Double viaField = readNumericField(d, "monto"); // API actual lo trae como String "60.00"
-        if (viaField != null) return viaField;
-
-        viaField = readNumericField(d, "montoAprobado");
-        if (viaField != null) return viaField;
-        viaField = readNumericField(d, "monto_aprobado");
-        if (viaField != null) return viaField;
-
-        viaField = readNumericField(d, "montoSolicitado");
-        if (viaField != null) return viaField;
-        viaField = readNumericField(d, "monto_solicitado");
-        if (viaField != null) return viaField;
-
-        viaField = readNumericField(d, "importe");
-        if (viaField != null) return viaField;
-
-        viaField = readNumericField(d, "total");
-        if (viaField != null) return viaField;
-
-        return 0d;
-    }
-
-    @Nullable
-    private Double callNumericGetter(Object obj, String getterName) {
-        try {
-            Method m = obj.getClass().getMethod(getterName);
-            Object v = m.invoke(obj);
-            return asDouble(v);
-        } catch (Throwable ignore) {}
-        return null;
-    }
-
-    @Nullable
-    private Double readNumericField(Object obj, String fieldName) {
-        try {
-            Field f = obj.getClass().getDeclaredField(fieldName);
-            f.setAccessible(true);
-            Object v = f.get(obj);
-            return asDouble(v);
-        } catch (Throwable ignore) {}
-        return null;
-    }
-
     @Nullable
     private Double asDouble(Object v) {
         if (v == null) return null;
@@ -609,7 +478,6 @@ public class HomeFragment extends Fragment {
         if (v instanceof CharSequence) {
             String s = v.toString().trim();
             if (s.isEmpty()) return null;
-            // tolera comas de miles
             s = s.replace(",", "");
             try { return Double.parseDouble(s); } catch (NumberFormatException e) { return null; }
         }
@@ -624,11 +492,7 @@ public class HomeFragment extends Fragment {
         tv.setText("S/ " + nf.format(amount));
     }
 
-    private void setInt(TextView tv, int val) {
-        if (tv == null) return;
-        tv.setText(String.valueOf(val));
-    }
-
+    // ===== Helpers menores =====
     private static String nz(String s) { return s == null ? "" : s; }
     private static String trimOrEmpty(CharSequence cs) { return cs == null ? "" : cs.toString().trim(); }
     private static String capFirst(String s) {
@@ -643,6 +507,5 @@ public class HomeFragment extends Fragment {
         if (callAprob   != null) callAprob.cancel();
         if (callUltimas != null) callUltimas.cancel();
         if (callBolsas  != null) callBolsas.cancel();
-        if (callDescMes != null) callDescMes.cancel();
     }
 }
