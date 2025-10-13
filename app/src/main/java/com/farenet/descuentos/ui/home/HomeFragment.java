@@ -1,7 +1,6 @@
 package com.farenet.descuentos.ui.home;
 
 import android.content.Intent;
-import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -11,11 +10,10 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toolbar;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.text.HtmlCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -32,6 +30,7 @@ import com.farenet.descuentos.ui.solicitudes.comunes.adapter.SolicitudSimpleAdap
 import com.farenet.descuentos.ui.solicitudes.model.SolicitudUI;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -40,7 +39,8 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeParseException;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashSet;
@@ -51,13 +51,6 @@ import java.util.Set;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-
-import com.google.android.material.appbar.MaterialToolbar;
-import androidx.appcompat.app.AppCompatActivity;
-
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import androidx.core.text.HtmlCompat;
-
 
 public class HomeFragment extends Fragment {
 
@@ -101,31 +94,23 @@ public class HomeFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
+                             @Nullable android.os.Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_home_comercial, container, false);
     }
 
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+    public void onViewCreated(@NonNull View view, @Nullable android.os.Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         session = new SessionManager(requireContext());
 
-        // Usa la toolbar de la Activity
+        // Toolbar (logout)
         MaterialToolbar toolbar = requireActivity().findViewById(R.id.toolbar);
         if (toolbar != null) {
-            // Título para esta pantalla (opcional)
             toolbar.setTitle(getString(R.string.app_name));
-
-            // Si la activity deja el menú por XML, no inflamos nada aquí para evitar duplicados.
-            // Solo manejamos el click:
             toolbar.setOnMenuItemClickListener(item -> {
                 if (item.getItemId() == R.id.nav_logout) {
                     session.clear();
-                    // Si también limpias caches propios:
-                    // DashboardCache.clear(); BolsaCache.clear(); ...
-
-                    // Vuelve al Login
-                    Intent i = new Intent(requireContext(), com.farenet.descuentos.ui.auth.LoginActivity.class);
+                    Intent i = new Intent(requireContext(), LoginActivity.class);
                     i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                     startActivity(i);
                     requireActivity().finish();
@@ -135,7 +120,7 @@ public class HomeFragment extends Fragment {
             });
         }
 
-
+        // Saludo
         TextView tvWelcome = view.findViewById(R.id.tvWelcome);
         if (tvWelcome != null) {
             String nombre = session.getNombreVisible();
@@ -230,6 +215,7 @@ public class HomeFragment extends Fragment {
     private void loadKpis() {
         setKpiLoading();
 
+        // Pendientes de autorización
         if (callPendAut != null) callPendAut.cancel();
         callPendAut = NewApiClient.get().listarSolicitudes(
                 getUser(), "PENDIENTE_AUT", null, null, 500, 0, "-creado_en"
@@ -246,15 +232,33 @@ public class HomeFragment extends Fragment {
             }
         });
 
+        // "Aprobadas" (Comercial) = INGRESADAS de tipo DESCUENTO
         if (callAprob != null) callAprob.cancel();
         callAprob = NewApiClient.get().listarSolicitudes(
-                getUser(), "INGRESADA", "DESCUENTO", null, 500, 0, "-creado_en"
+                getUser(),
+                null,                 // estado filtrado localmente
+                "DESCUENTO",          // tipo
+                null,                 // q
+                500,                  // limit
+                0,                    // offset
+                "-creado_en"          // orden
         );
         callAprob.enqueue(new Callback<List<SolicitudDto>>() {
             @Override public void onResponse(Call<List<SolicitudDto>> call, Response<List<SolicitudDto>> rsp) {
                 int n = 0;
                 if (rsp.isSuccessful() && rsp.body() != null) {
-                    n = ONLY_THIS_MONTH_FOR_APPROVED ? filterThisMonthCount(rsp.body()) : rsp.body().size();
+                    for (SolicitudDto d : rsp.body()) {
+                        if (d == null) continue;
+                        String est = (d.estado == null ? "" : d.estado.trim().toUpperCase(Locale.ROOT));
+                        boolean esIngresada = est.startsWith("INGRES"); // INGRESADA / INGRESADO
+                        if (!esIngresada) continue;
+
+                        if (ONLY_THIS_MONTH_FOR_APPROVED) {
+                            String date = (d.creadoEn == null ? "" : d.creadoEn.trim());
+                            if (!isFromThisMonth(date)) continue;
+                        }
+                        n++;
+                    }
                 }
                 DashboardCache.setKpiAprobadas(n);
                 updateTextIfChanged(tvKpiAprobadas, n);
@@ -273,7 +277,6 @@ public class HomeFragment extends Fragment {
         promptShownThisSession = true;
         lastPromptForCount = n;
 
-        // Título y mensaje dinámicos (singular/plural) + numerito en negrita
         final boolean uno = (n == 1);
         String title = (uno ? "⚠️  Tienes 1 descuento por aprobar"
                 : "⚠️  Tienes " + n + " descuentos por aprobar");
@@ -282,8 +285,8 @@ public class HomeFragment extends Fragment {
                 ? "Hay <b>1</b> solicitud pendiente de autorización. ¿Deseas aprobarla ahora?"
                 : "Hay <b>" + n + "</b> solicitudes pendientes de autorización. ¿Deseas revisarlas ahora?");
 
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                .setIcon(R.drawable.ic_notifications) // usa tu ícono de alerta (o android.R.drawable.ic_dialog_alert)
+        new MaterialAlertDialogBuilder(requireContext())
+                .setIcon(R.drawable.ic_notifications)
                 .setTitle(title)
                 .setMessage(HtmlCompat.fromHtml(msgRaw, HtmlCompat.FROM_HTML_MODE_LEGACY))
                 .setPositiveButton(uno ? "Sí, aprobar ahora" : "Sí, ir ahora", (d, w) -> {
@@ -299,13 +302,41 @@ public class HomeFragment extends Fragment {
                 .show();
     }
 
-
-
     private void setKpiLoading() {
         int pend = DashboardCache.getKpiPendAut();
         int apr  = DashboardCache.getKpiAprobadas();
         if (tvKpiPendientes != null && pend < 0) tvKpiPendientes.setText("…");
         if (tvKpiAprobadas  != null && apr  < 0) tvKpiAprobadas.setText("…");
+    }
+
+    /** Parser flexible de fechas y chequeo de mes **/
+    private @Nullable LocalDate parseToLocalDateFlexible(String s) {
+        if (TextUtils.isEmpty(s)) return null;
+
+        // 1) ISO con offset (Z o +hh:mm)
+        try { return OffsetDateTime.parse(s).toLocalDate(); } catch (Throwable ignore) {}
+
+        // 2) ISO local sin offset: 2025-10-10T09:33:29.374263
+        try { return java.time.LocalDateTime.parse(s).toLocalDate(); } catch (Throwable ignore) {}
+
+        // 3) "yyyy-MM-dd HH:mm:ss[.n]"
+        try {
+            java.time.format.DateTimeFormatter f = new DateTimeFormatterBuilder()
+                    .appendPattern("yyyy-MM-dd HH:mm:ss")
+                    .optionalStart().appendFraction(ChronoField.NANO_OF_SECOND, 1, 9, true).optionalEnd()
+                    .toFormatter();
+            java.time.LocalDateTime ldt = java.time.LocalDateTime.parse(s, f);
+            return ldt.toLocalDate();
+        } catch (Throwable ignore) {}
+
+        return null;
+    }
+
+    private boolean isFromThisMonth(String s) {
+        LocalDate d = parseToLocalDateFlexible(s);
+        if (d == null) return false;
+        LocalDate now = LocalDate.now(java.time.ZoneId.systemDefault());
+        return d.getYear() == now.getYear() && d.getMonthValue() == now.getMonthValue();
     }
 
     private int filterThisMonthCount(List<SolicitudDto> list) {
@@ -317,11 +348,11 @@ public class HomeFragment extends Fragment {
             String s = d.creadoEn;
             if (TextUtils.isEmpty(s)) continue;
             try {
-                OffsetDateTime odt = OffsetDateTime.parse(s);
-                LocalDate ld = odt.toLocalDate();
+                LocalDate ld = parseToLocalDateFlexible(s);
+                if (ld == null) continue;
                 int ymItem = ld.getYear() * 100 + ld.getMonthValue();
                 if (ymItem == ym) count++;
-            } catch (DateTimeParseException ignore) {}
+            } catch (Exception ignore) {}
         }
         return count;
     }
@@ -413,15 +444,15 @@ public class HomeFragment extends Fragment {
     private void cargarResumenDescuentosMes() {
         if (callDescMes != null) callDescMes.cancel();
 
-        // Trae DESCUENTO y filtramos localmente por estado y por mes (aprobadaEn si existe; si no, creadoEn)
+        // Traemos todo y filtramos local (tipo/estado/mes)
         callDescMes = NewApiClient.get().listarSolicitudes(
                 getUser(),
-                null,            // estado -> filtramos local
-                "DESCUENTO",     // solo descuentos
-                null,            // q
-                1000,            // limit
-                0,               // offset
-                "-creado_en"     // orden
+                null,          // estado (local)
+                null,          // tipo (local)
+                null,          // q
+                1000,          // limit
+                0,             // offset
+                "-creado_en"   // orden
         );
 
         callDescMes.enqueue(new Callback<List<SolicitudDto>>() {
@@ -433,12 +464,17 @@ public class HomeFragment extends Fragment {
                     for (SolicitudDto d : rsp.body()) {
                         if (d == null) continue;
 
-                        // Estados válidos
-                        String est = d.estado != null ? d.estado.trim().toUpperCase(Locale.ROOT) : "";
-                        if (!("INGRESADA".equals(est) || "PROCESADA".equals(est))) continue;
+                        // Tipo: acepta variantes (p.ej., "Descuento bolsa")
+                        String tipo = d.tipo == null ? "" : d.tipo.trim().toUpperCase(Locale.ROOT);
+                        if (!tipo.contains("DESCUENTO")) continue;
 
-                        // Mes actual (usa aprobadaEn si existe; si no, creadoEn)
-                        if (!isFromThisMonthForResumen(d)) continue;
+                        // Estado: INGRESADA / INGRESADO / similares
+                        String est = d.estado == null ? "" : d.estado.trim().toUpperCase(Locale.ROOT);
+                        if (!est.startsWith("INGRES")) continue;
+
+                        // Fecha: aprobadaEn si existe; si no, creadoEn
+                        String fecha = !TextUtils.isEmpty(d.aprobadaEn) ? d.aprobadaEn : d.creadoEn;
+                        if (TextUtils.isEmpty(fecha) || !isFromThisMonth(fecha)) continue;
 
                         total += readMonto(d);
                         count++;
@@ -476,24 +512,6 @@ public class HomeFragment extends Fragment {
                 .format(Calendar.getInstance().getTime());
     }
 
-    private boolean isFromThisMonth(String isoDate) {
-        if (TextUtils.isEmpty(isoDate)) return false;
-        try {
-            OffsetDateTime odt = OffsetDateTime.parse(isoDate);
-            LocalDate item = odt.toLocalDate();
-            LocalDate now  = LocalDate.now(ZoneOffset.systemDefault());
-            return item.getYear() == now.getYear() && item.getMonthValue() == now.getMonthValue();
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    // Usa aprobadaEn si existe; si no, creadoEn
-    private boolean isFromThisMonthForResumen(SolicitudDto d) {
-        String candidate = (d != null && !TextUtils.isEmpty(d.aprobadaEn)) ? d.aprobadaEn : (d != null ? d.creadoEn : null);
-        return isFromThisMonth(candidate);
-    }
-
     // Lee “usado” con tolerancia de nombre de campo
     private double readUsado(BolsaConfigDto b) {
         try { if (b.monto_usado != null) return b.monto_usado; } catch (Throwable ignore) {}
@@ -515,8 +533,7 @@ public class HomeFragment extends Fragment {
     }
 
     // Lee “disponible/saldo” si viene desde backend
-    @Nullable
-    private Double readDisponible(BolsaConfigDto b) {
+    private @Nullable Double readDisponible(BolsaConfigDto b) {
         try {
             Field f = b.getClass().getDeclaredField("monto_disponible");
             f.setAccessible(true);
@@ -538,7 +555,7 @@ public class HomeFragment extends Fragment {
     private double readMonto(SolicitudDto d) {
         if (d == null) return 0d;
 
-        // Getters comunes (camelCase y snake_case)
+        // Getters comunes
         Double viaGetter = callNumericGetter(d, "getMonto");
         if (viaGetter != null) return viaGetter;
 
@@ -558,8 +575,8 @@ public class HomeFragment extends Fragment {
         viaGetter = callNumericGetter(d, "getTotal");
         if (viaGetter != null) return viaGetter;
 
-        // Campos (camelCase / snake_case)
-        Double viaField = readNumericField(d, "monto"); // API actual lo trae como String "60.00"
+        // Campos directos
+        Double viaField = readNumericField(d, "monto");
         if (viaField != null) return viaField;
 
         viaField = readNumericField(d, "montoAprobado");
@@ -581,8 +598,7 @@ public class HomeFragment extends Fragment {
         return 0d;
     }
 
-    @Nullable
-    private Double callNumericGetter(Object obj, String getterName) {
+    private @Nullable Double callNumericGetter(Object obj, String getterName) {
         try {
             Method m = obj.getClass().getMethod(getterName);
             Object v = m.invoke(obj);
@@ -591,8 +607,7 @@ public class HomeFragment extends Fragment {
         return null;
     }
 
-    @Nullable
-    private Double readNumericField(Object obj, String fieldName) {
+    private @Nullable Double readNumericField(Object obj, String fieldName) {
         try {
             Field f = obj.getClass().getDeclaredField(fieldName);
             f.setAccessible(true);
@@ -602,15 +617,13 @@ public class HomeFragment extends Fragment {
         return null;
     }
 
-    @Nullable
-    private Double asDouble(Object v) {
+    private @Nullable Double asDouble(Object v) {
         if (v == null) return null;
         if (v instanceof Number) return ((Number) v).doubleValue();
         if (v instanceof CharSequence) {
             String s = v.toString().trim();
             if (s.isEmpty()) return null;
-            // tolera comas de miles
-            s = s.replace(",", "");
+            s = s.replace(",", ""); // tolera comas de miles
             try { return Double.parseDouble(s); } catch (NumberFormatException e) { return null; }
         }
         return null;
