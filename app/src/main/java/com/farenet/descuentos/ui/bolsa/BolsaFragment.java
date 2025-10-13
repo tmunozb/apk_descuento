@@ -10,6 +10,7 @@ import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -25,8 +26,7 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 
-import androidx.appcompat.app.AlertDialog;
-
+import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -87,11 +87,18 @@ public class BolsaFragment extends Fragment implements BolsaEstadoAdapter.Action
 
         session = new SessionManager(requireContext());
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
+
+        // ✳️ Modo admin solo si el usuario es “sistemas”
+        boolean adminMode = isUserSistemas();
+
         adapter = new BolsaEstadoAdapter(this);
+        adapter.setAdminMode(adminMode); // <-- el adapter debe ocultar botones/menú cuando sea false
+        adapter.setPlantaKeyToNombre(plantaKeyToNombre);
         rv.setAdapter(adapter);
 
         buildPeriodoOptions();
         cargarPlantasDesdeSesion();
+
         adapter.setPlantaKeyToNombre(plantaKeyToNombre);
 
         selectedPeriodoLabel = periodoLabels.isEmpty() ? "" : periodoLabels.get(0);
@@ -111,6 +118,40 @@ public class BolsaFragment extends Fragment implements BolsaEstadoAdapter.Action
         btnBuscar.setOnClickListener(v -> buscar());
 
         buscar();
+    }
+
+    /** Devuelve true si el usuario tiene perfil/rol "sistemas". Robusto a distintas implementaciones de SessionManager. */
+    private boolean isUserSistemas() {
+        if (session == null) return false;
+
+        // 1) Métodos comunes en SessionManager (si existen)
+        try {
+            Method m = session.getClass().getMethod("getPerfilNombre");
+            Object v = m.invoke(session);
+            if (v != null && "sistemas".equalsIgnoreCase(v.toString())) return true;
+        } catch (Throwable ignore) {}
+
+        try {
+            Method m = session.getClass().getMethod("getPerfilId");
+            Object v = m.invoke(session);
+            if (v != null && "sistemas".equalsIgnoreCase(v.toString())) return true;
+        } catch (Throwable ignore) {}
+
+        try {
+            Method m = session.getClass().getMethod("getRoles");
+            Object v = m.invoke(session);
+            if (v instanceof List) {
+                for (Object r : ((List<?>) v)) {
+                    if (r != null) {
+                        String s = r.toString();
+                        if ("sistemas".equalsIgnoreCase(s) || "admin".equalsIgnoreCase(s)) return true;
+                    }
+                }
+            }
+        } catch (Throwable ignore) {}
+
+        // 2) A falta de lo anterior, nunca habilitar admin
+        return false;
     }
 
     private void buildPeriodoOptions() {
@@ -273,7 +314,10 @@ public class BolsaFragment extends Fragment implements BolsaEstadoAdapter.Action
     // ====== Actions del Adapter ======
     @Override
     public void onAuditoria(BolsaConfigDto item) {
+        // Guard extra: si no es sistemas, no hace nada
+        if (!isUserSistemas()) return;
         if (item == null) return;
+
         showLoading(true);
         if (auditCall != null) auditCall.cancel();
         auditCall = NewApiClient.get().bolsaAuditoria(item.planta_key, item.periodo_yyyymm, 200);
@@ -318,7 +362,10 @@ public class BolsaFragment extends Fragment implements BolsaEstadoAdapter.Action
 
     @Override
     public void onEditarTope(BolsaConfigDto item) {
+        // Guard extra
+        if (!isUserSistemas()) return;
         if (item == null) return;
+
         final View dialog = getLayoutInflater().inflate(R.layout.dialog_edit_tope, null, false);
         final com.google.android.material.textfield.TextInputEditText et =
                 dialog.findViewById(R.id.etNuevoTope);
@@ -373,7 +420,10 @@ public class BolsaFragment extends Fragment implements BolsaEstadoAdapter.Action
 
     @Override
     public void onToggleEstado(BolsaConfigDto item) {
+        // Guard extra
+        if (!isUserSistemas()) return;
         if (item == null) return;
+
         final String nuevo = "CERRADO".equalsIgnoreCase(item.estado) ? "ACTIVO" : "CERRADO";
         new AlertDialog.Builder(requireContext())
                 .setTitle(("CERRADO".equalsIgnoreCase(item.estado) ? "Abrir" : "Cerrar") + " período")

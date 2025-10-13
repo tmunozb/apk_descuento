@@ -11,6 +11,7 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toolbar;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -54,6 +55,10 @@ import retrofit2.Response;
 import com.google.android.material.appbar.MaterialToolbar;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import androidx.core.text.HtmlCompat;
+
+
 public class HomeFragment extends Fragment {
 
     private static final boolean ONLY_THIS_MONTH_FOR_APPROVED = false;
@@ -88,6 +93,9 @@ public class HomeFragment extends Fragment {
         if (u != null && !u.trim().isEmpty()) return u.trim();
         return "tmunoz"; // fallback
     }
+
+    private boolean promptShownThisSession = false;
+    private int lastPromptForCount = -1;
 
     @Nullable
     @Override
@@ -127,33 +135,7 @@ public class HomeFragment extends Fragment {
             });
         }
 
-        // Toolbar con acción de logout
-//        MaterialToolbar toolbar = view.findViewById(R.id.toolbar);
-//        if (toolbar != null) {
-//            ((AppCompatActivity) requireActivity()).setSupportActionBar(toolbar);
-//            toolbar.setOnMenuItemClickListener(item -> {
-//                if (item.getItemId() == R.id.nav_logout) {
-//                    new androidx.appcompat.app.AlertDialog.Builder(requireContext())
-//                            .setTitle("Cerrar sesión")
-//                            .setMessage("¿Desea cerrar sesión y borrar el caché local?")
-//                            .setPositiveButton("Sí", (d, w) -> {
-//                                session.clear();
-//                                Intent i = new Intent(requireContext(), LoginActivity.class);
-//                                i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
-//                                        | Intent.FLAG_ACTIVITY_NEW_TASK
-//                                        | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-//                                startActivity(i);
-//                                requireActivity().finish();
-//                            })
-//                            .setNegativeButton("No", null)
-//                            .show();
-//                    return true;
-//                }
-//                return false;
-//            });
-//        }
 
-        // Saludo
         TextView tvWelcome = view.findViewById(R.id.tvWelcome);
         if (tvWelcome != null) {
             String nombre = session.getNombreVisible();
@@ -257,6 +239,7 @@ public class HomeFragment extends Fragment {
                 int n = (rsp.isSuccessful() && rsp.body() != null) ? rsp.body().size() : 0;
                 DashboardCache.setKpiPendAut(n);
                 updateTextIfChanged(tvKpiPendientes, n);
+                maybePromptPendientes(n);
             }
             @Override public void onFailure(Call<List<SolicitudDto>> call, Throwable t) {
                 if (DashboardCache.getKpiPendAut() < 0 && tvKpiPendientes != null) tvKpiPendientes.setText("–");
@@ -281,6 +264,39 @@ public class HomeFragment extends Fragment {
             }
         });
     }
+
+    private void maybePromptPendientes(int n) {
+        if (n <= 0) return;
+        if (!isAdded() || !isResumed()) return;
+
+        if (promptShownThisSession && lastPromptForCount == n) return;
+        promptShownThisSession = true;
+        lastPromptForCount = n;
+
+        // Título y mensaje dinámicos (singular/plural) + numerito en negrita
+        final boolean uno = (n == 1);
+        String title = (uno ? "⚠️  Tienes 1 descuento por aprobar"
+                : "⚠️  Tienes " + n + " descuentos por aprobar");
+
+        String msgRaw = (uno
+                ? "Hay <b>1</b> solicitud pendiente de autorización. ¿Deseas aprobarla ahora?"
+                : "Hay <b>" + n + "</b> solicitudes pendientes de autorización. ¿Deseas revisarlas ahora?");
+
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setIcon(R.drawable.ic_notifications) // usa tu ícono de alerta (o android.R.drawable.ic_dialog_alert)
+                .setTitle(title)
+                .setMessage(HtmlCompat.fromHtml(msgRaw, HtmlCompat.FROM_HTML_MODE_LEGACY))
+                .setPositiveButton(uno ? "Sí, aprobar ahora" : "Sí, ir ahora", (d, w) -> {
+                    if (requireActivity() instanceof com.farenet.descuentos.ui.comercialhost.ComercialHostActivity) {
+                        ((com.farenet.descuentos.ui.comercialhost.ComercialHostActivity) requireActivity())
+                                .goToPendingApprovals();
+                    }
+                })
+                .setNegativeButton("No, luego", (d, w) -> { /* cerrar */ })
+                .show();
+    }
+
+
 
     private void setKpiLoading() {
         int pend = DashboardCache.getKpiPendAut();

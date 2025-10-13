@@ -108,4 +108,12 @@ public class ComercialHostActivity extends AppCompatActivity {
             pager.setCurrentItem(index, true);
         }
     }
+
+    public void goToPendingApprovals() {
+        if (bottom != null) {
+            bottom.setSelectedItemId(R.id.tab_solicitudes);
+        } else if (pager != null) {
+            pager.setCurrentItem(2, true);
+        }
+    }
 }
