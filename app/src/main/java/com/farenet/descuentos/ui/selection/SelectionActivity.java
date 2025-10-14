@@ -209,6 +209,7 @@ public class SelectionActivity extends AppCompatActivity
 
         boolean isSistemas     = tienePerfil("sistemas");
         boolean isAdmin        = tienePerfil("administrador");
+        boolean isJefePlanta        = tienePerfil("jefe_de_planta");
         boolean isOperaciones  = tienePerfil("operaciones");
         boolean isComercial    = tienePerfil("comercial");
         boolean isMecanico     = tienePerfil("mecanico");
@@ -217,7 +218,7 @@ public class SelectionActivity extends AppCompatActivity
         setVisible(cardNuevaSolicitud,        isSistemas);
         setVisible(cardMisSolicitudes,        isSistemas);
         setVisible(cardHistorial,             isSistemas || isComercial);
-        setVisible(cardPendientesAprobar,     isSistemas || isOperaciones || isAdmin || isComercial || isMecanico || isAsistente);
+        setVisible(cardPendientesAprobar,     isSistemas || isOperaciones || isAdmin || isComercial || isMecanico || isAsistente||isJefePlanta);
         setVisible(cardDescuentos,            isSistemas);
         setVisible(cardCortesias,             isSistemas || isOperaciones || isAdmin);
         setVisible(cardReportes,              isSistemas);

@@ -296,6 +296,8 @@ public class BootstrapActivity extends AppCompatActivity {
             next = com.farenet.descuentos.ui.selection.sistemas.SelectionSistemasActivity.class;
         } else if ("operaciones".equalsIgnoreCase(perfil)) {
             next = OperacionesHostActivity.class;
+        } else if ("administrador".equalsIgnoreCase(perfil)) {
+            next = OperacionesHostActivity.class;
         } else if ("comercial".equalsIgnoreCase(perfil)) {
 
             next = ComercialHostActivity.class;
