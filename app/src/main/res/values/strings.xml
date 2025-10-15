@@ -3,6 +3,7 @@
     <string name="placa">Placa</string>
     <string name="valor">Monto</string>
     <string name="agregar">Agregar Descuento</string>
+    <string name="agregar_cortesia">Ingresar Cortesía</string>
     <string name="navigation_drawer_open">Abrir menú de navegación</string>
     <string name="navigation_drawer_close">Cerrar menú de navegación</string>
     <string name="cortesia_title">CORTESÍA</string>

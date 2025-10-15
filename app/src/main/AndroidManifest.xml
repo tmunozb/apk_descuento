@@ -59,6 +59,7 @@
 
         <activity
             android:name=".ui.solicitudes.cortesia.CortesiaActivity"
+            android:windowSoftInputMode="stateHidden|adjustPan"
             android:exported="false" />
 
         <!-- Corrige: antes tenía Theme.MaterialComponents... cámbialo a Theme.App -->
@@ -70,6 +71,7 @@
         <activity
             android:name=".ui.operacioneshost.OperacionesHostActivity"
             android:exported="false"
+            android:windowSoftInputMode="stateHidden|adjustPan"
             android:theme="@style/Theme.App" />
 
         <activity
