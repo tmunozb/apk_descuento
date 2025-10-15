@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <!-- centro cian y bordes transparentes -->
+    <size android:width="200dp" android:height="56dp"/> <!-- ancho aprox del botón -->
+    <gradient
+        android:type="radial"
+        android:gradientRadius="120dp"
+        android:centerX="50%" android:centerY="50%"
+        android:startColor="#3300E0FF"
+    android:centerColor="#1100E0FF"
+    android:endColor="#00000000"/>
+</shape>

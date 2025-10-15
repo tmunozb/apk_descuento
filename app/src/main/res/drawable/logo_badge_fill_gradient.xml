@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Fondo con degradado radial -->
+    <item>
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:centerX="0.5"
+                android:centerY="0.5"
+                android:gradientRadius="80dp"
+                android:startColor="#163A66"
+            android:centerColor="#0E3A66"
+            android:endColor="#0A2E52"/>
+        </shape>
+    </item>
+
+    <!-- Borde fino azul -->
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@android:color/transparent"/>
+            <stroke android:width="2dp" android:color="@color/ui_border_blue"/>
+        </shape>
+    </item>
+</layer-list>

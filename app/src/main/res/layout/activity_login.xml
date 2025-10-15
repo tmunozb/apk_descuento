@@ -5,172 +5,196 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_login_gradient_modern"
+    android:background="@drawable/bg_white_with_navy_edges"
     android:fitsSystemWindows="false"
     tools:context=".ui.auth.LoginActivity">
 
-    <!-- Branding / Logo + título -->
-    <LinearLayout
-        android:id="@+id/brandBox"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:paddingTop="32dp"
-        android:paddingBottom="8dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+    <!-- Contenedor central -->
+<LinearLayout
+android:id="@+id/contentBox"
+android:layout_width="0dp"
+android:layout_height="wrap_content"
+android:orientation="vertical"
+android:gravity="center_horizontal"
+android:paddingBottom="20dp"
+app:layout_constraintTop_toTopOf="parent"
+app:layout_constraintBottom_toBottomOf="parent"
+app:layout_constraintStart_toStartOf="parent"
+app:layout_constraintEnd_toEndOf="parent">
+
+<!-- Logo + título -->
+<LinearLayout
+    android:id="@+id/brandBox"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
+
+    <FrameLayout
+        android:id="@+id/logoWrap"
+        android:layout_width="148dp"
+        android:layout_height="148dp"
+        android:foreground="@drawable/logo_halo"
+        android:foregroundGravity="center">
+
+        <!-- Fondo azul para el logo (badge circular con degradado) -->
+        <View
+            android:layout_width="118dp"
+            android:layout_height="118dp"
+            android:layout_gravity="center"
+            android:background="@drawable/logo_badge_fill_gradient"/>
 
         <ImageView
             android:id="@+id/imgLogo"
-            android:layout_width="108dp"
-            android:layout_height="108dp"
+            android:layout_width="92dp"
+            android:layout_height="92dp"
+            android:src="@drawable/ic_logo_farenet"
             android:contentDescription="@string/app_name"
-            android:src="@drawable/logo"
-            android:importantForAccessibility="no"/>
-
-        <TextView
-            android:id="@+id/tvTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/ingresar"
-            android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
-            android:textColor="@android:color/white"/>
-    </LinearLayout>
-
-    <!-- Card del formulario -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/cardForm"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="24dp"
-        android:layout_marginEnd="24dp"
-        android:layout_marginTop="16dp"
-        app:cardCornerRadius="20dp"
-        app:cardElevation="8dp"
-        app:strokeColor="@color/cardStroke"
-        app:strokeWidth="1dp"
-        app:layout_constraintTop_toBottomOf="@id/brandBox"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="20dp">
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/tilUser"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="@string/user"
-                app:startIconDrawable="@drawable/ic_person"
-                app:boxCornerRadiusTopStart="16dp"
-                app:boxCornerRadiusTopEnd="16dp"
-                app:boxCornerRadiusBottomStart="16dp"
-                app:boxCornerRadiusBottomEnd="16dp">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etUser"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="textEmailAddress|textNoSuggestions"
-                    android:imeOptions="actionNext"
-                    android:autofillHints="username"
-                    android:importantForAutofill="yes"
-                    tools:text="usuario@empresa.com"/>
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <Space
-                android:layout_width="0dp"
-                android:layout_height="12dp"/>
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/tilPass"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="@string/pass"
-                app:startIconDrawable="@drawable/ic_lock"
-                app:endIconMode="password_toggle"
-                app:boxCornerRadiusTopStart="16dp"
-                app:boxCornerRadiusTopEnd="16dp"
-                app:boxCornerRadiusBottomStart="16dp"
-                app:boxCornerRadiusBottomEnd="16dp">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etPass"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="textPassword"
-                    android:imeOptions="actionDone"
-                    android:autofillHints="password"
-                    android:importantForAutofill="yes"/>
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="end"
-                android:paddingTop="4dp">
-                <TextView
-                    android:id="@+id/tvForgot"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Olvidé mi contraseña"
-                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                    android:textColor="@color/linkColor"
-                    android:padding="4dp"/>
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/tvMsgLog"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/msg_login"
-                android:textAlignment="center"
-                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                android:textColor="?attr/colorError"
-                android:visibility="gone"/>
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnLogin"
-                style="@style/Widget.Material3.Button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/btn_login"
-                android:contentDescription="@string/btn_login"
-                app:cornerRadius="16dp"
-                app:icon="@drawable/ic_login"
-                app:iconPadding="8dp"
-                app:iconGravity="textStart"/>
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
-
-    <!-- Overlay de carga -->
-    <FrameLayout
-        android:id="@+id/progressOverlay"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:background="@color/scrimDim"
-        android:visibility="gone"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <com.google.android.material.progressindicator.CircularProgressIndicator
-            android:id="@+id/progress"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
             android:layout_gravity="center"/>
     </FrameLayout>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <TextView
+        android:id="@+id/tvTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        style="@style/TextAppearance.Material3.TitleMedium"
+        android:text="@string/ingresar"
+        android:textColor="@color/ui_border_blue"
+        android:textStyle="bold"
+        android:letterSpacing="0.04"
+        android:textAllCaps="true"
+        android:paddingTop="6dp"/>
+</LinearLayout>
+
+<!-- Card del formulario -->
+<com.google.android.material.card.MaterialCardView
+    android:id="@+id/cardForm"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="24dp"
+    android:layout_marginEnd="24dp"
+    android:layout_marginTop="8dp"
+    app:cardBackgroundColor="@android:color/white"
+    app:strokeColor="@color/ui_border_blue"
+    app:strokeWidth="1dp"
+    app:cardCornerRadius="20dp"
+    app:cardElevation="0dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Usuario -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilUser"
+            style="@style/Widget.Farenet.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/user"
+            app:startIconDrawable="@drawable/ic_person">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etUser"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textEmailAddress|textNoSuggestions"
+                android:imeOptions="actionNext"
+                android:autofillHints="username"
+                android:importantForAutofill="yes"
+                android:textColor="@color/ui_text_main"
+                android:textColorHint="@color/ui_text_hint"
+                tools:text="usuario@empresa.com"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="12dp"/>
+
+        <!-- Contraseña -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilPass"
+            style="@style/Widget.Farenet.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/pass"
+            app:startIconDrawable="@drawable/ic_lock"
+            app:endIconMode="password_toggle">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etPass"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPassword"
+                android:imeOptions="actionDone"
+                android:autofillHints="password"
+                android:importantForAutofill="yes"
+                android:textColor="@color/ui_text_main"
+                android:textColorHint="@color/ui_text_hint"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Olvidé mi contraseña -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="end"
+            android:paddingTop="6dp">
+
+            <TextView
+                android:id="@+id/tvForgot"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/forgot_password"
+                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                android:textColor="@color/ui_text_link"
+                android:padding="6dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackgroundBorderless"/>
+        </LinearLayout>
+
+        <!-- Mensaje de error -->
+        <TextView
+            android:id="@+id/tvMsgLog"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/msg_login"
+            android:textAlignment="center"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:textColor="@color/ui_error"
+            android:visibility="gone"/>
+
+        <!-- Botón -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLogin"
+            style="@style/Widget.Farenet.Button.Primary.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/btn_login"
+            android:contentDescription="@string/btn_login"
+            app:icon="@drawable/ic_login"
+            app:iconPadding="8dp"
+            app:iconGravity="textStart"/>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
+</LinearLayout>
+
+    <!-- Overlay de carga -->
+<FrameLayout
+android:id="@+id/progressOverlay"
+android:layout_width="0dp"
+android:layout_height="0dp"
+android:background="@color/scrimDim"
+android:visibility="gone"
+app:layout_constraintTop_toTopOf="parent"
+app:layout_constraintBottom_toBottomOf="parent"
+app:layout_constraintStart_toStartOf="parent"
+app:layout_constraintEnd_toEndOf="parent"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>

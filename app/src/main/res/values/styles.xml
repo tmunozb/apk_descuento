@@ -89,15 +89,19 @@
     </style>
 
     <style name="Widget.App.TextInputLayout" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxBackgroundColor">@android:color/transparent</item>
+        <item name="boxStrokeColor">@color/gg_outline_idle</item>
         <item name="boxStrokeWidth">1dp</item>
         <item name="boxStrokeWidthFocused">2dp</item>
+        <item name="hintTextColor">@color/gg_text_muted</item>
+        <item name="startIconTint">@color/gg_text_muted</item>
+        <item name="endIconTint">@color/gg_text_muted</item>
+        <item name="android:textColor">@color/gg_text_main</item>
+        <item name="errorIconTint">@color/gg_error</item>
         <item name="boxCornerRadiusTopStart">12dp</item>
         <item name="boxCornerRadiusTopEnd">12dp</item>
         <item name="boxCornerRadiusBottomStart">12dp</item>
         <item name="boxCornerRadiusBottomEnd">12dp</item>
-        <item name="hintTextColor">?attr/colorOnSurface</item>
-        <item name="boxStrokeColor">@color/colorOutline</item>
-        <item name="boxBackgroundColor">@android:color/transparent</item>
     </style>
 
     <style name="Widget.Farenet.Search" parent="Widget.Material3.TextInputLayout.FilledBox">
@@ -121,5 +125,63 @@
         <item name="android:textColor">@color/tile_title</item>
         <item name="android:textStyle">bold</item>
     </style>
+
+    <!-- Botón primario sobrio -->
+    <style name="Widget.Farenet.Button.Primary" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/gg_navy_700</item>
+        <item name="android:textColor">@color/gg_text_main</item>
+        <item name="iconTint">@color/gg_text_main</item>
+        <item name="cornerRadius">14dp</item>
+        <item name="rippleColor">@color/gg_ripple_cyan</item>
+        <!-- glow al presionar -->
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:elevation">1dp</item>
+    </style>
+
+    <!-- Botón secundario: contorno mostaza apagado -->
+    <style name="Widget.Farenet.Button.Secondary" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="strokeColor">@color/brand_yellow</item>
+        <item name="android:textColor">@color/brand_yellow</item>
+        <item name="iconTint">@color/brand_yellow</item>
+        <item name="cornerRadius">14dp</item>
+    </style>
+
+    <!-- Inputs con borde navy al foco -->
+    <style name="Widget.Farenet.TextInputLayout" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+         <item name="boxStrokeColor">@color/ui_border_blue</item>
+        <item name="boxStrokeWidth">1dp</item>
+        <item name="boxStrokeWidthFocused">2dp</item>
+        <item name="boxBackgroundColor">@android:color/transparent</item>
+        <item name="hintTextColor">@color/ui_text_hint</item>
+        <item name="startIconTint">@color/ui_border_blue</item>
+        <item name="endIconTint">@color/ui_border_blue</item>
+    </style>
+
+    <!-- Tarjeta del formulario: menos brillo, borde sutil -->
+    <style name="Widget.Farenet.LoginCard" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardBackgroundColor">@color/gg_surface</item>
+        <item name="strokeColor">@color/gg_surface_stroke</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="cardCornerRadius">18dp</item>
+        <item name="cardElevation">4dp</item>
+    </style>
+
+    <!-- Título: peso moderado, tracking neutro -->
+    <style name="Text.Farenet.LoginTitle" parent="TextAppearance.Material3.HeadlineLarge">
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <style name="Widget.Farenet.Button.Primary.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="strokeColor">@color/ui_border_blue</item>
+        <item name="android:textColor">@color/ui_border_blue</item>
+        <item name="iconTint">@color/ui_border_blue</item>
+        <item name="cornerRadius">14dp</item>
+        <item name="rippleColor">#140E3A66</item>
+    </style>
+
+
+
 
 </resources>

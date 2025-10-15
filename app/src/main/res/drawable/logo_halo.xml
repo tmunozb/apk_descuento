@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- aro exterior cian -->
+    <item>
+        <shape android:shape="oval">
+            <size android:width="140dp" android:height="140dp"/>
+            <stroke android:width="2dp" android:color="@color/gg_cyan"/>
+            <padding android:left="6dp" android:top="6dp" android:right="6dp" android:bottom="6dp"/>
+        </shape>
+    </item>
+    <!-- glow -->
+    <item>
+        <shape android:shape="oval">
+            <size android:width="140dp" android:height="140dp"/>
+            <solid android:color="#00000000"/>
+            <stroke android:width="10dp" android:color="#1400E0FF"/>
+        </shape>
+    </item>
+</layer-list>

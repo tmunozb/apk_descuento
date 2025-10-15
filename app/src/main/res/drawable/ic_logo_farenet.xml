@@ -7,7 +7,7 @@
 
     <!-- Fondo circular (morado) -->
     <path
-        android:fillColor="#6C4CE6"
+        android:fillColor="@color/brand_blue"
         android:pathData="M256,32
                           A224,224 0 1,1 256,480
                           A224,224 0 1,1 256,32z"/>
@@ -49,11 +49,6 @@
             Z" />
 
     <!-- Acento gamer (chip/bolt en ámbar) -->
-    <path
-        android:fillColor="#F59E0B"
-        android:pathData="
-            M372,188
-            a20,20 0 1,1 -40,0
-            a20,20 0 1,1 40,0" />
+
 
 </vector>

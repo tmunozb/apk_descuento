@@ -8,6 +8,8 @@
     <string name="navigation_drawer_close">Cerrar menú de navegación</string>
     <string name="cortesia_title">CORTESÍA</string>
     <string name="selecciona_un_motivo">Selecciona un motivo</string>
+    <string name="forgot_password">OLVIDÉ MI CONTRASEÑA</string>
+
 
 
     <!-- Placeholders:
@@ -39,7 +41,7 @@
     <string name="user">Usuario</string>
     <string name="pass">Contraseña</string>
     <string name="home_tittle">Login</string>
-    <string name="btn_login">OK</string>
+    <string name="btn_login">Ingresar</string>
     <string name="msg_login">Datos no válidos</string>
     <string name="cerrarsesion">Cerrar Sesion</string>
     <string name="ingresar">Ingresar</string>

@@ -93,4 +93,59 @@
     <color name="heroTitle">@color/black</color>
     <color name="heroSubtitle">@color/black</color>
 
+    <!-- BRAND (matizados/serios) -->
+    <color name="brand_blue">#0E3A66</color>          <!-- navy apagado -->
+    <color name="brand_blue_600">#0A2E52</color>      <!-- focus/pressed -->
+    <color name="brand_mid">#3A6B6E</color>           <!-- puente desaturado -->
+    <color name="brand_yellow">#D6A200</color>        <!-- mostaza sobrio -->
+    <color name="brand_yellow_700">#B88900</color>    <!-- pressed -->
+
+    <!-- Controles -->
+    <color name="input_outline_default">#26000000</color>
+    <color name="input_outline_focused">@color/brand_blue</color>
+    <color name="input_outline_error">#C62828</color>
+
+    <color name="link_on_hero">#E2EAF5</color>        <!-- link sutil sobre hero -->
+    <color name="surface_on_hero">#FFFFFFFF</color>
+    <color name="surface_on_hero_stroke">#14000000</color>
+    <color name="ripple_on_hero">#20FFFFFF</color>
+
+    <!-- Botones -->
+    <color name="text_btn_primary">#FFFFFFFF</color>
+
+    <!-- Núcleo oscuro -->
+    <color name="gg_navy_900">#050A16</color>
+    <color name="gg_navy_800">#0A1424</color>
+    <color name="gg_navy_700">#0F1E35</color>
+
+    <!-- Acento neón (cian) -->
+    <color name="gg_cyan">#00E0FF</color>
+    <color name="gg_cyan_dim">#66EAF9</color>
+
+    <!-- Amarillo mínimo (solo highlights sutiles) -->
+    <color name="gg_yellow_hint">#806A00</color>
+
+    <!-- Superficies y texto -->
+    <color name="gg_surface">#101826</color>
+    <color name="gg_surface_stroke">#1FFFFFFF</color>
+    <color name="gg_text_main">#E6F1FF</color>
+    <color name="gg_text_muted">#9BB0C6</color>
+
+    <!-- Controles -->
+    <color name="gg_outline_idle">#2046A0FF</color>   <!-- cian muy diluido -->
+    <color name="gg_outline_focus">@color/gg_cyan</color>
+    <color name="gg_error">#EF5350</color>
+
+    <!-- Ripple -->
+    <color name="gg_ripple_cyan">#1A00E0FF</color>
+
+
+    <!-- Añadir dentro de <resources> -->
+    <color name="ui_border_blue">#0E3A66</color>   <!-- azul del borde -->
+    <color name="ui_text_main">#1F2A36</color>     <!-- texto principal -->
+    <color name="ui_text_hint">#6A7683</color>     <!-- hint / placeholders -->
+    <color name="ui_text_link">#0E3A66</color>     <!-- enlaces -->
+    <color name="ui_error">#C62828</color>         <!-- errores -->
+
+
 </resources>
