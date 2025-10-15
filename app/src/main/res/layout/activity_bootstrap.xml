@@ -5,18 +5,8 @@
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fitsSystemWindows="false">
-
-    <!-- Fondo gradiente oscuro -->
-    <View
-        android:id="@+id/bg"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:background="@drawable/bg_bootstrap_gradient"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+    android:fitsSystemWindows="false"
+    android:background="@drawable/bg_white_with_navy_edges">
 
     <!-- Contenedor centrado con ancho máximo -->
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -31,16 +21,16 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- Tarjeta “glass” sobre fondo oscuro -->
+        <!-- Tarjeta blanca con borde azul (consistente con login) -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardGlass"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             app:cardCornerRadius="20dp"
-            app:cardElevation="10dp"
-            app:strokeColor="@color/cardStroke"
+            app:cardElevation="0dp"
             app:strokeWidth="1dp"
-            app:cardBackgroundColor="@color/glassCard"
+            app:strokeColor="@color/ui_border_blue"
+            app:cardBackgroundColor="@android:color/white"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
@@ -51,14 +41,28 @@
                 android:orientation="vertical"
                 android:padding="20dp">
 
-                <!-- Logo -->
-                <ImageView
-                    android:id="@+id/imgLogo"
-                    android:layout_width="72dp"
-                    android:layout_height="72dp"
+                <!-- Logo con halo y badge azul (igual que login) -->
+                <FrameLayout
+                    android:layout_width="96dp"
+                    android:layout_height="96dp"
                     android:layout_gravity="center_horizontal"
-                    android:contentDescription="@string/app_name"
-                    android:src="@drawable/ic_logo_farenet" />
+                    android:foreground="@drawable/logo_halo"
+                    android:foregroundGravity="center">
+
+                    <View
+                        android:layout_width="84dp"
+                        android:layout_height="84dp"
+                        android:layout_gravity="center"
+                        android:background="@drawable/logo_badge_fill_gradient"/>
+
+                    <ImageView
+                        android:id="@+id/imgLogo"
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@string/app_name"
+                        android:src="@drawable/ic_logo_farenet"/>
+                </FrameLayout>
 
                 <!-- Título -->
                 <TextView
@@ -69,15 +73,16 @@
                     android:paddingTop="12dp"
                     android:text="@string/app_name"
                     android:textStyle="bold"
-                    android:textSize="20sp"
-                    android:textColor="@color/textPrimaryOnDark" />
+                    android:textSize="18sp"
+                    android:letterSpacing="0.03"
+                    android:textColor="@color/ui_border_blue" />
 
-                <!-- Divider sutil -->
+                <!-- Divider sutil (azul con poca opacidad) -->
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:layout_marginTop="12dp"
-                    android:background="@color/dividerSoft" />
+                    android:background="#1A0E3A66" />
 
                 <!-- Paso principal -->
                 <TextView
@@ -87,7 +92,7 @@
                     android:paddingTop="12dp"
                     android:text="Preparando tu sesión…"
                     android:textSize="16sp"
-                    android:textColor="@color/textPrimaryOnDark" />
+                    android:textColor="@color/ui_text_main" />
 
                 <!-- Subtítulo dinámico -->
                 <TextView
@@ -97,9 +102,9 @@
                     android:paddingTop="2dp"
                     android:text="Un momento por favor"
                     android:textSize="14sp"
-                    android:textColor="@color/textSubtle" />
+                    android:textColor="@color/ui_text_hint" />
 
-                <!-- Indicador circular (MDC) -->
+                <!-- Indicador circular (Material) -->
                 <com.google.android.material.progressindicator.CircularProgressIndicator
                     android:id="@+id/progressCircular"
                     style="@style/Widget.MaterialComponents.CircularProgressIndicator"
@@ -110,10 +115,10 @@
                     android:indeterminate="true"
                     app:indicatorSize="40dp"
                     app:trackCornerRadius="20dp"
-                    app:indicatorColor="@color/progressIndicator"
-                    app:trackColor="@color/progressTrack" />
+                    app:indicatorColor="@color/ui_border_blue"
+                    app:trackColor="#220E3A66" />
 
-                <!-- Barra de progreso determinística (MDC) -->
+                <!-- Barra de progreso determinística (Material) -->
                 <com.google.android.material.progressindicator.LinearProgressIndicator
                     android:id="@+id/progressLinear"
                     style="@style/Widget.MaterialComponents.LinearProgressIndicator"
@@ -124,28 +129,28 @@
                     android:progress="8"
                     android:indeterminate="false"
                     app:trackCornerRadius="8dp"
-                    app:indicatorColor="@color/progressIndicator"
-                    app:trackColor="@color/progressTrack" />
+                    app:indicatorColor="@color/ui_border_blue"
+                    app:trackColor="#220E3A66" />
 
-                <!-- Tip pill -->
+                <!-- Tip pill (outlined azul, consistente) -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_horizontal"
                     android:layout_marginTop="12dp"
-                    android:background="@drawable/bg_tip_pill"
+                    android:orientation="horizontal"
                     android:paddingStart="12dp"
                     android:paddingEnd="12dp"
                     android:paddingTop="6dp"
                     android:paddingBottom="6dp"
-                    android:orientation="horizontal">
+                    android:background="@drawable/bg_tip_pill_outlined">
 
                     <ImageView
                         android:layout_width="16dp"
                         android:layout_height="16dp"
                         android:layout_gravity="center_vertical"
                         android:src="@android:drawable/ic_dialog_info"
-                        android:tint="@color/tipIconTint"
+                        android:tint="@color/ui_border_blue"
                         android:contentDescription="@null"/>
 
                     <TextView
@@ -154,7 +159,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="6dp"
                         android:text="Consejo: puedes abrir Cortesías desde el menú lateral"
-                        android:textColor="@color/tipText"
+                        android:textColor="@color/ui_text_main"
                         android:textSize="12sp" />
                 </LinearLayout>
 
