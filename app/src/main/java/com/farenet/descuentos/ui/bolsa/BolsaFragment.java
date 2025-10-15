@@ -162,7 +162,7 @@ public class BolsaFragment extends Fragment implements BolsaEstadoAdapter.Action
         SimpleDateFormat yyyymm = new SimpleDateFormat("yyyyMM", Locale.getDefault());
         SimpleDateFormat label  = new SimpleDateFormat("MMMM yyyy", new Locale("es", "PE"));
 
-        for (int i = 0; i < 12; i++) {
+        for (int i = 0; i < 6; i++) {
             String key = yyyymm.format(cal.getTime());
             String lbl = capitalize(label.format(cal.getTime()));
             periodoLabels.add(lbl);

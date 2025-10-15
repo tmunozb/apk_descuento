@@ -12,8 +12,11 @@ import com.farenet.descuentos.ui.solicitudes.pendientes.PendientesFragment;
 public class OperacionesTabsAdapter extends FragmentStateAdapter {
     public OperacionesTabsAdapter(@NonNull androidx.fragment.app.FragmentActivity fa) { super(fa); }
     @NonNull @Override public Fragment createFragment(int position) {
-        if (position == 0) return new OperacionesHomeFragment();
-        else return new OperacionesPendientesFragment();
+        if (position == 0)
+            return new OperacionesHomeFragment();
+        else if (position==1)
+            return new BolsaFragment();
+            else return new OperacionesPendientesFragment();
     }
-    @Override public int getItemCount() { return 2; }
+    @Override public int getItemCount() { return 3; }
 }

@@ -52,8 +52,11 @@ public class OperacionesHostActivity extends AppCompatActivity {
             if (id == R.id.tab_home) {
                 setCurrent(0);
                 return true;
-            } else if (id == R.id.tab_solicitudes) {
+            } else if (id == R.id.tab_Bolsa) {
                 setCurrent(1);
+                return true;
+            } else if (id == R.id.tab_solicitudes) {
+                setCurrent(2);
                 return true;
             }
             return false;
@@ -62,7 +65,8 @@ public class OperacionesHostActivity extends AppCompatActivity {
         // Pager -> BottomNav
         pager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override public void onPageSelected(int position) {
-                int target = (position == 0) ? R.id.tab_home : R.id.tab_solicitudes;
+                int target = position == 0 ? R.id.tab_home :
+                        position == 1 ? R.id.tab_Bolsa : R.id.tab_solicitudes;
                 if (bottom.getSelectedItemId() != target) bottom.setSelectedItemId(target);
             }
         });
