@@ -38,15 +38,15 @@
     <!-- Bottom Navigation -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNav"
-        style="@style/Widget.Farenet.BottomNav"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:background="?attr/colorSurface"
-        android:fitsSystemWindows="false"
-        app:menu="@menu/menu_asistentes_bottom"
+        android:background="@drawable/bg_bottomnav_gradient"
+        app:itemIconTint="@color/bottom_nav_color"
+        app:itemTextColor="@color/bottom_nav_color"
+        app:itemRippleColor="@color/ui_border_blue"
+        app:itemActiveIndicatorStyle="@style/Farenet.BottomNav.ActiveIndicator"
         app:labelVisibilityMode="labeled"
-        app:itemIconTint="@color/bottom_nav_tint"
-        app:itemTextColor="@color/bottom_nav_tint"
-        app:layout_behavior="@string/hide_bottom_view_on_scroll_behavior" />
+        app:menu="@menu/menu_asistentes_bottom" />
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

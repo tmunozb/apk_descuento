@@ -181,6 +181,16 @@
         <item name="rippleColor">#140E3A66</item>
     </style>
 
+    <style name="Farenet.BottomNav.ActiveIndicator" parent="">
+        <!-- Color de fondo del indicador (Material) -->
+        <item name="backgroundTint">@color/ui_border_blue</item>
+
+        <!-- Forma redonda (usa tu shape redondeado) -->
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.Farenet.Circle</item>
+
+        <!-- Opacidad del indicador (opcional, sutil) -->
+        <item name="alpha">0.12</item>
+    </style>
 
 
 
