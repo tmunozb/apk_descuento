@@ -24,6 +24,7 @@ import com.farenet.descuentos.Core.Storage.SessionManager;
 import com.farenet.descuentos.Core.config.Constante;
 import com.farenet.descuentos.R;
 import com.farenet.descuentos.data.local.realm.entity.MotivoCortesia;
+import com.farenet.descuentos.ui.asistentehost.AsistenteHostActivity;
 import com.farenet.descuentos.ui.auth.LoginActivity;
 // ⬇️ Asegúrate que esta ruta es la correcta de tu host Activity (ViewPager2)
 import com.farenet.descuentos.ui.comercialhost.ComercialHostActivity;
@@ -301,7 +302,7 @@ public class BootstrapActivity extends AppCompatActivity {
         } else if ("comercial".equalsIgnoreCase(perfil)) {
             next = ComercialHostActivity.class;
         } else if ("asistente_servicio".equalsIgnoreCase(perfil)) {
-            next = OperacionesHostActivity.class;
+            next = AsistenteHostActivity.class;
         } else if ("mecanico".equalsIgnoreCase(perfil)) {
             next = OperacionesHostActivity.class;
         } else {

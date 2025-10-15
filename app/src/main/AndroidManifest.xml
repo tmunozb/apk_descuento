@@ -73,6 +73,11 @@
             android:theme="@style/Theme.App" />
 
         <activity
+            android:name=".ui.asistentehost.AsistenteHostActivity"
+            android:exported="false"
+            android:theme="@style/Theme.App" />
+
+        <activity
             android:name=".ui.bootstrap.BootstrapActivity"
             android:exported="true">
             <intent-filter>

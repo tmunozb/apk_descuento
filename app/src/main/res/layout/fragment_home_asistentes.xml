@@ -1,0 +1,505 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    android:background="@color/fn_bg">
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="true"
+        android:paddingBottom="80dp"
+        android:background="@color/fn_bg"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        app:layout_dodgeInsetEdges="bottom">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@color/fn_bg">
+
+            <!-- Hero -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="80dp"
+                android:background="@drawable/bg_hero_comercial"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="bottom">
+
+                    <TextView
+                        android:id="@+id/tvWelcome"
+                        style="@style/Text.Farenet.HeroTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="¡Hola, Asistente!" />
+
+                    <TextView
+                        android:id="@+id/tvSubtitle"
+                        style="@style/Text.Farenet.HeroSubtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Gestiona tus descuentos" />
+                </LinearLayout>
+            </FrameLayout>
+
+
+
+            <!-- KPIs rápidos -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="12dp"
+                android:weightSum="2">
+
+                <!-- KPI: Pend. Aut. -->
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.Farenet.KpiCard"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="12dp">
+
+                        <com.google.android.material.imageview.ShapeableImageView
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:contentDescription="@string/desc_kpi_pend_aut"
+                            android:src="@drawable/ic_pending_actions_24"
+                            app:tint="@color/fn_accent_warning"
+                            app:shapeAppearanceOverlay="@style/ShapeAppearance.Farenet.Circle"
+                            app:strokeColor="@color/fn_accent_warning"
+                            app:strokeWidth="1dp"
+                            android:padding="6dp"/>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="12dp"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tvLabelPend"
+                                style="@style/Text.Farenet.KpiLabel"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Pend. Apro." />
+
+                            <TextView
+                                android:id="@+id/tvKpiPendientes"
+                                style="@style/Text.Farenet.KpiValue"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="…" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- KPI: Aprobadas -->
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.Farenet.KpiCard"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="12dp">
+
+                        <com.google.android.material.imageview.ShapeableImageView
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:contentDescription="@string/desc_kpi_aprobadas"
+                            android:src="@drawable/ic_verified_24"
+                            app:tint="@color/fn_accent_success"
+                            app:shapeAppearanceOverlay="@style/ShapeAppearance.Farenet.Circle"
+                            app:strokeColor="@color/fn_accent_success"
+                            app:strokeWidth="1dp"
+                            android:padding="6dp"/>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="12dp"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tvLabelAprob"
+                                style="@style/Text.Farenet.KpiLabel"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Aprobadas" />
+
+                            <TextView
+                                android:id="@+id/tvKpiAprobadas"
+                                style="@style/Text.Farenet.KpiValue"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="…" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+            <!-- Resumen de Bolsa (general) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardBolsaResumen"
+                style="@style/Widget.Farenet.KpiCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="8dp"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:id="@+id/tvTituloBolsaResumen"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Resumen de Bolsa"
+                        android:textStyle="bold"
+                        android:textColor="@color/cardTitle"
+                        android:textSize="14sp"
+                        android:paddingBottom="4dp"/>
+
+                    <!-- Fila: Tope / Usado / Saldo -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <!-- Tope -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tvLblTopeTotal"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Tope"
+                                android:textSize="12sp"
+                                android:textColor="@color/tile_subtitle"/>
+
+                            <TextView
+                                android:id="@+id/tvTopeTotal"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="S/ —"
+                                android:textStyle="bold"
+                                android:textSize="18sp"
+                                android:textColor="@color/tile_title"/>
+                        </LinearLayout>
+
+                        <!-- Usado -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:paddingStart="8dp"
+                            android:paddingEnd="8dp">
+
+                            <TextView
+                                android:id="@+id/tvLblUsadoTotal"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Usado"
+                                android:textSize="12sp"
+                                android:textColor="@color/tile_subtitle"/>
+
+                            <TextView
+                                android:id="@+id/tvUsadoTotal"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="S/ —"
+                                android:textStyle="bold"
+                                android:textSize="18sp"
+                                android:textColor="@color/tile_title"/>
+                        </LinearLayout>
+
+                        <!-- Saldo -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tvLblSaldoTotal"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Saldo"
+                                android:textSize="12sp"
+                                android:textColor="@color/tile_subtitle"/>
+
+                            <TextView
+                                android:id="@+id/tvSaldoTotal"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="S/ —"
+                                android:textStyle="bold"
+                                android:textSize="18sp"
+                                android:textColor="@color/tile_title"/>
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Resumen Descuentos (mes actual) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardDescuentosMes"
+                style="@style/Widget.Farenet.KpiCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:id="@+id/tvTituloDescMes"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Descuentos Ingresados"
+                        android:textStyle="bold"
+                        android:textColor="@color/cardTitle"
+                        android:textSize="14sp"
+                        android:paddingBottom="4dp"/>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <!-- Cantidad -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Cantidad"
+                                android:textSize="12sp"
+                                android:textColor="@color/tile_subtitle"/>
+
+                            <TextView
+                                android:id="@+id/tvDescCountMes"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="—"
+                                android:textStyle="bold"
+                                android:textSize="18sp"
+                                android:textColor="@color/tile_title"/>
+                        </LinearLayout>
+
+                        <!-- Monto total -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:paddingStart="8dp"
+                            android:paddingEnd="8dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Monto total"
+                                android:textSize="12sp"
+                                android:textColor="@color/tile_subtitle"/>
+
+                            <TextView
+                                android:id="@+id/tvDescMontoMes"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="S/ —"
+                                android:textStyle="bold"
+                                android:textSize="18sp"
+                                android:textColor="@color/tile_title"/>
+                        </LinearLayout>
+
+                        <!-- Promedio (opcional, útil) -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Promedio"
+                                android:textSize="12sp"
+                                android:visibility="gone"
+                                android:textColor="@color/tile_subtitle"/>
+
+                            <TextView
+                                android:id="@+id/tvDescPromMes"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="S/ —"
+                                android:textStyle="bold"
+                                android:textSize="18sp"
+                                android:visibility="gone"
+                                android:textColor="@color/tile_title"/>
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+
+
+            <!-- Acciones (grid) -->
+            <androidx.gridlayout.widget.GridLayout
+                android:id="@+id/gridAcciones"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="16dp"
+                app:columnCount="2"
+                app:rowOrderPreserved="false"
+                app:alignmentMode="alignMargins"
+                app:useDefaultMargins="true">
+
+                <!-- Bolsa Estado -->
+                <include
+                    android:id="@+id/tileBolsaEstado"
+                    layout="@layout/item_action_tile"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="8dp"
+                    android:visibility="gone"
+                    app:layout_columnWeight="1" />
+
+                <!-- Pendientes (Aut.) -->
+                <include
+                    android:id="@+id/tilePendientesAut"
+                    layout="@layout/item_action_tile"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="8dp"
+                    android:visibility="gone"
+                    app:layout_columnWeight="1" />
+
+                <!-- Historial (oculto por ahora) -->
+                <include
+                    android:id="@+id/tileHistorial"
+                    layout="@layout/item_action_tile"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="8dp"
+                    android:visibility="gone"
+                    app:layout_columnWeight="1" />
+
+                <!-- Reportes (oculto por ahora) -->
+                <include
+                    android:id="@+id/tileReportes"
+                    layout="@layout/item_action_tile"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="8dp"
+                    android:visibility="gone"
+                    app:layout_columnWeight="1" />
+            </androidx.gridlayout.widget.GridLayout>
+
+            <!-- Buscador (oculto) -->
+            <TextView
+                android:id="@+id/tvSearchSection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="16dp"
+                android:text="Buscar en últimas solicitudes"
+                android:textStyle="bold"
+                android:textColor="@color/cardTitle"
+                android:visibility="gone"/>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilBuscarUltimos"
+                style="@style/Widget.Farenet.Search"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="4dp"
+                android:visibility="gone"
+                app:startIconDrawable="@drawable/ic_search_24">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etBuscarUltimos"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Placa o código…"
+                    android:textColor="@color/tile_title"
+                    android:textColorHint="@color/tile_subtitle"
+                    android:imeOptions="actionSearch"
+                    android:singleLine="true"
+                    android:inputType="text" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Lista “últimas solicitudes” (oculta) -->
+            <TextView
+                android:id="@+id/tvSection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="8dp"
+                android:text="Últimas solicitudes"
+                android:textStyle="bold"
+                android:textColor="@color/cardTitle"
+                android:visibility="gone" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvUltimos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="16dp"
+                android:clipToPadding="false"
+                android:background="@color/fn_bg"
+                android:visibility="gone" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
