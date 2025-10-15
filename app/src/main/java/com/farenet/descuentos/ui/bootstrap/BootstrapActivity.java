@@ -299,10 +299,11 @@ public class BootstrapActivity extends AppCompatActivity {
         } else if ("administrador".equalsIgnoreCase(perfil)) {
             next = OperacionesHostActivity.class;
         } else if ("comercial".equalsIgnoreCase(perfil)) {
-
             next = ComercialHostActivity.class;
         } else if ("asistente_servicio".equalsIgnoreCase(perfil)) {
-            next = com.farenet.descuentos.ui.selection.asistente.SelectionAsistenteActivity.class;
+            next = OperacionesHostActivity.class;
+        } else if ("mecanico".equalsIgnoreCase(perfil)) {
+            next = OperacionesHostActivity.class;
         } else {
             // Fallback razonable
             next = com.farenet.descuentos.ui.selection.asistente.SelectionAsistenteActivity.class;
