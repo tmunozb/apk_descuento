@@ -6,6 +6,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AutoCompleteTextView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -33,6 +34,7 @@ import com.farenet.descuentos.ui.solicitudes.pendientes.adapter.PendienteSolicit
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import androidx.appcompat.app.AlertDialog;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -48,6 +50,9 @@ public class PendientesFragment extends Fragment implements PendienteSolicitudAd
 
     private AutoCompleteTextView actPlanta, actTipo, actEstado;
     private RecyclerView rv;
+
+    private SwipeRefreshLayout srl; // NEW
+    private TextView emptyView;
     private View progress;
 
     private PendienteSolicitudAdapter adapter;
@@ -90,11 +95,18 @@ public class PendientesFragment extends Fragment implements PendienteSolicitudAd
         actTipo   = view.findViewById(R.id.act_tipo);
         actEstado = view.findViewById(R.id.act_estado);
         rv        = view.findViewById(R.id.rv_pendientes);
+        srl       = view.findViewById(R.id.srl);            // NEW
+        emptyView = view.findViewById(R.id.empty_view);
         progress  = view.findViewById(android.R.id.progress);
 
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new PendienteSolicitudAdapter(data, this);
         rv.setAdapter(adapter);
+
+        // Pull-to-refresh
+        if (srl != null) {
+            srl.setOnRefreshListener(this::cargarPendientes);
+        }
 
         cargarPlantasDesdeSesion();
         actPlanta.setAdapter(new android.widget.ArrayAdapter<>(requireContext(),
@@ -124,6 +136,8 @@ public class PendientesFragment extends Fragment implements PendienteSolicitudAd
         descuentoRepository = Constante.getDescuentoRepository();
         sharedPreferences   = requireContext().getSharedPreferences(Constante.TOKEN, requireContext().MODE_PRIVATE);
 
+        // Estado inicial (oculto lista y vacío; muestro loader)
+        showLoading(true);
         cargarPendientes();
     }
 
@@ -197,6 +211,9 @@ public class PendientesFragment extends Fragment implements PendienteSolicitudAd
     private void cargarPendientes() {
         showLoading(true);
         if (listarCall != null) listarCall.cancel();
+        // Mientras carga: oculto lista y empty
+        showLoading(true);
+
         listarCall = NewApiClient.get().listarPendientes();
         listarCall.enqueue(new Callback<List<SolicitudPendienteDto>>() {
             @Override
@@ -252,7 +269,8 @@ public class PendientesFragment extends Fragment implements PendienteSolicitudAd
             public void onFailure(Call<List<SolicitudPendienteDto>> call, Throwable t) {
                 if (call.isCanceled()) return;
                 showLoading(false);
-                Toast.makeText(requireContext(), "Error al cargar pendientes", Toast.LENGTH_LONG).show();
+                if (srl != null && srl.isRefreshing()) srl.setRefreshing(false);
+                showEmpty("Error al cargar pendientes.");
             }
         });
     }
@@ -277,6 +295,15 @@ public class PendientesFragment extends Fragment implements PendienteSolicitudAd
             data.add(s);
         }
         adapter.notifyDataSetChanged();
+
+        // Empty state según filtros
+        if (data.isEmpty()) {
+            // Si no hay nada tras filtrar, puedes cambiar el mensaje:
+            // emptyView.setText("No hay solicitudes para los filtros seleccionados.");
+            showEmpty("No hay descuentos por aprobar.");
+        } else {
+            showList();
+        }
     }
 
     private boolean isPendienteGrupo(String estadoUi) {
@@ -528,6 +555,37 @@ public class PendientesFragment extends Fragment implements PendienteSolicitudAd
 
     private void showLoading(boolean show) {
         if (progress != null) progress.setVisibility(show ? View.VISIBLE : View.GONE);
+        if (show) {
+            if (srl != null) srl.setVisibility(View.GONE);
+            if (rv  != null) rv.setVisibility(View.GONE);
+            if (emptyView != null) emptyView.setVisibility(View.GONE);
+        }
+    }
+
+    private void showEmpty(String message) {
+        if (emptyView != null) {
+            emptyView.setText(TextUtils.isEmpty(message) ? "No hay descuentos por aprobar." : message);
+            emptyView.setVisibility(View.VISIBLE);
+        }
+        if (srl != null) srl.setVisibility(View.GONE);
+        if (rv  != null) rv.setVisibility(View.GONE);
+    }
+
+    private void showList() {
+        if (srl != null) srl.setVisibility(View.VISIBLE);
+        if (rv  != null) rv.setVisibility(View.VISIBLE);
+        if (emptyView != null) emptyView.setVisibility(View.GONE);
+    }
+
+    private String niceDate(String iso) {
+        if (iso == null || iso.isEmpty()) return "";
+        try {
+            String s = iso.replace('T',' ');
+            if (s.length() >= 16) return s.substring(0,16);
+            return s;
+        } catch (Exception e) {
+            return iso;
+        }
     }
 
     private String safe(String s) { return s == null ? "" : s.trim(); }

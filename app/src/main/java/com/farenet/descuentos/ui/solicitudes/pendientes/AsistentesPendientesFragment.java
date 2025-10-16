@@ -1,38 +1,41 @@
 package com.farenet.descuentos.ui.solicitudes.pendientes;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AutoCompleteTextView;
+import android.widget.Space;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import com.farenet.descuentos.API.Actual.DTO.auth.UsuarioPerfil;
+import com.farenet.descuentos.API.Actual.DTO.maestros.AccesoPlantaDto;
+import com.farenet.descuentos.API.Actual.DTO.solicitudes.AccionSolicitudRsp;
+import com.farenet.descuentos.API.Actual.DTO.solicitudes.AprobarSolicitudReq;
 import com.farenet.descuentos.API.Actual.DTO.solicitudes.AutorizarSolicitudReq;
+import com.farenet.descuentos.API.Actual.DTO.solicitudes.RechazarSolicitudReq;
+import com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudPendienteDto;
+import com.farenet.descuentos.API.Antigua.Service.DescuentoRepository;
+import com.farenet.descuentos.Core.Network.NewApiClient;
+import com.farenet.descuentos.Core.Storage.SessionManager;
 import com.farenet.descuentos.Core.config.Constante;
 import com.farenet.descuentos.R;
 import com.farenet.descuentos.domain.model.Descuento;
-import com.farenet.descuentos.API.Actual.DTO.maestros.AccesoPlantaDto;
-import com.farenet.descuentos.API.Actual.DTO.auth.UsuarioPerfil;
-import com.farenet.descuentos.API.Actual.DTO.solicitudes.AprobarSolicitudReq;
-import com.farenet.descuentos.API.Actual.DTO.solicitudes.RechazarSolicitudReq;
-import com.farenet.descuentos.API.Actual.DTO.solicitudes.AccionSolicitudRsp;
-import com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudPendienteDto;
 import com.farenet.descuentos.ui.solicitudes.model.SolicitudUI;
-import com.farenet.descuentos.Core.Network.NewApiClient;
-import com.farenet.descuentos.API.Antigua.Service.DescuentoRepository;
-import com.farenet.descuentos.Core.Storage.SessionManager;
 import com.farenet.descuentos.ui.solicitudes.pendientes.adapter.PendienteSolicitudAdapter;
-
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-
-import androidx.appcompat.app.AlertDialog;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -42,12 +45,13 @@ import java.util.Map;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import android.content.SharedPreferences;
 
 public class AsistentesPendientesFragment extends Fragment implements PendienteSolicitudAdapter.Actions {
 
     private AutoCompleteTextView actPlanta, actTipo, actEstado;
     private RecyclerView rv;
+    private SwipeRefreshLayout srl; // NEW
+    private TextView emptyView;     // NEW
     private View progress;
 
     private PendienteSolicitudAdapter adapter;
@@ -92,11 +96,18 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
         actTipo   = view.findViewById(R.id.act_tipo);
         actEstado = view.findViewById(R.id.act_estado);
         rv        = view.findViewById(R.id.rv_pendientes);
+        srl       = view.findViewById(R.id.srl);            // NEW
+        emptyView = view.findViewById(R.id.empty_view);     // NEW
         progress  = view.findViewById(android.R.id.progress);
 
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new PendienteSolicitudAdapter(data, this);
         rv.setAdapter(adapter);
+
+        // Pull-to-refresh
+        if (srl != null) {
+            srl.setOnRefreshListener(this::cargarPendientes);
+        }
 
         cargarPlantasDesdeSesion();
         actPlanta.setAdapter(new android.widget.ArrayAdapter<>(requireContext(),
@@ -124,8 +135,10 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
         actEstado.setOnItemClickListener((p, v, pos, id) -> filtrar());
 
         descuentoRepository = Constante.getDescuentoRepository();
-        sharedPreferences   = requireContext().getSharedPreferences(Constante.TOKEN, requireContext().MODE_PRIVATE);
+        sharedPreferences   = requireContext().getSharedPreferences(Constante.TOKEN, Context.MODE_PRIVATE); // FIX
 
+        // Estado inicial (oculto lista y vacío; muestro loader)
+        showLoading(true);
         cargarPendientes();
     }
 
@@ -156,7 +169,7 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
         isOperaciones = matchesAny(p, ope);
         isComercial   = matchesAny(p, com);
         isAsistente   = matchesAny(p, asi);
-        isMecanico   = matchesAny(p, mec);
+        isMecanico    = matchesAny(p, mec);
     }
 
     private String perfilUpper(UsuarioPerfil up) {
@@ -202,17 +215,23 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
     }
 
     private void cargarPendientes() {
-        showLoading(true);
         if (listarCall != null) listarCall.cancel();
+
+        // Mientras carga: oculto lista y empty
+        showLoading(true);
+
         listarCall = NewApiClient.get().listarPendientes();
         listarCall.enqueue(new Callback<List<SolicitudPendienteDto>>() {
             @Override
             public void onResponse(Call<List<SolicitudPendienteDto>> call, Response<List<SolicitudPendienteDto>> response) {
                 showLoading(false);
+                if (srl != null && srl.isRefreshing()) srl.setRefreshing(false);
+
                 if (!response.isSuccessful() || response.body() == null) {
-                    Toast.makeText(requireContext(), "No se pudo cargar pendientes", Toast.LENGTH_LONG).show();
+                    showEmpty("No se pudo cargar pendientes.");
                     return;
                 }
+
                 all.clear();
                 for (SolicitudPendienteDto d : response.body()) {
                     if (isSoloComercial() && (d.estado == null || !d.estado.equalsIgnoreCase("PENDIENTE_AUT"))) {
@@ -241,25 +260,15 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
                     );
                     all.add(ui);
                 }
-                filtrar();
-            }
-
-            private String niceDate(String iso) {
-                if (iso == null || iso.isEmpty()) return "";
-                try {
-                    String s = iso.replace('T',' ');
-                    if (s.length() >= 16) return s.substring(0,16);
-                    return s;
-                } catch (Exception e) {
-                    return iso;
-                }
+                filtrar(); // internamente actualiza empty state
             }
 
             @Override
             public void onFailure(Call<List<SolicitudPendienteDto>> call, Throwable t) {
                 if (call.isCanceled()) return;
                 showLoading(false);
-                Toast.makeText(requireContext(), "Error al cargar pendientes", Toast.LENGTH_LONG).show();
+                if (srl != null && srl.isRefreshing()) srl.setRefreshing(false);
+                showEmpty("Error al cargar pendientes.");
             }
         });
     }
@@ -284,6 +293,15 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
             data.add(s);
         }
         adapter.notifyDataSetChanged();
+
+        // Empty state según filtros
+        if (data.isEmpty()) {
+            // Si no hay nada tras filtrar, puedes cambiar el mensaje:
+            // emptyView.setText("No hay solicitudes para los filtros seleccionados.");
+            showEmpty("No hay descuentos por aprobar.");
+        } else {
+            showList();
+        }
     }
 
     private boolean isPendienteGrupo(String estadoUi) {
@@ -340,10 +358,9 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
 
         final String nomFinal  = nom;
         final String userFinal = user;
-        final String modoFinal = modo;
 
         Call<AccionSolicitudRsp> call = NewApiClient.get().autorizarSolicitud(
-                s.id, new AutorizarSolicitudReq(userFinal, null, nomFinal, modoFinal)
+                s.id, new AutorizarSolicitudReq(userFinal, null, nomFinal, modo)
         );
 
         call.enqueue(new Callback<AccionSolicitudRsp>() {
@@ -533,8 +550,40 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
         });
     }
 
+    // ===== UI helpers (loader / empty) =====
     private void showLoading(boolean show) {
         if (progress != null) progress.setVisibility(show ? View.VISIBLE : View.GONE);
+        if (show) {
+            if (srl != null) srl.setVisibility(View.GONE);
+            if (rv  != null) rv.setVisibility(View.GONE);
+            if (emptyView != null) emptyView.setVisibility(View.GONE);
+        }
+    }
+
+    private void showEmpty(String message) {
+        if (emptyView != null) {
+            emptyView.setText(TextUtils.isEmpty(message) ? "No hay descuentos por aprobar." : message);
+            emptyView.setVisibility(View.VISIBLE);
+        }
+        if (srl != null) srl.setVisibility(View.GONE);
+        if (rv  != null) rv.setVisibility(View.GONE);
+    }
+
+    private void showList() {
+        if (srl != null) srl.setVisibility(View.VISIBLE);
+        if (rv  != null) rv.setVisibility(View.VISIBLE);
+        if (emptyView != null) emptyView.setVisibility(View.GONE);
+    }
+
+    private String niceDate(String iso) {
+        if (iso == null || iso.isEmpty()) return "";
+        try {
+            String s = iso.replace('T',' ');
+            if (s.length() >= 16) return s.substring(0,16);
+            return s;
+        } catch (Exception e) {
+            return iso;
+        }
     }
 
     private String safe(String s) { return s == null ? "" : s.trim(); }
