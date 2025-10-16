@@ -1,5 +1,7 @@
 package com.farenet.descuentos.ui.solicitudes.pendientes;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -11,30 +13,32 @@ import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import com.farenet.descuentos.API.Actual.DTO.auth.UsuarioPerfil;
+import com.farenet.descuentos.API.Actual.DTO.maestros.AccesoPlantaDto;
+import com.farenet.descuentos.API.Actual.DTO.solicitudes.AccionSolicitudRsp;
+import com.farenet.descuentos.API.Actual.DTO.solicitudes.AprobarSolicitudReq;
 import com.farenet.descuentos.API.Actual.DTO.solicitudes.AutorizarSolicitudReq;
+import com.farenet.descuentos.API.Actual.DTO.solicitudes.RechazarSolicitudReq;
+import com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudPendienteDto;
+import com.farenet.descuentos.API.Antigua.Service.DescuentoRepository;
+import com.farenet.descuentos.API.Antigua.Service.MaestroRepository;
+import com.farenet.descuentos.Core.Network.NewApiClient;
+import com.farenet.descuentos.Core.Storage.SessionManager;
 import com.farenet.descuentos.Core.config.Constante;
 import com.farenet.descuentos.R;
+import com.farenet.descuentos.data.local.realm.dao.QueryRealm;
+import com.farenet.descuentos.data.local.realm.entity.Conceptoinspeccion;
+import com.farenet.descuentos.data.local.realm.entity.TipoPagoDescuento;
 import com.farenet.descuentos.domain.model.Descuento;
-import com.farenet.descuentos.API.Actual.DTO.maestros.AccesoPlantaDto;
-import com.farenet.descuentos.API.Actual.DTO.auth.UsuarioPerfil;
-import com.farenet.descuentos.API.Actual.DTO.solicitudes.AprobarSolicitudReq;
-import com.farenet.descuentos.API.Actual.DTO.solicitudes.RechazarSolicitudReq;
-import com.farenet.descuentos.API.Actual.DTO.solicitudes.AccionSolicitudRsp;
-import com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudPendienteDto;
+import com.farenet.descuentos.ui.common.WhatsAppUtils;
 import com.farenet.descuentos.ui.solicitudes.model.SolicitudUI;
-import com.farenet.descuentos.Core.Network.NewApiClient;
-import com.farenet.descuentos.API.Antigua.Service.DescuentoRepository;
-import com.farenet.descuentos.Core.Storage.SessionManager;
 import com.farenet.descuentos.ui.solicitudes.pendientes.adapter.PendienteSolicitudAdapter;
-
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-
-import androidx.appcompat.app.AlertDialog;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -44,14 +48,12 @@ import java.util.Map;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import android.content.SharedPreferences;
 
 public class OperacionesPendientesFragment extends Fragment implements PendienteSolicitudAdapter.Actions {
 
     private AutoCompleteTextView actPlanta, actTipo, actEstado;
     private RecyclerView rv;
-
-    private SwipeRefreshLayout srl; // NEW
+    private SwipeRefreshLayout srl;
     private TextView emptyView;
     private View progress;
 
@@ -70,12 +72,17 @@ public class OperacionesPendientesFragment extends Fragment implements Pendiente
     private static final String[] TIPOS = new String[]{"Todos", "Descuento", "Cortesía"};
 
     private DescuentoRepository descuentoRepository;
+    private MaestroRepository maestroRepository;
     private SharedPreferences sharedPreferences;
 
     // Flags
     private boolean isSistemas = false;
     private boolean isOperaciones = false;
     private boolean isComercial = false;
+
+    // Mapas display para concepto y tipo de pago
+    private final java.util.Map<String,String> conceptoNombreByKey = new java.util.HashMap<>();
+    private final java.util.Map<String,String> tipoPagoNombreByKey = new java.util.HashMap<>();
 
     @Nullable @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -95,7 +102,7 @@ public class OperacionesPendientesFragment extends Fragment implements Pendiente
         actTipo   = view.findViewById(R.id.act_tipo);
         actEstado = view.findViewById(R.id.act_estado);
         rv        = view.findViewById(R.id.rv_pendientes);
-        srl       = view.findViewById(R.id.srl);            // NEW
+        srl       = view.findViewById(R.id.srl);
         emptyView = view.findViewById(R.id.empty_view);
         progress  = view.findViewById(android.R.id.progress);
 
@@ -103,10 +110,7 @@ public class OperacionesPendientesFragment extends Fragment implements Pendiente
         adapter = new PendienteSolicitudAdapter(data, this);
         rv.setAdapter(adapter);
 
-        // Pull-to-refresh
-        if (srl != null) {
-            srl.setOnRefreshListener(this::cargarPendientes);
-        }
+        if (srl != null) srl.setOnRefreshListener(this::cargarPendientes);
 
         cargarPlantasDesdeSesion();
         actPlanta.setAdapter(new android.widget.ArrayAdapter<>(requireContext(),
@@ -134,9 +138,15 @@ public class OperacionesPendientesFragment extends Fragment implements Pendiente
         actEstado.setOnItemClickListener((p, v, pos, id) -> filtrar());
 
         descuentoRepository = Constante.getDescuentoRepository();
-        sharedPreferences   = requireContext().getSharedPreferences(Constante.TOKEN, requireContext().MODE_PRIVATE);
+        maestroRepository   = Constante.getMaestroRespository();
+        sharedPreferences   = requireContext().getSharedPreferences(Constante.TOKEN, Context.MODE_PRIVATE);
 
-        // Estado inicial (oculto lista y vacío; muestro loader)
+        // Construye mapas display desde Realm y, si están vacíos, refresca maestros del API
+        buildDisplayMaps();
+        if (conceptoNombreByKey.isEmpty() || tipoPagoNombreByKey.isEmpty()) {
+            refreshMaestrosIfNeeded();
+        }
+
         showLoading(true);
         cargarPendientes();
     }
@@ -209,10 +219,7 @@ public class OperacionesPendientesFragment extends Fragment implements Pendiente
     }
 
     private void cargarPendientes() {
-        showLoading(true);
         if (listarCall != null) listarCall.cancel();
-
-        // Mientras carga: oculto lista y empty
         showLoading(true);
 
         listarCall = NewApiClient.get().listarPendientes();
@@ -220,15 +227,24 @@ public class OperacionesPendientesFragment extends Fragment implements Pendiente
             @Override
             public void onResponse(Call<List<SolicitudPendienteDto>> call, Response<List<SolicitudPendienteDto>> response) {
                 showLoading(false);
+                if (srl != null && srl.isRefreshing()) srl.setRefreshing(false);
+
                 if (!response.isSuccessful() || response.body() == null) {
-                    Toast.makeText(requireContext(), "No se pudo cargar pendientes", Toast.LENGTH_LONG).show();
+                    showEmpty("No se pudo cargar pendientes.");
                     return;
                 }
+
                 all.clear();
                 for (SolicitudPendienteDto d : response.body()) {
+                    // ⛔ Operaciones (y Sistemas) NO ven PENDIENTE_AUT
+                    if (!isSoloComercial() && d.estado != null && d.estado.equalsIgnoreCase("PENDIENTE_AUT")) {
+                        continue;
+                    }
+                    // Comercial SOLO ve PENDIENTE_AUT
                     if (isSoloComercial() && (d.estado == null || !d.estado.equalsIgnoreCase("PENDIENTE_AUT"))) {
                         continue;
                     }
+
                     String tipoNice = "DESCUENTO".equalsIgnoreCase(d.tipo) ? "Descuento"
                             : "CORTESIA".equalsIgnoreCase(d.tipo) ? "Cortesía" : safe(d.tipo);
                     String estadoNice = mapEstadoUI(d.estado);
@@ -255,22 +271,13 @@ public class OperacionesPendientesFragment extends Fragment implements Pendiente
                 filtrar();
             }
 
-            private String niceDate(String iso) {
-                if (iso == null || iso.isEmpty()) return "";
-                try {
-                    String s = iso.replace('T',' ');
-                    if (s.length() >= 16) return s.substring(0,16);
-                    return s;
-                } catch (Exception e) {
-                    return iso;
-                }
-            }
-
             @Override
             public void onFailure(Call<List<SolicitudPendienteDto>> call, Throwable t) {
                 if (call.isCanceled()) return;
                 showLoading(false);
+                if (srl != null && srl.isRefreshing()) srl.setRefreshing(false);
                 Toast.makeText(requireContext(), "Error al cargar pendientes", Toast.LENGTH_LONG).show();
+                showEmpty("Error al cargar pendientes.");
             }
         });
     }
@@ -296,10 +303,7 @@ public class OperacionesPendientesFragment extends Fragment implements Pendiente
         }
         adapter.notifyDataSetChanged();
 
-        // Empty state según filtros
         if (data.isEmpty()) {
-            // Si no hay nada tras filtrar, puedes cambiar el mensaje:
-            // emptyView.setText("No hay solicitudes para los filtros seleccionados.");
             showEmpty("No hay descuentos por aprobar.");
         } else {
             showList();
@@ -373,15 +377,53 @@ public class OperacionesPendientesFragment extends Fragment implements Pendiente
                     Toast.makeText(requireContext(), "No se pudo autorizar", Toast.LENGTH_LONG).show();
                     return;
                 }
-                String est = rsp.body().estado != null ? rsp.body().estado : "ENVIADA";
-                s.estado = mapEstadoUI(est);
+                String estBk = rsp.body().estado != null ? rsp.body().estado : "ENVIADA";
+                s.estado = mapEstadoUI(estBk);
                 adapter.notifyDataSetChanged();
 
-                if ("APROBADA".equalsIgnoreCase(est)) {
+                if ("APROBADA".equalsIgnoreCase(estBk)) {
                     Toast.makeText(requireContext(), "Aprobada", Toast.LENGTH_SHORT).show();
                     generarDescuentoSiCorresponde(s, nomFinal, rsp.body());
                 } else {
                     Toast.makeText(requireContext(), "Sigue pendiente de autorización", Toast.LENGTH_LONG).show();
+
+                    // 🟡 WhatsApp: DESCUENTO SOLICITADO (usando nombres legibles)
+                    String placa = s.placa != null ? s.placa : "";
+                    String plantaNombre = s.planta != null ? s.planta : "";
+
+                    String conceptoDisplay;
+                    if (!TextUtils.isEmpty(s.conceptoKey)) {
+                        conceptoDisplay = conceptoNombreByKey.get(s.conceptoKey);
+                        if (TextUtils.isEmpty(conceptoDisplay)) conceptoDisplay = s.conceptoKey;
+                    } else {
+                        conceptoDisplay = "Concepto";
+                    }
+
+                    String tipoPagoNameOrKey;
+                    if (!TextUtils.isEmpty(s.tipoPagoKey)) {
+                        tipoPagoNameOrKey = tipoPagoNombreByKey.get(s.tipoPagoKey);
+                        if (TextUtils.isEmpty(tipoPagoNameOrKey)) tipoPagoNameOrKey = s.tipoPagoKey;
+                    } else {
+                        tipoPagoNameOrKey = "Tipo de pago";
+                    }
+
+                    Double monto = (s.monto != null ? s.monto : 0d);
+                    String tipoDescuento = !TextUtils.isEmpty(s.tipoDesc) ? s.tipoDesc : "AUTORIZADO";
+                    String campaniaNombre = "CAMPAÑA".equalsIgnoreCase(tipoDescuento) ? s.campaniaNombre : null;
+                    String solicitadoPor = nomFinal;
+
+                    WhatsAppUtils.sendRequestedDiscountMessage(
+                            requireContext(),
+                            placa,
+                            plantaNombre,
+                            conceptoDisplay,
+                            s.motivo,
+                            tipoPagoNameOrKey,
+                            monto,
+                            tipoDescuento,
+                            campaniaNombre,
+                            solicitadoPor
+                    );
                 }
                 cargarPendientes();
             }
@@ -423,14 +465,53 @@ public class OperacionesPendientesFragment extends Fragment implements Pendiente
                 }
                 AccionSolicitudRsp rsp = response.body();
 
-                String nuevoEstado = mapEstadoUI(rsp.estado != null ? rsp.estado : "ENVIADA");
-                s.estado = nuevoEstado;
+                String nuevoEstadoBk = rsp.estado != null ? rsp.estado : "ENVIADA";
+                String nuevoEstadoUI = mapEstadoUI(nuevoEstadoBk);
+                s.estado = nuevoEstadoUI;
                 adapter.notifyDataSetChanged();
 
-                if ("Aprobada".equalsIgnoreCase(nuevoEstado)) {
+                if ("Aprobada".equalsIgnoreCase(nuevoEstadoUI)) {
                     Toast.makeText(requireContext(), "Aprobada", Toast.LENGTH_SHORT).show();
-                } else if ("Pendiente (Autorización)".equalsIgnoreCase(nuevoEstado)) {
+                } else if ("Pendiente (Autorización)".equalsIgnoreCase(nuevoEstadoUI)) {
                     Toast.makeText(requireContext(), "Sin saldo: queda pendiente de autorización", Toast.LENGTH_LONG).show();
+
+                    // 🟡 WhatsApp: DESCUENTO SOLICITADO (usando nombres legibles)
+                    String placa = s.placa != null ? s.placa : "";
+                    String plantaNombre = s.planta != null ? s.planta : "";
+
+                    String conceptoDisplay;
+                    if (!TextUtils.isEmpty(s.conceptoKey)) {
+                        conceptoDisplay = conceptoNombreByKey.get(s.conceptoKey);
+                        if (TextUtils.isEmpty(conceptoDisplay)) conceptoDisplay = s.conceptoKey;
+                    } else {
+                        conceptoDisplay = "Concepto";
+                    }
+
+                    String tipoPagoNameOrKey;
+                    if (!TextUtils.isEmpty(s.tipoPagoKey)) {
+                        tipoPagoNameOrKey = tipoPagoNombreByKey.get(s.tipoPagoKey);
+                        if (TextUtils.isEmpty(tipoPagoNameOrKey)) tipoPagoNameOrKey = s.tipoPagoKey;
+                    } else {
+                        tipoPagoNameOrKey = "Tipo de pago";
+                    }
+
+                    Double monto = (s.monto != null ? s.monto : 0d);
+                    String tipoDescuento = !TextUtils.isEmpty(s.tipoDesc) ? s.tipoDesc : "AUTORIZADO";
+                    String campaniaNombre = "CAMPAÑA".equalsIgnoreCase(tipoDescuento) ? s.campaniaNombre : null;
+                    String solicitadoPor = aprobNomFinal;
+
+                    WhatsAppUtils.sendRequestedDiscountMessage(
+                            requireContext(),
+                            placa,
+                            plantaNombre,
+                            conceptoDisplay,
+                            s.motivo,
+                            tipoPagoNameOrKey,
+                            monto,
+                            tipoDescuento,
+                            campaniaNombre,
+                            solicitadoPor
+                    );
                 } else {
                     Toast.makeText(requireContext(), "Aprobación realizada", Toast.LENGTH_SHORT).show();
                 }
@@ -536,6 +617,44 @@ public class OperacionesPendientesFragment extends Fragment implements Pendiente
                 if (rsp.isSuccessful()) {
                     Toast.makeText(requireContext(),
                             "Descuento registrado correctamente", Toast.LENGTH_SHORT).show();
+
+                    // ✅ WhatsApp: DESCUENTO REGISTRADO (usando nombres legibles)
+                    String placa = s.placa != null ? s.placa : "";
+                    String plantaNombre = s.planta != null ? s.planta : "";
+
+                    String conceptoDisplay;
+                    if (!TextUtils.isEmpty(s.conceptoKey)) {
+                        conceptoDisplay = conceptoNombreByKey.get(s.conceptoKey);
+                        if (TextUtils.isEmpty(conceptoDisplay)) conceptoDisplay = s.conceptoKey;
+                    } else {
+                        conceptoDisplay = "Concepto";
+                    }
+
+                    String tipoPagoNameOrKey;
+                    if (!TextUtils.isEmpty(s.tipoPagoKey)) {
+                        tipoPagoNameOrKey = tipoPagoNombreByKey.get(s.tipoPagoKey);
+                        if (TextUtils.isEmpty(tipoPagoNameOrKey)) tipoPagoNameOrKey = s.tipoPagoKey;
+                    } else {
+                        tipoPagoNameOrKey = "Tipo de pago";
+                    }
+
+                    Double monto = (s.monto != null ? s.monto : 0d);
+                    String tipoDescuento = !TextUtils.isEmpty(s.tipoDesc) ? s.tipoDesc : "AUTORIZADO";
+                    String campaniaNombre = "CAMPAÑA".equalsIgnoreCase(tipoDescuento) ? s.campaniaNombre : null;
+
+                    WhatsAppUtils.sendRegisteredDiscountMessage(
+                            requireContext(),
+                            placa,
+                            plantaNombre,
+                            conceptoDisplay,
+                            s.motivo,
+                            tipoPagoNameOrKey,
+                            monto,
+                            tipoDescuento,
+                            campaniaNombre,
+                            aprobNom
+                    );
+
                 } else {
                     Toast.makeText(requireContext(),
                             "Aprobada, pero falló el registro de descuento (" + rsp.code() + ")",
@@ -553,6 +672,81 @@ public class OperacionesPendientesFragment extends Fragment implements Pendiente
         });
     }
 
+    // ===== Carga de nombres legibles (conceptos / tipos de pago) =====
+    private void buildDisplayMaps() {
+        conceptoNombreByKey.clear();
+        tipoPagoNombreByKey.clear();
+
+        // Conceptos
+        List<Conceptoinspeccion> conceptosLoc = QueryRealm.copyAllConceptos();
+        if (conceptosLoc != null) {
+            for (Conceptoinspeccion c : conceptosLoc) {
+                if (c == null) continue;
+                String key = c.getKey();
+                String ab  = c.getAbreviatura();
+                String nombre = null;
+                try { nombre = c.getAbreviatura(); } catch (Exception ignored) {}
+                String display = !TextUtils.isEmpty(ab) ? ab
+                        : (!TextUtils.isEmpty(nombre) ? nombre
+                        : (!TextUtils.isEmpty(key) ? key : "Concepto"));
+                if (!TextUtils.isEmpty(key)) {
+                    conceptoNombreByKey.put(key, display);
+                }
+            }
+        }
+
+        // Tipos de pago
+        List<TipoPagoDescuento> tiposLoc = QueryRealm.copyAllTipoPagos();
+        if (tiposLoc != null) {
+            for (TipoPagoDescuento t : tiposLoc) {
+                if (t == null) continue;
+                String key = t.getKey();
+                String nm  = null;
+                try { nm = t.getNombre(); } catch (Exception ignored) {}
+                String display = !TextUtils.isEmpty(nm)
+                        ? nm
+                        : (!TextUtils.isEmpty(key) ? key : "Tipo de pago");
+                if (!TextUtils.isEmpty(key)) {
+                    tipoPagoNombreByKey.put(key, display);
+                }
+            }
+        }
+    }
+
+    private void refreshMaestrosIfNeeded() {
+        String token = (sharedPreferences != null) ? sharedPreferences.getString("token", null) : null;
+        if (TextUtils.isEmpty(token)) return;
+
+        // Conceptos
+        maestroRepository.getConceptoinspeccion(token).enqueue(new retrofit2.Callback<List<Conceptoinspeccion>>() {
+            @Override public void onResponse(retrofit2.Call<List<Conceptoinspeccion>> call,
+                                             retrofit2.Response<List<Conceptoinspeccion>> rsp) {
+                if (rsp.isSuccessful() && rsp.body() != null) {
+                    QueryRealm.saveConceptosAsync(rsp.body(), new QueryRealm.TxCallback() {
+                        @Override public void onSuccess() { buildDisplayMaps(); }
+                        @Override public void onError(Throwable error) { /* noop */ }
+                    });
+                }
+            }
+            @Override public void onFailure(retrofit2.Call<List<Conceptoinspeccion>> call, Throwable t) { /* noop */ }
+        });
+
+        // Tipos de pago
+        maestroRepository.getTipoPagoDescuento(token).enqueue(new retrofit2.Callback<List<TipoPagoDescuento>>() {
+            @Override public void onResponse(retrofit2.Call<List<TipoPagoDescuento>> call,
+                                             retrofit2.Response<List<TipoPagoDescuento>> rsp) {
+                if (rsp.isSuccessful() && rsp.body() != null) {
+                    QueryRealm.saveTipoPagoAsync(rsp.body(), new QueryRealm.TxCallback() {
+                        @Override public void onSuccess() { buildDisplayMaps(); }
+                        @Override public void onError(Throwable error) { /* noop */ }
+                    });
+                }
+            }
+            @Override public void onFailure(retrofit2.Call<List<TipoPagoDescuento>> call, Throwable t) { /* noop */ }
+        });
+    }
+
+    // ===== UI helpers =====
     private void showLoading(boolean show) {
         if (progress != null) progress.setVisibility(show ? View.VISIBLE : View.GONE);
         if (show) {
@@ -561,7 +755,6 @@ public class OperacionesPendientesFragment extends Fragment implements Pendiente
             if (emptyView != null) emptyView.setVisibility(View.GONE);
         }
     }
-
 
     private void showEmpty(String message) {
         if (emptyView != null) {

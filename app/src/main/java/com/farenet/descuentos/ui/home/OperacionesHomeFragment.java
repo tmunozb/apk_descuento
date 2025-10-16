@@ -35,7 +35,7 @@ import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
+import java.text.Normalizer;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -170,7 +170,7 @@ public class OperacionesHomeFragment extends Fragment {
         // Cargar datos al abrir
         loadKpis();
         loadUltimas(null);
-        cargarResumenBolsaGeneral(); // ⬅️ resumen de bolsa visible
+        cargarResumenBolsaGeneral(); // resumen de bolsa visible
     }
 
     @Override
@@ -178,7 +178,7 @@ public class OperacionesHomeFragment extends Fragment {
         super.onResume();
         loadKpis();
         loadUltimas(trimOrEmpty(etBuscarUltimos == null ? null : etBuscarUltimos.getText()));
-        cargarResumenBolsaGeneral(); // ⬅️ refresca resumen al volver
+        cargarResumenBolsaGeneral(); // refresca resumen al volver
     }
 
     private void applyPreloadedDashboard() {
@@ -195,20 +195,28 @@ public class OperacionesHomeFragment extends Fragment {
         if (cur == null || !next.contentEquals(cur)) tv.setText(next);
     }
 
-    /** KPIs (sin acciones de bolsa) **/
+    /** KPIs **/
     private void loadKpis() {
-        // Pinta “…” siempre para evitar que se vea el dato viejo del caché
+        // pinta “…” para evitar que se vea dato viejo del caché
         if (tvKpiPendientes != null) tvKpiPendientes.setText("…");
         if (tvKpiAprobadas  != null) tvKpiAprobadas.setText("…");
 
-        // --- Pendientes (OPERACIONES usa "PENDIENTE") ---
+        // --- Pendientes (Operaciones: estado PENDIENTE, excluyendo PENDIENTE_AUT) ---
         if (callPendAut != null) callPendAut.cancel();
         callPendAut = NewApiClient.get().listarSolicitudes(
                 getUser(), "PENDIENTE", null, null, 500, 0, "-creado_en"
         );
         callPendAut.enqueue(new Callback<List<SolicitudDto>>() {
             @Override public void onResponse(Call<List<SolicitudDto>> call, Response<List<SolicitudDto>> rsp) {
-                int n = (rsp.isSuccessful() && rsp.body() != null) ? rsp.body().size() : 0;
+                int n = 0;
+                if (rsp.isSuccessful() && rsp.body() != null) {
+                    for (SolicitudDto d : rsp.body()) {
+                        String norm = normalizeEstado(d != null ? d.estado : null);
+                        if (!isBackendPendienteAut(norm)) {
+                            n++;
+                        }
+                    }
+                }
                 DashboardCache.setKpiPendAut(n);
                 updateTextIfChanged(tvKpiPendientes, n);
                 maybePromptPendientes(n);
@@ -219,7 +227,7 @@ public class OperacionesHomeFragment extends Fragment {
             }
         });
 
-        // --- “Aprobadas” (aquí realmente: INGRESADAS de tipo BOLSA) ---
+        // --- “Aprobadas” (en Operaciones estaba como INGRESADA de tipo BOLSA) ---
         if (callAprob != null) callAprob.cancel();
         callAprob = NewApiClient.get().listarSolicitudes(
                 getUser(), "INGRESADA", "BOLSA", null, 500, 0, "-creado_en"
@@ -228,7 +236,6 @@ public class OperacionesHomeFragment extends Fragment {
             @Override public void onResponse(Call<List<SolicitudDto>> call, Response<List<SolicitudDto>> rsp) {
                 int n = 0;
                 if (rsp.isSuccessful() && rsp.body() != null) {
-                    // ✅ Revalidamos en cliente por si el API no filtra exactamente
                     n = countIngresadasBolsa(rsp.body(), ONLY_THIS_MONTH_FOR_APPROVED);
                 }
                 DashboardCache.setKpiAprobadas(n);
@@ -239,15 +246,6 @@ public class OperacionesHomeFragment extends Fragment {
                 updateTextIfChanged(tvKpiAprobadas, 0);
             }
         });
-    }
-
-
-
-    private void setKpiLoading() {
-        int pend = DashboardCache.getKpiPendAut();
-        int apr  = DashboardCache.getKpiAprobadas();
-        if (tvKpiPendientes != null && pend < 0) tvKpiPendientes.setText("…");
-        if (tvKpiAprobadas  != null && apr  < 0) tvKpiAprobadas.setText("…");
     }
 
     private int filterThisMonthCount(List<SolicitudDto> list) {
@@ -302,8 +300,6 @@ public class OperacionesHomeFragment extends Fragment {
         }
     }
 
-
-
     /** Últimas **/
     private void loadUltimas(String q) {
         if (callUltimas != null) callUltimas.cancel();
@@ -344,7 +340,7 @@ public class OperacionesHomeFragment extends Fragment {
         if (ultimosAdapter != null) ultimosAdapter.notifyDataSetChanged();
     }
 
-    /** Prompt para pendientes */
+    /** Prompt para pendientes (Operaciones) */
     private void maybePromptPendientes(int n) {
         if (n <= 0) return;
         if (!isAdded() || !isResumed()) return;
@@ -358,8 +354,8 @@ public class OperacionesHomeFragment extends Fragment {
                 : "⚠️  Tienes " + n + " descuentos por aprobar");
 
         String msgRaw = (uno
-                ? "Hay <b>1</b> solicitud pendiente de autorización. ¿Deseas aprobarla ahora?"
-                : "Hay <b>" + n + "</b> solicitudes pendientes de autorización. ¿Deseas revisarlas ahora?");
+                ? "Hay <b>1</b> solicitud pendiente de aprobación. ¿Deseas aprobarla ahora?"
+                : "Hay <b>" + n + "</b> solicitudes pendientes de aprobación. ¿Deseas revisarlas ahora?");
 
         new MaterialAlertDialogBuilder(requireContext())
                 .setIcon(R.drawable.ic_notifications)
@@ -490,6 +486,22 @@ public class OperacionesHomeFragment extends Fragment {
         nf.setMinimumFractionDigits(2);
         nf.setMaximumFractionDigits(2);
         tv.setText("S/ " + nf.format(amount));
+    }
+
+    // ===== Normalización/chequeos de estado backend (para KPI Pendientes) =====
+    private static String normalizeEstado(String raw) {
+        if (raw == null) return "";
+        String up = raw.trim().toUpperCase(Locale.ROOT);
+        String noAccents = Normalizer.normalize(up, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+        return noAccents.replaceAll("[\\s_-]+", "");
+    }
+
+    private static boolean isBackendPendienteAut(String estadoNorm) {
+        if (estadoNorm == null) return false;
+        if (estadoNorm.equals("PENDIENTEAUT")) return true;
+        if (estadoNorm.equals("PENDIENTEAUTORIZACION")) return true;
+        // defensivo por variantes
+        return (estadoNorm.startsWith("PENDIENTE") && estadoNorm.contains("AUT"));
     }
 
     // ===== Helpers menores =====
