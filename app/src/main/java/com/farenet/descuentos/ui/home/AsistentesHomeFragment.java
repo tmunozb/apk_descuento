@@ -222,7 +222,7 @@ public class AsistentesHomeFragment extends Fragment {
         // --- “Aprobadas” (aquí realmente: INGRESADAS de tipo BOLSA) ---
         if (callAprob != null) callAprob.cancel();
         callAprob = NewApiClient.get().listarSolicitudes(
-                getUser(), "INGRESADA", "BOLSA", null, 500, 0, "-creado_en"
+                getUser(), "PROCESADA", "BOLSA", null, 500, 0, "-creado_en"
         );
         callAprob.enqueue(new Callback<List<SolicitudDto>>() {
             @Override public void onResponse(Call<List<SolicitudDto>> call, Response<List<SolicitudDto>> rsp) {
@@ -278,7 +278,7 @@ public class AsistentesHomeFragment extends Fragment {
             String est  = d.estado != null ? d.estado.trim().toUpperCase(Locale.ROOT) : "";
             String tipo = d.tipo   != null ? d.tipo.trim().toUpperCase(Locale.ROOT)   : "";
 
-            if (!"INGRESADA".equals(est)) continue;
+            if (!"PROCESADA".equals(est)) continue;
             if (!"BOLSA".equals(tipo))     continue;
 
             if (onlyThisMonth) {
