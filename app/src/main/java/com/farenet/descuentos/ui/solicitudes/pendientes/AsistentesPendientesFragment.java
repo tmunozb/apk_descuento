@@ -39,6 +39,7 @@ import com.farenet.descuentos.ui.common.WhatsAppUtils;
 import com.farenet.descuentos.ui.solicitudes.model.SolicitudUI;
 import com.farenet.descuentos.ui.solicitudes.pendientes.adapter.PendienteSolicitudAdapter;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -248,9 +249,20 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
 
                 all.clear();
                 for (SolicitudPendienteDto d : response.body()) {
-                    if (isSoloComercial() && (d.estado == null || !d.estado.equalsIgnoreCase("PENDIENTE_AUT"))) {
-                        continue;
+                    final String estadoBkNorm = normalizeEstado(d.estado);
+
+                    // PERFIL: Comercial → SOLO ver PENDIENTE AUTORIZACION
+                    if (isSoloComercial()) {
+                        if (!isBackendPendienteAut(estadoBkNorm)) {
+                            continue; // descarta todo excepto pendiente_aut(oriza…)
+                        }
+                    } else {
+                        // NO comercial → excluir PENDIENTE AUTORIZACION del listado y conteo
+                        if (isBackendPendienteAut(estadoBkNorm)) {
+                            continue;
+                        }
                     }
+
                     String tipoNice = "DESCUENTO".equalsIgnoreCase(d.tipo) ? "Descuento"
                             : "CORTESIA".equalsIgnoreCase(d.tipo) ? "Cortesía" : safe(d.tipo);
                     String estadoNice = mapEstadoUI(d.estado);
@@ -323,15 +335,33 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
     }
 
     private String mapEstadoUI(String backendEstado) {
-        if (backendEstado == null) return "Pendiente";
-        switch (backendEstado.toUpperCase()) {
-            case "APROBADA": return "Aprobada";
-            case "RECHAZADA": return "Rechazada";
-            case "PENDIENTE_AUT": return "Pendiente (Autorización)";
-            case "OBSERVADA": return "Pendiente (Observada)";
-            case "ENVIADA":
-            default: return "Pendiente";
-        }
+        String n = normalizeEstado(backendEstado);
+        if (isBackendPendienteAut(n)) return "Pendiente (Autorización)";
+        if ("APROBADA".equals(n)) return "Aprobada";
+        if ("RECHAZADA".equals(n)) return "Rechazada";
+        if ("OBSERVADA".equals(n)) return "Pendiente (Observada)";
+        if ("ENVIADA".equals(n))   return "Pendiente";
+        // fallback
+        return "Pendiente";
+    }
+
+    // ===== normalización/chequeos de estado backend =====
+    private static String normalizeEstado(String raw) {
+        if (raw == null) return "";
+        String up = raw.trim().toUpperCase();
+        // elimina tildes
+        String noAccents = Normalizer.normalize(up, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+        // quita espacios, guiones y guiones bajos
+        return noAccents.replaceAll("[\\s_-]+", "");
+    }
+
+    private static boolean isBackendPendienteAut(String estadoNorm) {
+        // Acepta: PENDIENTE_AUT, PENDIENTE AUT, PENDIENTE_AUTORIZACION, etc.
+        if (estadoNorm == null) return false;
+        if (estadoNorm.equals("PENDIENTEAUT")) return true;
+        if (estadoNorm.equals("PENDIENTEAUTORIZACION")) return true;
+        // Por si llega como "PENDIENTEAUTORIZADA" (no debería) o similares, hacemos un contains doble
+        return (estadoNorm.startsWith("PENDIENTE") && estadoNorm.contains("AUT"));
     }
 
     // ===== Acciones =====
@@ -386,7 +416,7 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
                 s.estado = mapEstadoUI(est);
                 adapter.notifyDataSetChanged();
 
-                if ("APROBADA".equalsIgnoreCase(est)) {
+                if ("Aprobada".equalsIgnoreCase(s.estado)) {
                     Toast.makeText(requireContext(), "Aprobada", Toast.LENGTH_SHORT).show();
                     generarDescuentoSiCorresponde(s, nomFinal, rsp.body());
                 } else {
@@ -576,7 +606,7 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
 
     private void generarDescuentoSiCorresponde(SolicitudUI s, String aprobNom, AccionSolicitudRsp rsp) {
         String estadoBk = rsp != null ? rsp.estado : null;
-        boolean aprobadaOk = "APROBADA".equalsIgnoreCase(estadoBk);
+        boolean aprobadaOk = "APROBADA".equalsIgnoreCase(normalizeEstado(estadoBk));
         if (!aprobadaOk) return;
         generarDescuentoDesdeSolicitud(s, aprobNom);
     }
@@ -697,7 +727,7 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
                 String key = c.getKey();
                 String ab  = c.getAbreviatura();
                 String nm  = null;
-                try { nm = c.getAbreviatura(); } catch (Exception ignored) {}  // <-- FIX: nombre real
+                try { nm = c.getAbreviatura(); } catch (Exception ignored) {}
                 String display = !TextUtils.isEmpty(ab) ? ab
                         : (!TextUtils.isEmpty(nm) ? nm
                         : (!TextUtils.isEmpty(key) ? key : "Concepto"));

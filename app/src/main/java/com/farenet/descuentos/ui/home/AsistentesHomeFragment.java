@@ -35,7 +35,7 @@ import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
+import java.text.Normalizer;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -170,7 +170,7 @@ public class AsistentesHomeFragment extends Fragment {
         // Cargar datos al abrir
         loadKpis();
         loadUltimas(null);
-        cargarResumenBolsaGeneral(); // ⬅️ resumen de bolsa visible
+        cargarResumenBolsaGeneral();
     }
 
     @Override
@@ -178,7 +178,7 @@ public class AsistentesHomeFragment extends Fragment {
         super.onResume();
         loadKpis();
         loadUltimas(trimOrEmpty(etBuscarUltimos == null ? null : etBuscarUltimos.getText()));
-        cargarResumenBolsaGeneral(); // ⬅️ refresca resumen al volver
+        cargarResumenBolsaGeneral();
     }
 
     private void applyPreloadedDashboard() {
@@ -197,7 +197,6 @@ public class AsistentesHomeFragment extends Fragment {
 
     /** KPIs (sin acciones de bolsa) **/
     private void loadKpis() {
-        // Pinta “…” siempre para evitar que se vea el dato viejo del caché
         if (tvKpiPendientes != null) tvKpiPendientes.setText("…");
         if (tvKpiAprobadas  != null) tvKpiAprobadas.setText("…");
 
@@ -208,7 +207,16 @@ public class AsistentesHomeFragment extends Fragment {
         );
         callPendAut.enqueue(new Callback<List<SolicitudDto>>() {
             @Override public void onResponse(Call<List<SolicitudDto>> call, Response<List<SolicitudDto>> rsp) {
-                int n = (rsp.isSuccessful() && rsp.body() != null) ? rsp.body().size() : 0;
+                int n = 0;
+                if (rsp.isSuccessful() && rsp.body() != null) {
+                    // ⚠️ Filtro en cliente para EXCLUIR cualquier variante de "Pendiente Autorización"
+                    for (SolicitudDto d : rsp.body()) {
+                        String norm = normalizeEstado(d != null ? d.estado : null);
+                        if (!isBackendPendienteAut(norm)) {
+                            n++;
+                        }
+                    }
+                }
                 DashboardCache.setKpiPendAut(n);
                 updateTextIfChanged(tvKpiPendientes, n);
                 maybePromptPendientes(n);
@@ -228,7 +236,6 @@ public class AsistentesHomeFragment extends Fragment {
             @Override public void onResponse(Call<List<SolicitudDto>> call, Response<List<SolicitudDto>> rsp) {
                 int n = 0;
                 if (rsp.isSuccessful() && rsp.body() != null) {
-                    // ✅ Revalidamos en cliente por si el API no filtra exactamente
                     n = countIngresadasBolsa(rsp.body(), ONLY_THIS_MONTH_FOR_APPROVED);
                 }
                 DashboardCache.setKpiAprobadas(n);
@@ -240,8 +247,6 @@ public class AsistentesHomeFragment extends Fragment {
             }
         });
     }
-
-
 
     private void setKpiLoading() {
         int pend = DashboardCache.getKpiPendAut();
@@ -301,8 +306,6 @@ public class AsistentesHomeFragment extends Fragment {
             return false;
         }
     }
-
-
 
     /** Últimas **/
     private void loadUltimas(String q) {
@@ -490,6 +493,21 @@ public class AsistentesHomeFragment extends Fragment {
         nf.setMinimumFractionDigits(2);
         nf.setMaximumFractionDigits(2);
         tv.setText("S/ " + nf.format(amount));
+    }
+
+    // ===== Normalización/chequeos de estado backend (para KPI Pendientes) =====
+    private static String normalizeEstado(String raw) {
+        if (raw == null) return "";
+        String up = raw.trim().toUpperCase(Locale.ROOT);
+        String noAccents = Normalizer.normalize(up, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+        return noAccents.replaceAll("[\\s_-]+", "");
+    }
+
+    private static boolean isBackendPendienteAut(String estadoNorm) {
+        if (estadoNorm == null) return false;
+        if (estadoNorm.equals("PENDIENTEAUT")) return true;
+        if (estadoNorm.equals("PENDIENTEAUTORIZACION")) return true;
+        return (estadoNorm.startsWith("PENDIENTE") && estadoNorm.contains("AUT"));
     }
 
     // ===== Helpers menores =====
