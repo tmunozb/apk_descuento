@@ -40,8 +40,12 @@ public class PendienteSolicitudAdapter extends RecyclerView.Adapter<PendienteSol
     public void onBindViewHolder(@NonNull VH h, int pos) {
         SolicitudUI s = data.get(pos);
         h.tvTitulo.setText(s.codigo + " · " + s.tipo);
-        h.tvSub.setText("Placa: " + s.placa + " · Planta: " + s.planta + " · Motivo: " + s.motivo);
-        h.tvEstado.setText(s.estado);
+        h.tvPlanta.setText("Planta: " + s.planta);
+        h.tvSub.setText("Placa: " + s.placa);
+        h.tvSub2.setText("Concepto Vehicular: " + s.conceptoDisplay);
+        h.tvMonto.setText("Monto Descuento: S/." + s.monto);
+        h.tvMotivo.setText("Motivo: " + s.motivo);
+        h.tvEstado.setText("Estado: " + s.estado);
 
         h.btnAprobar.setOnClickListener(v -> {
             if (actions != null) actions.onAprobar(s);
@@ -55,12 +59,16 @@ public class PendienteSolicitudAdapter extends RecyclerView.Adapter<PendienteSol
     public int getItemCount() { return data.size(); }
 
     static class VH extends RecyclerView.ViewHolder {
-        TextView tvTitulo, tvSub, tvEstado;
+        TextView tvTitulo,tvPlanta, tvSub, tvSub2,tvMonto,tvMotivo, tvEstado;
         MaterialButton btnAprobar, btnRechazar;
         VH(@NonNull View v) {
             super(v);
             tvTitulo = v.findViewById(R.id.tv_titulo);
+            tvPlanta = v.findViewById(R.id.tv_planta);
             tvSub    = v.findViewById(R.id.tv_sub);
+            tvSub2    = v.findViewById(R.id.tv_sub2);
+            tvMonto  = v.findViewById(R.id.tv_monto);
+            tvMotivo    = v.findViewById(R.id.tv_motivo);
             tvEstado = v.findViewById(R.id.tv_estado);
             btnAprobar  = v.findViewById(R.id.btn_aprobar);
             btnRechazar = v.findViewById(R.id.btn_rechazar);

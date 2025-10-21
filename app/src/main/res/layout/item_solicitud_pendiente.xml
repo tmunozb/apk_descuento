@@ -21,12 +21,43 @@
             android:textStyle="bold"/>
 
         <TextView
+            android:id="@+id/tv_planta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Planta: Surco"
+            android:textColor="@android:color/darker_gray"
+            android:layout_marginTop="2dp"/>
+
+        <TextView
             android:id="@+id/tv_sub"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Placa: ABC123 · Planta: Surco · Motivo: Regularización"
             android:textColor="@android:color/darker_gray"
             android:layout_marginTop="2dp"/>
+
+        <TextView
+            android:id="@+id/tv_monto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Monto: S/. 10 "
+            android:textColor="@android:color/darker_gray"
+            android:layout_marginTop="2dp"/>
+
+        <TextView
+            android:id="@+id/tv_sub2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Motivo: Regularización · Monto: S/. 10 "
+            android:textColor="@android:color/darker_gray"
+            android:layout_marginTop="2dp"/>
+
+        <TextView
+            android:id="@+id/tv_motivo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Motivo"
+            android:textStyle="bold"/>
 
         <TextView
             android:id="@+id/tv_estado"

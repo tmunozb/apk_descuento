@@ -2,7 +2,17 @@ package com.farenet.descuentos.ui.solicitudes.model;
 
 import androidx.annotation.Nullable;
 
-/** Modelo de item para la lista de solicitudes pendientes/aprobadas/rechazadas. */
+import com.farenet.descuentos.data.local.realm.dao.QueryRealm;
+import com.farenet.descuentos.data.local.realm.entity.Conceptoinspeccion;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Modelo de item para la lista de solicitudes pendientes/aprobadas/rechazadas.
+ * Ahora resuelve automáticamente el nombre del concepto según su key usando los maestros locales.
+ */
 public class SolicitudUI {
     // Visibles en la tarjeta
     public String codigo;
@@ -24,6 +34,13 @@ public class SolicitudUI {
     public String tipoDesc;         // "AUTORIZADO" | "CARTA" | "CAMPAÑA"
     public String campaniaNombre;   // opcional, solo si tipoDesc == "CAMPAÑA"
 
+    // ===== Campo amigable para mostrar en UI =====
+    /** Nombre/abreviatura del concepto a mostrar en la lista (abreviatura -> nombre -> key). */
+    public String conceptoDisplay;
+
+    // Cache estático de conceptos para evitar recargar en cada instancia
+    private static Map<String, String> conceptosCache;
+
     // ===== Constructores de compatibilidad (no toques llamadas existentes) =====
     public SolicitudUI(String codigo, String tipo, String placa, String planta, String motivo, String estado) {
         this(codigo, tipo, placa, planta, motivo, estado, null, null);
@@ -41,15 +58,17 @@ public class SolicitudUI {
         this.planta = nz(planta);
         this.motivo = nz(motivo);
         this.estado = nz(estado);
-        this.id     = id;      // puede ser null hasta aprobar/rechazar
-        this.fecha  = fecha;   // opcional
+        this.id     = id;
+        this.fecha  = fecha;
+        this.conceptoDisplay = "Concepto";
     }
 
-    // ===== Nuevo ctor completo (cuando mapeas desde el DTO del backend) =====
+    // ===== Constructor completo =====
     public SolicitudUI(String codigo, String tipo, String placa, String planta, String motivo,
                        String estado, String id, String fecha,
                        @Nullable String plantaKey, @Nullable String conceptoKey, @Nullable String tipoPagoKey,
                        @Nullable Double monto, @Nullable String tipoDesc, @Nullable String campaniaNombre) {
+
         this(codigo, tipo, placa, planta, motivo, estado, id, fecha);
         this.plantaKey      = emptyToNull(plantaKey);
         this.conceptoKey    = emptyToNull(conceptoKey);
@@ -57,11 +76,47 @@ public class SolicitudUI {
         this.monto          = (monto != null ? monto : 0d);
         this.tipoDesc       = defaultTipoDesc(tipoDesc);
         this.campaniaNombre = emptyToNull(campaniaNombre);
+
+        // Resolver el nombre del concepto automáticamente
+        this.conceptoDisplay = resolveConceptoDisplay(this.conceptoKey);
     }
+
+    // ===== Métodos principales =====
 
     /** True si tenemos lo mínimo para generar descuento vía repo legacy. */
     public boolean isCompletaParaDescuento() {
         return notEmpty(plantaKey) && notEmpty(conceptoKey) && notEmpty(tipoPagoKey) && notEmpty(placa);
+    }
+
+    /**
+     * Busca el nombre/abreviatura del concepto desde los maestros locales.
+     * Si no se encuentra, devuelve el key como fallback.
+     */
+    private static String resolveConceptoDisplay(@Nullable String conceptoKey) {
+        if (conceptoKey == null || conceptoKey.trim().isEmpty()) return "Concepto";
+
+        // Inicializa cache si es necesario
+        if (conceptosCache == null) {
+            conceptosCache = new HashMap<>();
+            try {
+                List<Conceptoinspeccion> lista = QueryRealm.copyAllConceptos();
+                if (lista != null) {
+                    for (Conceptoinspeccion c : lista) {
+                        if (c == null) continue;
+                        String key = safe(c.getKey());
+                        if (key.isEmpty()) continue;
+                        String ab = safe(c.getAbreviatura());
+                        String nm = safe(c.getKey());
+                        String display = !ab.isEmpty() ? ab : (!nm.isEmpty() ? nm : key);
+                        conceptosCache.put(key, display);
+                    }
+                }
+            } catch (Exception ignored) { }
+        }
+
+        String display = conceptosCache.get(conceptoKey);
+        if (display == null || display.trim().isEmpty()) return conceptoKey;
+        return display;
     }
 
     // ===== Helpers internos =====
@@ -79,8 +134,11 @@ public class SolicitudUI {
         if (in == null) return "AUTORIZADO";
         String v = in.trim();
         if (v.isEmpty()) return "AUTORIZADO";
-        // Normalizamos a mayúsculas para comparaciones en UI/lógica
         return v.toUpperCase();
+    }
+
+    private static String safe(@Nullable String s) {
+        return (s == null) ? "" : s.trim();
     }
 
     @Override
@@ -90,7 +148,9 @@ public class SolicitudUI {
                 ", tipo='" + tipo + '\'' +
                 ", placa='" + placa + '\'' +
                 ", planta='" + planta + '\'' +
+                ", motivo='" + motivo + '\'' +
                 ", estado='" + estado + '\'' +
+                ", fecha='" + fecha + '\'' +
                 ", id='" + id + '\'' +
                 ", plantaKey='" + plantaKey + '\'' +
                 ", conceptoKey='" + conceptoKey + '\'' +
@@ -98,6 +158,7 @@ public class SolicitudUI {
                 ", monto=" + monto +
                 ", tipoDesc='" + tipoDesc + '\'' +
                 ", campaniaNombre='" + campaniaNombre + '\'' +
+                ", conceptoDisplay='" + conceptoDisplay + '\'' +
                 '}';
     }
 }
