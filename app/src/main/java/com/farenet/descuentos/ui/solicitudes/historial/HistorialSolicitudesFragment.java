@@ -1,21 +1,25 @@
 package com.farenet.descuentos.ui.solicitudes.historial;
 
 import android.os.Bundle;
+import android.text.TextUtils;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.farenet.descuentos.API.Actual.DTO.solicitudes.SolicitudDto;
 import com.farenet.descuentos.Core.Network.NewApiClient;
+import com.farenet.descuentos.Core.Storage.SessionManager;
 import com.farenet.descuentos.R;
 import com.farenet.descuentos.ui.solicitudes.comunes.adapter.SolicitudSimpleAdapter;
 import com.farenet.descuentos.ui.solicitudes.model.SolicitudUI;
-import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 
@@ -27,7 +31,11 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class HistorialSolicitudesActivity extends AppCompatActivity {
+/**
+ * Historial de solicitudes (como Fragment).
+ * Reutiliza los mismos IDs del layout de la actividad anterior.
+ */
+public class HistorialSolicitudesFragment extends Fragment {
 
     private MaterialAutoCompleteTextView actTipo, actEstado;
     private TextView tvEmpty;
@@ -40,69 +48,76 @@ public class HistorialSolicitudesActivity extends AppCompatActivity {
     private final List<SolicitudUI> data = new ArrayList<>();
 
     private Call<List<SolicitudDto>> listCall;
-
-    private String getUser() {
-        // TODO: reemplazar por usuario logueado real
-        return "tmunoz";
-    }
+    private SessionManager session;
 
     // Fuente del dropdown (mismo orden que verás en UI)
-    private static final String[] TIPOS_UI = {"Todos", "Descuento", "Cortesía", "Bolsa"};
-    private static final String[] ESTADOS_UI = {"Todos", "Aprobada","Procesada", "Rechazada", "Pendiente", "Enviada"};
+    private static final String[] TIPOS_UI   = {"Todos", "Descuento", "Cortesía", "Bolsa"};
+    private static final String[] ESTADOS_UI = {"Todos","Ingresada", "Aprobada", "Procesada", "Rechazada", "Pendiente", "Enviada"};
+
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        // Puedes crear un nuevo layout "fragment_historial_solicitudes" con los mismos IDs,
+        // o referenciar directamente R.layout.activity_historial_solicitudes si ya te sirve.
+        return inflater.inflate(R.layout.fragment_historial_solicitudes, container, false);
+    }
 
     @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.fragment_historial_solicitudes);
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        session = new SessionManager(requireContext());
 
-        MaterialToolbar tb = findViewById(R.id.toolbar);
-        if (tb != null) tb.setNavigationOnClickListener(v -> finish());
+        actTipo    = view.findViewById(R.id.act_tipo);
+        actEstado  = view.findViewById(R.id.act_estado);
+        tvEmpty    = view.findViewById(R.id.tv_empty);
+        rv         = view.findViewById(R.id.rv);
+        swipe      = view.findViewById(R.id.swipe);
+        chipsQuick = view.findViewById(R.id.chips_quick);
+        progress   = view.findViewById(android.R.id.progress);
 
-        actTipo    = findViewById(R.id.act_tipo);
-        actEstado  = findViewById(R.id.act_estado);
-        tvEmpty    = findViewById(R.id.tv_empty);
-        rv         = findViewById(R.id.rv);
-        swipe      = findViewById(R.id.swipe);
-        chipsQuick = findViewById(R.id.chips_quick);
-        progress   = findViewById(android.R.id.progress);
-
-        rv.setLayoutManager(new LinearLayoutManager(this));
+        rv.setLayoutManager(new LinearLayoutManager(requireContext()));
         rv.setHasFixedSize(true);
         adapter = new SolicitudSimpleAdapter(data, s -> {
             // TODO: abrir detalle si aplica
         });
         rv.setAdapter(adapter);
 
-        // --- DROPDOWNS Material (usa layout/material correcto) ---
-        // ¡Más limpio que ArrayAdapter! y asegura estilos M3
-        actTipo.setSimpleItems(TIPOS_UI);
-        actEstado.setSimpleItems(ESTADOS_UI);
+        // MaterialAutoCompleteTextView (M3)
+        if (actTipo != null)   actTipo.setSimpleItems(TIPOS_UI);
+        if (actEstado != null) actEstado.setSimpleItems(ESTADOS_UI);
 
         // Valores por defecto
-        actTipo.setText("Todos", false);
-        actEstado.setText("Todos", false);
+        if (actTipo != null)   actTipo.setText("Todos", false);
+        if (actEstado != null) actEstado.setText("Todos", false);
 
         // Pull-to-refresh
         if (swipe != null) swipe.setOnRefreshListener(this::fetch);
 
         // Dropdown listeners -> recargar y sincronizar chips
-        actTipo.setOnItemClickListener((p, v, i, id) -> fetch());
-        actEstado.setOnItemClickListener((p, v, i, id) -> {
-            syncChipsWithEstado(value(actEstado.getText()));
-            fetch();
-        });
+        if (actTipo != null) {
+            actTipo.setOnItemClickListener((p, v, i, id) -> fetch());
+        }
+        if (actEstado != null) {
+            actEstado.setOnItemClickListener((p, v, i, id) -> {
+                syncChipsWithEstado(value(actEstado.getText()));
+                fetch();
+            });
+        }
 
         // Chips rápidos -> sincronizar dropdown
         if (chipsQuick != null) {
             chipsQuick.setOnCheckedChangeListener((group, checkedId) -> {
                 if (checkedId == View.NO_ID) return;
                 String sel = "Todos";
-                if (checkedId == R.id.chip_aprobadas)   sel = "Aprobada";
+                if (checkedId == R.id.chip_aprobadas)     sel = "Aprobada";
+                else if (checkedId == R.id.chip_rechazadas) sel = "Ingresada";
                 else if (checkedId == R.id.chip_rechazadas) sel = "Rechazada";
                 else if (checkedId == R.id.chip_procesadas) sel = "Procesada";
                 else if (checkedId == R.id.chip_pendientes) sel = "Pendiente";
                 else if (checkedId == R.id.chip_enviadas)   sel = "Enviada";
-                actEstado.setText(sel, false);
+                if (actEstado != null) actEstado.setText(sel, false);
                 fetch();
             });
             chipsQuick.check(R.id.chip_all);
@@ -110,6 +125,18 @@ public class HistorialSolicitudesActivity extends AppCompatActivity {
 
         // Primera carga
         fetch();
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (listCall != null) listCall.cancel();
+    }
+
+    private String getUser() {
+        String u = (session != null) ? session.getUsername() : null;
+        if (!TextUtils.isEmpty(u)) return u.trim();
+        return "tmunoz"; // fallback
     }
 
     private void fetch() {
@@ -124,11 +151,11 @@ public class HistorialSolicitudesActivity extends AppCompatActivity {
 
         if (listCall != null) listCall.cancel();
 
-        // Orden por más reciente
+        // Orden por más reciente (pide amplio y filtramos en cliente para consistencia inmediata)
         listCall = NewApiClient.get().listarSolicitudes(
-                getUser(),           // user global (evitas limitar por usuario)
-                null,           // estado en server (lo filtramos cliente para ver efecto inmediato)
-                null,           // tipo    en server (ídem)
+                getUser(),      // usuario para server (si aplica en tu backend)
+                null,           // estado en server (filtramos aquí abajo)
+                null,           // tipo en server   (filtramos aquí abajo)
                 null,           // q
                 200,
                 0,
@@ -140,16 +167,16 @@ public class HistorialSolicitudesActivity extends AppCompatActivity {
                 setRefreshing(false);
                 showLoading(false);
                 if (!rsp.isSuccessful() || rsp.body() == null) {
-                    toast("No se pudo cargar historial");
                     applyData(new ArrayList<>());
+                    toast("No se pudo cargar historial");
                     return;
                 }
 
-                // 1) Mapeo
+                // 1) Mapeo DTO -> UI
                 List<SolicitudUI> mapped = new ArrayList<>();
                 for (SolicitudDto d : rsp.body()) {
                     mapped.add(new SolicitudUI(
-                            nz(d.codigo),                 // mostrar CÓDIGO
+                            nz(d.codigo),
                             nz(capFirst(d.tipo)),
                             nz(d.placa),
                             nz(d.plantaNombre),
@@ -159,7 +186,7 @@ public class HistorialSolicitudesActivity extends AppCompatActivity {
                     ));
                 }
 
-                // 2) Filtro en memoria (fallback si server no filtra)
+                // 2) Filtro en memoria (por si el API no filtra exactamente)
                 List<SolicitudUI> filtered = new ArrayList<>();
                 for (SolicitudUI s : mapped) {
                     if (tipoApi != null && !tipoApi.equalsIgnoreCase(mapTipoToApi(s.tipo))) continue;
@@ -169,12 +196,13 @@ public class HistorialSolicitudesActivity extends AppCompatActivity {
 
                 applyData(filtered);
             }
+
             @Override public void onFailure(Call<List<SolicitudDto>> call, Throwable t) {
                 if (call.isCanceled()) return;
                 setRefreshing(false);
                 showLoading(false);
-                toast("Error de red");
                 applyData(new ArrayList<>());
+                toast("Error de red");
             }
         });
     }
@@ -182,11 +210,11 @@ public class HistorialSolicitudesActivity extends AppCompatActivity {
     private void applyData(List<SolicitudUI> items) {
         data.clear();
         if (items != null) data.addAll(items);
-        adapter.notifyDataSetChanged();
+        if (adapter != null) adapter.notifyDataSetChanged();
 
         boolean empty = data.isEmpty();
-        tvEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
-        rv.setVisibility(empty ? View.GONE : View.VISIBLE);
+        if (tvEmpty != null) tvEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
+        if (rv != null) rv.setVisibility(empty ? View.GONE : View.VISIBLE);
     }
 
     private void syncChipsWithEstado(String estadoUI) {
@@ -194,6 +222,8 @@ public class HistorialSolicitudesActivity extends AppCompatActivity {
         if ("Aprobada".equalsIgnoreCase(estadoUI)) {
             chipsQuick.check(R.id.chip_aprobadas);
         } else if ("Rechazada".equalsIgnoreCase(estadoUI)) {
+            chipsQuick.check(R.id.chip_ingresadas);
+        } else if ("Ingresada".equalsIgnoreCase(estadoUI)) {
             chipsQuick.check(R.id.chip_rechazadas);
         } else if ("Procesada".equalsIgnoreCase(estadoUI)) {
             chipsQuick.check(R.id.chip_procesadas);
@@ -214,42 +244,40 @@ public class HistorialSolicitudesActivity extends AppCompatActivity {
         if (progress != null) progress.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
+    // ===== Helpers =====
     private void toast(String s) {
-        android.widget.Toast.makeText(this, s, android.widget.Toast.LENGTH_LONG).show();
+        if (!isAdded()) return;
+        android.widget.Toast.makeText(requireContext(), s, android.widget.Toast.LENGTH_LONG).show();
     }
 
-    private String value(CharSequence cs) { return cs == null ? "" : cs.toString().trim(); }
-    private String nz(String s) { return s == null ? "" : s; }
+    private static String value(CharSequence cs) { return cs == null ? "" : cs.toString().trim(); }
+    private static String nz(String s) { return s == null ? "" : s; }
 
-    private String capFirst(String s) {
+    private static String capFirst(String s) {
         if (s == null || s.isEmpty()) return "";
-        return s.substring(0,1).toUpperCase(Locale.getDefault()) +
-                s.substring(1).toLowerCase(Locale.getDefault());
+        return s.substring(0,1).toUpperCase(Locale.getDefault())
+                + s.substring(1).toLowerCase(Locale.getDefault());
     }
 
     // Normalización UI -> API
-    private String mapTipoToApi(String t) {
+    private static String mapTipoToApi(String t) {
         if ("Todos".equalsIgnoreCase(t) || t.isEmpty()) return null;
         String x = t.toLowerCase(Locale.ROOT);
         if (x.startsWith("descu")) return "DESCUENTO";
         if (x.startsWith("corte")) return "CORTESIA";
+        if (x.startsWith("bolsa")) return "BOLSA";
         return t.toUpperCase(Locale.ROOT);
     }
 
-    private String mapEstadoToApi(String e) {
+    private static String mapEstadoToApi(String e) {
         if ("Todos".equalsIgnoreCase(e) || e.isEmpty()) return null;
         String x = e.toLowerCase(Locale.ROOT);
         if (x.startsWith("apro")) return "APROBADA";
+        if (x.startsWith("ingre")) return "INGRESADA";
         if (x.startsWith("recha")) return "RECHAZADA";
         if (x.startsWith("proce")) return "PROCESADA";
         if (x.startsWith("pend")) return "PENDIENTE";
         if (x.startsWith("envi")) return "ENVIADA";
         return e.toUpperCase(Locale.ROOT);
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (listCall != null) listCall.cancel();
     }
 }

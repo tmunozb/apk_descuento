@@ -8,6 +8,7 @@ import com.farenet.descuentos.ui.bolsa.BolsaFragment;
 import com.farenet.descuentos.ui.home.OperacionesHomeFragment;
 import com.farenet.descuentos.ui.solicitudes.cortesia.CortesiaFragment;
 import com.farenet.descuentos.ui.solicitudes.crear.FragmentCortesia;
+import com.farenet.descuentos.ui.solicitudes.historial.HistorialSolicitudesFragment;
 import com.farenet.descuentos.ui.solicitudes.pendientes.OperacionesPendientesFragment;
 import com.farenet.descuentos.ui.solicitudes.cortesia.CortesiaActivity;
 import com.farenet.descuentos.ui.solicitudes.pendientes.PendientesFragment;
@@ -20,7 +21,7 @@ public class OperacionesTabsAdapter extends FragmentStateAdapter {
         else if (position==1)
             return new BolsaFragment();
         else if (position==2)
-            return new OperacionesPendientesFragment();
+            return new HistorialSolicitudesFragment();
             else return new FragmentCortesia();
     }
     @Override public int getItemCount() { return 4; }

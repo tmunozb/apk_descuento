@@ -11,15 +11,6 @@
         android:layout_height="wrap_content"
         android:fitsSystemWindows="true"
         app:liftOnScroll="true">
-
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar"
-            style="@style/Widget.Farenet.Toolbar.Comercial"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            app:logo="@drawable/ic_logo_farenet"
-            app:logoDescription="@string/app_name"
-            app:title="" />
     </com.google.android.material.appbar.AppBarLayout>
 
     <!-- Contenido -->
@@ -129,6 +120,13 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Aprobadas" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_ingresadas"
+                            style="@style/Widget.Material3.Chip.Assist"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Ingresadas" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_rechazadas"
