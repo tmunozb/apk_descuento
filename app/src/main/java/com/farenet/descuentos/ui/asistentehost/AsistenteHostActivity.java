@@ -55,6 +55,9 @@ public class AsistenteHostActivity extends AppCompatActivity {
             } else if (id == R.id.tab_solicitudes) {
                 setCurrent(1);
                 return true;
+            } else if (id == R.id.tab_historial) {
+                setCurrent(2);
+                return true;
             }
             return false;
         });
@@ -62,7 +65,8 @@ public class AsistenteHostActivity extends AppCompatActivity {
         // Pager -> BottomNav
         pager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override public void onPageSelected(int position) {
-                int target = (position == 0) ? R.id.tab_home : R.id.tab_solicitudes;
+                int target = (position == 0) ? R.id.tab_home :
+                        position == 1 ? R.id.tab_solicitudes : R.id.tab_historial;
                 if (bottom.getSelectedItemId() != target) bottom.setSelectedItemId(target);
             }
         });
@@ -102,7 +106,7 @@ public class AsistenteHostActivity extends AppCompatActivity {
         if (bottom != null) {
             bottom.setSelectedItemId(R.id.tab_solicitudes); // índice 1
         } else if (pager != null) {
-            pager.setCurrentItem(1, true);
+            pager.setCurrentItem(3, true);
         }
     }
 }

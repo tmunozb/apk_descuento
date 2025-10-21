@@ -8,5 +8,10 @@
     <item
         android:id="@+id/tab_solicitudes"
         android:title="Aprob. Pendientes"
+        android:icon="@drawable/ic_descuento"/>
+
+    <item
+        android:id="@+id/tab_historial"
+        android:title="Historial"
         android:icon="@drawable/ic_history_24"/>
 </menu>
