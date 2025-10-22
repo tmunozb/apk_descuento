@@ -1,5 +1,7 @@
 package com.farenet.descuentos.ui.solicitudes.historial;
 
+import static android.text.TextUtils.isEmpty;
+
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -23,9 +25,7 @@ import com.farenet.descuentos.ui.solicitudes.model.SolicitudUI;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 
-import java.lang.reflect.Field;
 import java.text.NumberFormat;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -36,7 +36,7 @@ import retrofit2.Response;
 
 /**
  * Historial de solicitudes (como Fragment).
- * Muestra monto y aprobador embebidos en el campo motivo para evitar tocar el adapter.
+ * Muestra Monto y Aprobado por embebidos en 'motivo' para evitar cambios en el adapter.
  */
 public class HistorialSolicitudesFragment extends Fragment {
 
@@ -53,9 +53,9 @@ public class HistorialSolicitudesFragment extends Fragment {
     private Call<List<SolicitudDto>> listCall;
     private SessionManager session;
 
-    // Fuente del dropdown (mismo orden que verás en UI)
-    private static final String[] TIPOS_UI   = {"Todos", "Descuento", "Bolsa"};
-    private static final String[] ESTADOS_UI = {"Todos","Ingresada", "Aprobada", "Procesada", "Rechazada", "Pendiente", "Enviada"};
+    // Dropdowns
+    private static final String[] TIPOS_UI   = {"Todos", "Descuento", "Cortesía", "Bolsa"};
+    private static final String[] ESTADOS_UI = {"Todos", "Aprobada", "Ingresada", "Procesada", "Rechazada", "Pendiente", "Enviada"};
 
     @Nullable
     @Override
@@ -80,9 +80,7 @@ public class HistorialSolicitudesFragment extends Fragment {
 
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
         rv.setHasFixedSize(true);
-        adapter = new SolicitudSimpleAdapter(data, s -> {
-            // TODO: abrir detalle si aplica
-        });
+        adapter = new SolicitudSimpleAdapter(data, s -> { /* TODO: abrir detalle si aplica */ });
         rv.setAdapter(adapter);
 
         if (actTipo != null)   actTipo.setSimpleItems(TIPOS_UI);
@@ -107,12 +105,13 @@ public class HistorialSolicitudesFragment extends Fragment {
             chipsQuick.setOnCheckedChangeListener((group, checkedId) -> {
                 if (checkedId == View.NO_ID) return;
                 String sel = "Todos";
-                if (checkedId == R.id.chip_aprobadas)      sel = "Aprobada";
-                else if (checkedId == R.id.chip_rechazadas) sel = "Rechazada";
-                else if (checkedId == R.id.chip_procesadas) sel = "Procesada";
-                else if (checkedId == R.id.chip_pendientes) sel = "Pendiente";
-                else if (checkedId == R.id.chip_enviadas)   sel = "Enviada";
-                else /* chip_all */                         sel = "Todos";
+                if (checkedId == R.id.chip_aprobadas)     sel = "Aprobada";
+                else if (checkedId == R.id.chip_ingresadas)  sel = "Ingresada";
+                else if (checkedId == R.id.chip_rechazadas)  sel = "Rechazada";
+                else if (checkedId == R.id.chip_procesadas)  sel = "Procesada";
+                else if (checkedId == R.id.chip_pendientes)  sel = "Pendiente";
+                else if (checkedId == R.id.chip_enviadas)    sel = "Enviada";
+                else /* chip_all */                          sel = "Todos";
                 if (actEstado != null) actEstado.setText(sel, false);
                 fetch();
             });
@@ -130,8 +129,7 @@ public class HistorialSolicitudesFragment extends Fragment {
 
     private String getUser() {
         String u = (session != null) ? session.getUsername() : null;
-        if (!TextUtils.isEmpty(u)) return u.trim();
-        return "tmunoz"; // fallback (útil en dev)
+        return isEmpty(u) ? "tmunoz" : u.trim(); // fallback útil en desarrollo
     }
 
     private void fetch() {
@@ -146,11 +144,12 @@ public class HistorialSolicitudesFragment extends Fragment {
 
         if (listCall != null) listCall.cancel();
 
+        // Traemos amplio y filtramos en cliente (consistencia inmediata con UI)
         listCall = NewApiClient.get().listarSolicitudes(
                 getUser(),
-                null,      // estado en server (filtramos cliente)
-                null,      // tipo en server   (filtramos cliente)
-                null,      // q
+                null,           // estado server
+                null,           // tipo server
+                null,           // q
                 200,
                 0,
                 "-creado_en"
@@ -166,20 +165,20 @@ public class HistorialSolicitudesFragment extends Fragment {
                     return;
                 }
 
-                // 1) Mapeo DTO -> UI (inyectando Monto y Aprobador en 'motivo')
+                // 1) Mapeo DTO -> UI (inyectando Monto y Aprobado por en 'motivo')
                 List<SolicitudUI> mapped = new ArrayList<>();
                 for (SolicitudDto d : rsp.body()) {
                     String motivoBase = nz(d.motivo);
                     Double monto = readMonto(d);
-                    String aprobador = readAprobador(d);
+                    String aprobador = readAprobadoPor(d);
 
                     StringBuilder motivoDisplay = new StringBuilder();
-                    if (!TextUtils.isEmpty(motivoBase)) motivoDisplay.append(motivoBase);
+                    if (!isEmpty(motivoBase)) motivoDisplay.append(motivoBase);
                     if (monto != null) {
                         if (motivoDisplay.length() > 0) motivoDisplay.append(" · ");
                         motivoDisplay.append("Monto: ").append(formatMoney(monto));
                     }
-                    if (!TextUtils.isEmpty(aprobador)) {
+                    if (!isEmpty(aprobador)) {
                         if (motivoDisplay.length() > 0) motivoDisplay.append(" · ");
                         motivoDisplay.append("Aprobó: ").append(aprobador);
                     }
@@ -189,13 +188,13 @@ public class HistorialSolicitudesFragment extends Fragment {
                             nz(capFirst(d.tipo)),
                             nz(d.placa),
                             nz(d.plantaNombre),
-                            motivoDisplay.toString(),                 // 👈 motivo + Monto + Aprobó
+                            motivoDisplay.toString(),           // motivo + Monto + Aprobó
                             nz(capFirst(d.estado)),
                             nz(d.creadoEn)
                     ));
                 }
 
-                // 2) Filtro en memoria (fallback si el API no filtra exacto)
+                // 2) Filtro en memoria
                 List<SolicitudUI> filtered = new ArrayList<>();
                 for (SolicitudUI s : mapped) {
                     if (tipoApi != null && !tipoApi.equalsIgnoreCase(mapTipoToApi(s.tipo))) continue;
@@ -228,19 +227,20 @@ public class HistorialSolicitudesFragment extends Fragment {
 
     private void syncChipsWithEstado(String estadoUI) {
         if (chipsQuick == null) return;
-        if ("Aprobada".equalsIgnoreCase(estadoUI)) {
+        if      ("Aprobada".equalsIgnoreCase(estadoUI) && chipsQuick.findViewById(R.id.chip_aprobadas) != null)
             chipsQuick.check(R.id.chip_aprobadas);
-        } else if ("Rechazada".equalsIgnoreCase(estadoUI)) {
+        else if ("Ingresada".equalsIgnoreCase(estadoUI) && chipsQuick.findViewById(R.id.chip_ingresadas) != null)
+            chipsQuick.check(R.id.chip_ingresadas);
+        else if ("Rechazada".equalsIgnoreCase(estadoUI))
             chipsQuick.check(R.id.chip_rechazadas);
-        } else if ("Procesada".equalsIgnoreCase(estadoUI)) {
+        else if ("Procesada".equalsIgnoreCase(estadoUI))
             chipsQuick.check(R.id.chip_procesadas);
-        } else if ("Pendiente".equalsIgnoreCase(estadoUI)) {
+        else if ("Pendiente".equalsIgnoreCase(estadoUI))
             chipsQuick.check(R.id.chip_pendientes);
-        } else if ("Enviada".equalsIgnoreCase(estadoUI)) {
+        else if ("Enviada".equalsIgnoreCase(estadoUI))
             chipsQuick.check(R.id.chip_enviadas);
-        } else {
+        else
             chipsQuick.check(R.id.chip_all);
-        }
     }
 
     private void setRefreshing(boolean refreshing) {
@@ -251,81 +251,66 @@ public class HistorialSolicitudesFragment extends Fragment {
         if (progress != null) progress.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
-    // ====== Lectura robusta de campos (monto, aprobador) ======
+    // ===== Lectura robusta de campos =====
 
     @Nullable
-    private Double readMonto(SolicitudDto d) {
-        try { if (d == null) return null;
-            // Campos típicos
-            Double m = getDoubleField(d, "monto");
-            if (m != null) return m;
-
-            m = getDoubleField(d, "importe");
-            if (m != null) return m;
-
-            m = getDoubleField(d, "montoDescuento");
-            if (m != null) return m;
-
-            m = getDoubleField(d, "monto_descuento");
-            if (m != null) return m;
-
-            m = getDoubleField(d, "monto_total");
-            if (m != null) return m;
-
-            return null;
-        } catch (Throwable ignore) { return null; }
-    }
-
-    @Nullable
-    private String readAprobador(SolicitudDto d) {
-        try { if (d == null) return null;
-            String s;
-
-            s = getStringField(d, "aprobadoPor");
-            if (!TextUtils.isEmpty(s)) return s;
-
-            s = getStringField(d, "aprobador");
-            if (!TextUtils.isEmpty(s)) return s;
-
-            s = getStringField(d, "autorizadoPor");
-            if (!TextUtils.isEmpty(s)) return s;
-
-            s = getStringField(d, "usuarioAprobador");
-            if (!TextUtils.isEmpty(s)) return s;
-
-            s = getStringField(d, "usuario_autoriza");
-            if (!TextUtils.isEmpty(s)) return s;
-
-            return null;
-        } catch (Throwable ignore) { return null; }
-    }
-
-    @Nullable
-    private Double getDoubleField(Object obj, String fieldName) {
+    private static Double readMonto(SolicitudDto d) {
         try {
-            Field f = obj.getClass().getDeclaredField(fieldName);
+            if (d.monto != null) return d.monto;      // campo típico
+        } catch (Throwable ignore) {}
+        // variantes comunes: "importe"
+        Double v = tryDoubleField(d, "importe");
+        if (v != null) return v;
+        // otra variante posible
+        v = tryDoubleField(d, "monto_total");
+        if (v != null) return v;
+        return null;
+    }
+
+    @Nullable
+    private static String readAprobadoPor(SolicitudDto d) {
+        // intenta distintas convenciones que puede traer el backend
+        String v = tryStringField(d, "aprobadoPorNombre");
+        if (!isEmpty(v)) return v;
+        v = tryStringField(d, "aprobado_por_nombre");
+        if (!isEmpty(v)) return v;
+        v = tryStringField(d, "aprobadorNombre");
+        if (!isEmpty(v)) return v;
+        v = tryStringField(d, "aprobadoPor");
+        if (!isEmpty(v)) return v;
+        v = tryStringField(d, "aprobador");
+        if (!isEmpty(v)) return v;
+        v = tryStringField(d, "aprobado_por"); // a veces username
+        if (!isEmpty(v)) return v;
+        return null;
+    }
+
+    @Nullable
+    private static String tryStringField(Object o, String field) {
+        try {
+            java.lang.reflect.Field f = o.getClass().getDeclaredField(field);
             f.setAccessible(true);
-            Object v = f.get(obj);
-            if (v == null) return null;
-            if (v instanceof Number) return ((Number) v).doubleValue();
-            if (v instanceof CharSequence) {
-                String s = v.toString().trim().replace(",", "");
-                if (s.isEmpty()) return null;
-                try { return Double.parseDouble(s); } catch (NumberFormatException ignore) { return null; }
-            }
-            return null;
+            Object val = f.get(o);
+            return (val == null) ? null : val.toString().trim();
         } catch (Throwable ignore) {
             return null;
         }
     }
 
     @Nullable
-    private String getStringField(Object obj, String fieldName) {
+    private static Double tryDoubleField(Object o, String field) {
         try {
-            Field f = obj.getClass().getDeclaredField(fieldName);
+            java.lang.reflect.Field f = o.getClass().getDeclaredField(field);
             f.setAccessible(true);
-            Object v = f.get(obj);
-            return v == null ? null : v.toString().trim();
+            Object val = f.get(o);
+            if (val == null) return null;
+            if (val instanceof Number) return ((Number) val).doubleValue();
+            if (val instanceof CharSequence) {
+                String s = val.toString().trim().replace(",", "");
+                if (s.isEmpty()) return null;
+                return Double.parseDouble(s);
+            }
+            return null;
         } catch (Throwable ignore) {
             return null;
         }
@@ -353,11 +338,12 @@ public class HistorialSolicitudesFragment extends Fragment {
                 + s.substring(1).toLowerCase(Locale.getDefault());
     }
 
-    // Normalización UI -> API
+    // Normalización UI -> API (por si en el futuro decides filtrar en server)
     private static String mapTipoToApi(String t) {
         if ("Todos".equalsIgnoreCase(t) || t.isEmpty()) return null;
         String x = t.toLowerCase(Locale.ROOT);
         if (x.startsWith("descu")) return "DESCUENTO";
+        if (x.startsWith("corte")) return "CORTESIA";
         if (x.startsWith("bolsa")) return "BOLSA";
         return t.toUpperCase(Locale.ROOT);
     }
@@ -365,10 +351,10 @@ public class HistorialSolicitudesFragment extends Fragment {
     private static String mapEstadoToApi(String e) {
         if ("Todos".equalsIgnoreCase(e) || e.isEmpty()) return null;
         String x = e.toLowerCase(Locale.ROOT);
+        if (x.startsWith("apro")) return "APROBADA";
         if (x.startsWith("ingre")) return "INGRESADA";
-        if (x.startsWith("apro"))  return "APROBADA";
-        if (x.startsWith("recha")) return "RECHAZADA";
         if (x.startsWith("proce")) return "PROCESADA";
+        if (x.startsWith("recha")) return "RECHAZADA";
         if (x.startsWith("pend"))  return "PENDIENTE";
         if (x.startsWith("envi"))  return "ENVIADA";
         return e.toUpperCase(Locale.ROOT);

@@ -35,6 +35,7 @@ import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.text.Normalizer;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
@@ -77,6 +78,10 @@ public class AsistentesHomeFragment extends Fragment {
     private Call<List<SolicitudDto>> callAprob;
     private Call<List<SolicitudDto>> callUltimas;
     private Call<List<BolsaConfigDto>> callBolsas;
+
+    // Resumen Descuentos (mes)
+    private TextView tvDescCountMes, tvDescMontoMes, tvDescPromMes;
+    private Call<List<SolicitudDto>> callDescMes;
 
     private String getUser() {
         String u = session != null ? session.getUsername() : null;
@@ -133,6 +138,11 @@ public class AsistentesHomeFragment extends Fragment {
         tvUsadoTotal = view.findViewById(R.id.tvUsadoTotal);
         tvSaldoTotal = view.findViewById(R.id.tvSaldoTotal);
 
+        // Resumen Descuentos (mes actual)
+        tvDescCountMes = view.findViewById(R.id.tvDescCountMes);
+        tvDescMontoMes = view.findViewById(R.id.tvDescMontoMes);
+        tvDescPromMes  = view.findViewById(R.id.tvDescPromMes);
+
         // Tile “Pendientes”
         MaterialCardView tilePend = view.findViewById(R.id.tilePendientesAut);
         if (tilePend != null) {
@@ -171,6 +181,7 @@ public class AsistentesHomeFragment extends Fragment {
         loadKpis();
         loadUltimas(null);
         cargarResumenBolsaGeneral();
+        cargarResumenDescuentosMes();
     }
 
     @Override
@@ -179,6 +190,7 @@ public class AsistentesHomeFragment extends Fragment {
         loadKpis();
         loadUltimas(trimOrEmpty(etBuscarUltimos == null ? null : etBuscarUltimos.getText()));
         cargarResumenBolsaGeneral();
+        cargarResumenDescuentosMes();
     }
 
     private void applyPreloadedDashboard() {
@@ -420,6 +432,125 @@ public class AsistentesHomeFragment extends Fragment {
         });
     }
 
+    private void cargarResumenDescuentosMes() {
+        if (callDescMes != null) callDescMes.cancel();
+
+        // Traemos todo y filtramos local (tipo/estado/mes)
+        callDescMes = NewApiClient.get().listarSolicitudes(
+                getUser(),
+                null,          // estado (local)
+                null,          // tipo (local)
+                null,          // q
+                1000,          // limit
+                0,             // offset
+                "-creado_en"   // orden
+        );
+
+        callDescMes.enqueue(new Callback<List<SolicitudDto>>() {
+            @Override public void onResponse(Call<List<SolicitudDto>> call, Response<List<SolicitudDto>> rsp) {
+                int count = 0;
+                double total = 0d;
+
+                if (rsp.isSuccessful() && rsp.body() != null) {
+                    for (SolicitudDto d : rsp.body()) {
+                        if (d == null) continue;
+
+                        // Tipo: acepta variantes (p.ej., "Descuento bolsa")
+                        String tipo = d.tipo == null ? "" : d.tipo.trim().toUpperCase(Locale.ROOT);
+                        if (!tipo.contains("BOLSA")) continue;
+
+                        // Estado: INGRESADA / INGRESADO / similares
+                        String est = d.estado == null ? "" : d.estado.trim().toUpperCase(Locale.ROOT);
+                        if (!est.startsWith("INGRES")) continue;
+
+                        // Fecha: aprobadaEn si existe; si no, creadoEn
+                        String fecha = !TextUtils.isEmpty(d.aprobadaEn) ? d.aprobadaEn : d.creadoEn;
+                        if (TextUtils.isEmpty(fecha) || !isFromThisMonth(fecha)) continue;
+
+                        total += readMonto(d);
+                        count++;
+                    }
+                }
+
+                double prom = count > 0 ? (total / count) : 0d;
+                setInt(tvDescCountMes, count);
+                setMoney(tvDescMontoMes, total);
+                setMoney(tvDescPromMes,  prom);
+            }
+
+            @Override public void onFailure(Call<List<SolicitudDto>> call, Throwable t) {
+                setInt(tvDescCountMes, 0);
+                setMoney(tvDescMontoMes, 0d);
+                setMoney(tvDescPromMes,  0d);
+            }
+        });
+    }
+
+    private double readMonto(SolicitudDto d) {
+        if (d == null) return 0d;
+
+        // Getters comunes
+        Double viaGetter = callNumericGetter(d, "getMonto");
+        if (viaGetter != null) return viaGetter;
+
+        viaGetter = callNumericGetter(d, "getMontoAprobado");
+        if (viaGetter != null) return viaGetter;
+        viaGetter = callNumericGetter(d, "getMonto_aprobado");
+        if (viaGetter != null) return viaGetter;
+
+        viaGetter = callNumericGetter(d, "getMontoSolicitado");
+        if (viaGetter != null) return viaGetter;
+        viaGetter = callNumericGetter(d, "getMonto_solicitado");
+        if (viaGetter != null) return viaGetter;
+
+        viaGetter = callNumericGetter(d, "getImporte");
+        if (viaGetter != null) return viaGetter;
+
+        viaGetter = callNumericGetter(d, "getTotal");
+        if (viaGetter != null) return viaGetter;
+
+        // Campos directos
+        Double viaField = readNumericField(d, "monto");
+        if (viaField != null) return viaField;
+
+        viaField = readNumericField(d, "montoAprobado");
+        if (viaField != null) return viaField;
+        viaField = readNumericField(d, "monto_aprobado");
+        if (viaField != null) return viaField;
+
+        viaField = readNumericField(d, "montoSolicitado");
+        if (viaField != null) return viaField;
+        viaField = readNumericField(d, "monto_solicitado");
+        if (viaField != null) return viaField;
+
+        viaField = readNumericField(d, "importe");
+        if (viaField != null) return viaField;
+
+        viaField = readNumericField(d, "total");
+        if (viaField != null) return viaField;
+
+        return 0d;
+    }
+
+    private @Nullable Double callNumericGetter(Object obj, String getterName) {
+        try {
+            Method m = obj.getClass().getMethod(getterName);
+            Object v = m.invoke(obj);
+            return asDouble(v);
+        } catch (Throwable ignore) {}
+        return null;
+    }
+
+    private @Nullable Double readNumericField(Object obj, String fieldName) {
+        try {
+            Field f = obj.getClass().getDeclaredField(fieldName);
+            f.setAccessible(true);
+            Object v = f.get(obj);
+            return asDouble(v);
+        } catch (Throwable ignore) {}
+        return null;
+    }
+
     private Set<String> allowedPlantas() {
         Set<String> keys = new HashSet<>();
         List<AccesoPlantaDto> accesos = session.getAccesos();
@@ -485,6 +616,11 @@ public class AsistentesHomeFragment extends Fragment {
             try { return Double.parseDouble(s); } catch (NumberFormatException e) { return null; }
         }
         return null;
+    }
+
+    private void setInt(TextView tv, int val) {
+        if (tv == null) return;
+        tv.setText(String.valueOf(val));
     }
 
     private void setMoney(TextView tv, double amount) {

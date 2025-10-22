@@ -1,16 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/card"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="12dp"
-    android:layout_marginTop="8dp"
-    android:clickable="true"
-    android:focusable="true"
-    android:foreground="?attr/selectableItemBackground"
-    app:cardUseCompatPadding="true"
+    android:layout_margin="8dp"
     app:cardCornerRadius="16dp"
+    app:cardUseCompatPadding="true"
     app:strokeColor="?attr/colorOutline"
     app:strokeWidth="1dp">
 
@@ -20,91 +15,103 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <!-- Fila superior: Código + Fecha + Estado (chip) -->
+        <!-- Cabecera: Código · Fecha · Estado -->
         <LinearLayout
             android:orientation="horizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:baselineAligned="false">
+            android:gravity="center_vertical">
 
-            <LinearLayout
-                android:orientation="vertical"
+            <TextView
+                android:id="@+id/tvCodigo"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1">
+                android:layout_weight="1"
+                android:textStyle="bold"
+                android:textColor="?attr/colorOnSurface"
+                android:text="COD-00001" />
 
-                <TextView
-                    android:id="@+id/tvCodigo"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="SB-2025-000001"
-                    android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
-
-                <TextView
-                    android:id="@+id/tvFecha"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="2025-08-12 09:34"
-                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                    android:textColor="?attr/colorOnSurfaceVariant" />
-            </LinearLayout>
+            <TextView
+                android:id="@+id/tvFecha"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="2025-01-01 12:00"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:layout_marginEnd="8dp" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chEstado"
                 style="@style/Widget.Material3.Chip.Assist"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Aprobada"
-                app:chipIconVisible="false" />
+                android:text="Pendiente" />
         </LinearLayout>
 
-        <!-- Línea divisoria -->
-        <View
+        <!-- Línea: Tipo · Placa -->
+        <TextView
+            android:id="@+id/tvTipo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Descuento"
+            android:textStyle="bold"
+            android:textColor="?attr/colorPrimary"
+            android:layout_marginTop="6dp" />
+
+        <TextView
+            android:id="@+id/tvPlaca"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ABC-123"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+        <!-- Planta -->
+        <TextView
+            android:id="@+id/tvPlanta"
             android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginVertical="8dp"
-            android:background="?attr/colorOutline" />
+            android:layout_height="wrap_content"
+            android:text="Planta Lima"
+            android:textColor="?attr/colorOnSurfaceVariant" />
 
-        <!-- Detalle: Tipo • Placa • Planta -->
-        <LinearLayout
-            android:orientation="horizontal"
+        <!-- Concepto (nuevo / opcional para adapter) -->
+        <TextView
+            android:id="@+id/tvConcepto"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:text="Concepto: LIV - Liviano"
+            android:textColor="?attr/colorOnSurface"
+            android:visibility="visible" />
 
-            <TextView
-                android:id="@+id/tvTipo"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Descuento"
-                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-
-            <TextView
-                android:id="@+id/tvPlaca"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:text="ABC-123"
-                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-
-            <TextView
-                android:id="@+id/tvPlanta"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:text="Surco"
-                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-        </LinearLayout>
-
-        <!-- Motivo (una línea, elipsis) -->
+        <!-- Motivo -->
         <TextView
             android:id="@+id/tvMotivo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:maxLines="1"
-            android:ellipsize="end"
-            android:text="Campaña – cliente frecuente"
-            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-            android:textColor="?attr/colorOnSurfaceVariant" />
+            android:text="Motivo de la solicitud"
+            android:textColor="?attr/colorOnSurface" />
+
+        <!-- Fila: Monto y Aprobado (nuevos / opcionales para adapter) -->
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp">
+
+            <TextView
+                android:id="@+id/tvMonto"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Monto: S/ 0.00"
+                android:textStyle="bold"
+                android:textColor="?attr/colorOnSurface" />
+
+            <TextView
+                android:id="@+id/tvAprobado"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Aprobó: —"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
+
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
