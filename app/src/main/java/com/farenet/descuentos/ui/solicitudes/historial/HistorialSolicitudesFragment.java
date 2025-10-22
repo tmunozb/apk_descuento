@@ -1,7 +1,5 @@
 package com.farenet.descuentos.ui.solicitudes.historial;
 
-import static android.text.TextUtils.isEmpty;
-
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -35,8 +33,8 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * Historial de solicitudes (como Fragment).
- * Muestra Monto y Aprobado por embebidos en 'motivo' para evitar cambios en el adapter.
+ * Historial de solicitudes (Fragment).
+ * Muestra Monto y "Aprobó" (desde d.aprobadoPorNombre) dentro de 'motivo'.
  */
 public class HistorialSolicitudesFragment extends Fragment {
 
@@ -53,9 +51,8 @@ public class HistorialSolicitudesFragment extends Fragment {
     private Call<List<SolicitudDto>> listCall;
     private SessionManager session;
 
-    // Dropdowns
-    private static final String[] TIPOS_UI   = {"Todos", "Descuento", "Cortesía", "Bolsa"};
-    private static final String[] ESTADOS_UI = {"Todos", "Aprobada", "Ingresada", "Procesada", "Rechazada", "Pendiente", "Enviada"};
+    private static final String[] TIPOS_UI   = {"Todos", "Descuento", "Bolsa"};
+    private static final String[] ESTADOS_UI = {"Todos", "Ingresada", "Procesada", "Rechazada", "Pendiente", "Enviada"};
 
     @Nullable
     @Override
@@ -80,7 +77,7 @@ public class HistorialSolicitudesFragment extends Fragment {
 
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
         rv.setHasFixedSize(true);
-        adapter = new SolicitudSimpleAdapter(data, s -> { /* TODO: abrir detalle si aplica */ });
+        adapter = new SolicitudSimpleAdapter(data, s -> { /* abrir detalle si aplica */ });
         rv.setAdapter(adapter);
 
         if (actTipo != null)   actTipo.setSimpleItems(TIPOS_UI);
@@ -91,9 +88,7 @@ public class HistorialSolicitudesFragment extends Fragment {
 
         if (swipe != null) swipe.setOnRefreshListener(this::fetch);
 
-        if (actTipo != null) {
-            actTipo.setOnItemClickListener((p, v, i, id) -> fetch());
-        }
+        if (actTipo != null)   actTipo.setOnItemClickListener((p, v, i, id) -> fetch());
         if (actEstado != null) {
             actEstado.setOnItemClickListener((p, v, i, id) -> {
                 syncChipsWithEstado(value(actEstado.getText()));
@@ -105,13 +100,12 @@ public class HistorialSolicitudesFragment extends Fragment {
             chipsQuick.setOnCheckedChangeListener((group, checkedId) -> {
                 if (checkedId == View.NO_ID) return;
                 String sel = "Todos";
-                if (checkedId == R.id.chip_aprobadas)     sel = "Aprobada";
-                else if (checkedId == R.id.chip_ingresadas)  sel = "Ingresada";
+                if      (checkedId == R.id.chip_ingresadas)  sel = "Ingresada";
                 else if (checkedId == R.id.chip_rechazadas)  sel = "Rechazada";
                 else if (checkedId == R.id.chip_procesadas)  sel = "Procesada";
                 else if (checkedId == R.id.chip_pendientes)  sel = "Pendiente";
                 else if (checkedId == R.id.chip_enviadas)    sel = "Enviada";
-                else /* chip_all */                          sel = "Todos";
+                else                                         sel = "Todos";
                 if (actEstado != null) actEstado.setText(sel, false);
                 fetch();
             });
@@ -129,7 +123,7 @@ public class HistorialSolicitudesFragment extends Fragment {
 
     private String getUser() {
         String u = (session != null) ? session.getUsername() : null;
-        return isEmpty(u) ? "tmunoz" : u.trim(); // fallback útil en desarrollo
+        return TextUtils.isEmpty(u) ? "tmunoz" : u.trim();
     }
 
     private void fetch() {
@@ -144,12 +138,11 @@ public class HistorialSolicitudesFragment extends Fragment {
 
         if (listCall != null) listCall.cancel();
 
-        // Traemos amplio y filtramos en cliente (consistencia inmediata con UI)
         listCall = NewApiClient.get().listarSolicitudes(
                 getUser(),
-                null,           // estado server
-                null,           // tipo server
-                null,           // q
+                null,      // estado servidor
+                null,      // tipo servidor
+                null,      // q
                 200,
                 0,
                 "-creado_en"
@@ -165,20 +158,21 @@ public class HistorialSolicitudesFragment extends Fragment {
                     return;
                 }
 
-                // 1) Mapeo DTO -> UI (inyectando Monto y Aprobado por en 'motivo')
+                // Mapear e inyectar "Monto" y "Aprobó" (desde aprobadoPorNombre) en 'motivo'
                 List<SolicitudUI> mapped = new ArrayList<>();
                 for (SolicitudDto d : rsp.body()) {
                     String motivoBase = nz(d.motivo);
-                    Double monto = readMonto(d);
-                    String aprobador = readAprobadoPor(d);
+                    Double monto      = readMonto(d);
+                    // 👇 USAR DIRECTO EL CAMPO MAPEADO POR GSON
+                    String aprobador  = safe(d.aprobadoPorNombre);
 
                     StringBuilder motivoDisplay = new StringBuilder();
-                    if (!isEmpty(motivoBase)) motivoDisplay.append(motivoBase);
+                    if (!TextUtils.isEmpty(motivoBase)) motivoDisplay.append(motivoBase);
                     if (monto != null) {
                         if (motivoDisplay.length() > 0) motivoDisplay.append(" · ");
                         motivoDisplay.append("Monto: ").append(formatMoney(monto));
                     }
-                    if (!isEmpty(aprobador)) {
+                    if (!TextUtils.isEmpty(aprobador)) {
                         if (motivoDisplay.length() > 0) motivoDisplay.append(" · ");
                         motivoDisplay.append("Aprobó: ").append(aprobador);
                     }
@@ -188,13 +182,13 @@ public class HistorialSolicitudesFragment extends Fragment {
                             nz(capFirst(d.tipo)),
                             nz(d.placa),
                             nz(d.plantaNombre),
-                            motivoDisplay.toString(),           // motivo + Monto + Aprobó
+                            motivoDisplay.toString(),
                             nz(capFirst(d.estado)),
                             nz(d.creadoEn)
                     ));
                 }
 
-                // 2) Filtro en memoria
+                // Filtro en memoria
                 List<SolicitudUI> filtered = new ArrayList<>();
                 for (SolicitudUI s : mapped) {
                     if (tipoApi != null && !tipoApi.equalsIgnoreCase(mapTipoToApi(s.tipo))) continue;
@@ -227,9 +221,7 @@ public class HistorialSolicitudesFragment extends Fragment {
 
     private void syncChipsWithEstado(String estadoUI) {
         if (chipsQuick == null) return;
-        if      ("Aprobada".equalsIgnoreCase(estadoUI) && chipsQuick.findViewById(R.id.chip_aprobadas) != null)
-            chipsQuick.check(R.id.chip_aprobadas);
-        else if ("Ingresada".equalsIgnoreCase(estadoUI) && chipsQuick.findViewById(R.id.chip_ingresadas) != null)
+        if ("Ingresada".equalsIgnoreCase(estadoUI)  && chipsQuick.findViewById(R.id.chip_ingresadas)  != null)
             chipsQuick.check(R.id.chip_ingresadas);
         else if ("Rechazada".equalsIgnoreCase(estadoUI))
             chipsQuick.check(R.id.chip_rechazadas);
@@ -251,69 +243,22 @@ public class HistorialSolicitudesFragment extends Fragment {
         if (progress != null) progress.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
-    // ===== Lectura robusta de campos =====
+    // ========= Lectura de campos =========
 
     @Nullable
     private static Double readMonto(SolicitudDto d) {
         try {
-            if (d.monto != null) return d.monto;      // campo típico
+            if (d.monto != null) return d.monto;
         } catch (Throwable ignore) {}
-        // variantes comunes: "importe"
-        Double v = tryDoubleField(d, "importe");
+        // Fallbacks si el backend cambia
+        Double v = tryParseDouble(d.importe);
         if (v != null) return v;
-        // otra variante posible
-        v = tryDoubleField(d, "monto_total");
-        if (v != null) return v;
-        return null;
+        return tryParseDouble(d.total);
     }
 
     @Nullable
-    private static String readAprobadoPor(SolicitudDto d) {
-        // intenta distintas convenciones que puede traer el backend
-        String v = tryStringField(d, "aprobadoPorNombre");
-        if (!isEmpty(v)) return v;
-        v = tryStringField(d, "aprobado_por_nombre");
-        if (!isEmpty(v)) return v;
-        v = tryStringField(d, "aprobadorNombre");
-        if (!isEmpty(v)) return v;
-        v = tryStringField(d, "aprobadoPor");
-        if (!isEmpty(v)) return v;
-        v = tryStringField(d, "aprobador");
-        if (!isEmpty(v)) return v;
-        v = tryStringField(d, "aprobado_por"); // a veces username
-        if (!isEmpty(v)) return v;
-        return null;
-    }
-
-    @Nullable
-    private static String tryStringField(Object o, String field) {
-        try {
-            java.lang.reflect.Field f = o.getClass().getDeclaredField(field);
-            f.setAccessible(true);
-            Object val = f.get(o);
-            return (val == null) ? null : val.toString().trim();
-        } catch (Throwable ignore) {
-            return null;
-        }
-    }
-
-    @Nullable
-    private static Double tryDoubleField(Object o, String field) {
-        try {
-            java.lang.reflect.Field f = o.getClass().getDeclaredField(field);
-            f.setAccessible(true);
-            Object val = f.get(o);
-            if (val == null) return null;
-            if (val instanceof Number) return ((Number) val).doubleValue();
-            if (val instanceof CharSequence) {
-                String s = val.toString().trim().replace(",", "");
-                if (s.isEmpty()) return null;
-                return Double.parseDouble(s);
-            }
-            return null;
-        } catch (Throwable ignore) {
-            return null;
-        }
+    private static Double tryParseDouble(Double n) {
+        return n; // ya viene como Double por Gson si existe
     }
 
     private String formatMoney(double amount) {
@@ -323,7 +268,7 @@ public class HistorialSolicitudesFragment extends Fragment {
         return "S/ " + nf.format(amount);
     }
 
-    // ===== Helpers =====
+    // ========= Helpers =========
     private void toast(String s) {
         if (!isAdded()) return;
         android.widget.Toast.makeText(requireContext(), s, android.widget.Toast.LENGTH_LONG).show();
@@ -331,6 +276,7 @@ public class HistorialSolicitudesFragment extends Fragment {
 
     private static String value(CharSequence cs) { return cs == null ? "" : cs.toString().trim(); }
     private static String nz(String s) { return s == null ? "" : s; }
+    private static String safe(String s) { return (s == null) ? "" : s.trim(); }
 
     private static String capFirst(String s) {
         if (s == null || s.isEmpty()) return "";
@@ -338,12 +284,10 @@ public class HistorialSolicitudesFragment extends Fragment {
                 + s.substring(1).toLowerCase(Locale.getDefault());
     }
 
-    // Normalización UI -> API (por si en el futuro decides filtrar en server)
     private static String mapTipoToApi(String t) {
         if ("Todos".equalsIgnoreCase(t) || t.isEmpty()) return null;
         String x = t.toLowerCase(Locale.ROOT);
         if (x.startsWith("descu")) return "DESCUENTO";
-        if (x.startsWith("corte")) return "CORTESIA";
         if (x.startsWith("bolsa")) return "BOLSA";
         return t.toUpperCase(Locale.ROOT);
     }
@@ -351,7 +295,6 @@ public class HistorialSolicitudesFragment extends Fragment {
     private static String mapEstadoToApi(String e) {
         if ("Todos".equalsIgnoreCase(e) || e.isEmpty()) return null;
         String x = e.toLowerCase(Locale.ROOT);
-        if (x.startsWith("apro")) return "APROBADA";
         if (x.startsWith("ingre")) return "INGRESADA";
         if (x.startsWith("proce")) return "PROCESADA";
         if (x.startsWith("recha")) return "RECHAZADA";

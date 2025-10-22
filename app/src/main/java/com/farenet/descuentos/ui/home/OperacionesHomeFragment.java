@@ -276,7 +276,7 @@ public class OperacionesHomeFragment extends Fragment {
             String est  = d.estado != null ? d.estado.trim().toUpperCase(Locale.ROOT) : "";
             String tipo = d.tipo   != null ? d.tipo.trim().toUpperCase(Locale.ROOT)   : "";
 
-            if (!"INGRESADA".equals(est)) continue;
+            if (!"PROCESADA".equals(est)) continue;
             if (!"BOLSA".equals(tipo))     continue;
 
             if (onlyThisMonth) {

@@ -288,6 +288,7 @@
                 android:layout_marginEnd="16dp"
                 android:layout_marginTop="8dp"
                 android:layout_marginBottom="8dp"
+                android:visibility="gone"
                 app:strokeWidth="1dp">
 
                 <LinearLayout

@@ -88,6 +88,12 @@
             android:layout_height="wrap_content"
             android:text="Motivo de la solicitud"
             android:textColor="?attr/colorOnSurface" />
+        <TextView
+            android:id="@+id/tvAprobado"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Aprobó: —"
+            android:textColor="?attr/colorOnSurfaceVariant" />
 
         <!-- Fila: Monto y Aprobado (nuevos / opcionales para adapter) -->
         <LinearLayout
@@ -105,12 +111,7 @@
                 android:textStyle="bold"
                 android:textColor="?attr/colorOnSurface" />
 
-            <TextView
-                android:id="@+id/tvAprobado"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Aprobó: —"
-                android:textColor="?attr/colorOnSurfaceVariant" />
+
         </LinearLayout>
 
     </LinearLayout>

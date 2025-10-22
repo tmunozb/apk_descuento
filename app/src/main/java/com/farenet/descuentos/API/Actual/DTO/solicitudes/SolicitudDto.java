@@ -22,4 +22,8 @@ public class SolicitudDto {
     @SerializedName("monto_solicitado")   public Double montoSolicitado;
     @SerializedName("importe")            public Double importe;
     @SerializedName("total")              public Double total;         // por si acaso
+
+    // En SolicitudDto
+    @SerializedName("aprobado_por_nombre")     public String aprobadoPorNombre;
+
 }
