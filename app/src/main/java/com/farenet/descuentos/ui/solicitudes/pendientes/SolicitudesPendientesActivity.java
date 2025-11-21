@@ -79,6 +79,24 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
         return estados.toArray(new String[0]);
     }
 
+    private String nombreUsuarioActual() {
+        UsuarioPerfil up = session.getPerfil();
+        if (up != null) {
+            String nom = (safe(up.nombres) + " " + safe(up.apellidos)).trim();
+            if (!TextUtils.isEmpty(nom)) return nom;
+            if (!TextUtils.isEmpty(up.username)) return up.username;
+        }
+        String fallback = session.getUsername();
+        return TextUtils.isEmpty(fallback) ? "USUARIO" : fallback;
+    }
+
+    private boolean puedeProcesarse(SolicitudUI s) {
+        return s != null
+                && "Aprobada".equalsIgnoreCase(s.estado)
+                && s.isCompletaParaDescuento(); // ya tienes este método en SolicitudUI
+    }
+
+
 
     private DescuentoRepository descuentoRepository;
     private SharedPreferences sharedPreferences;
@@ -178,6 +196,33 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
 
         cargarPendientes();
     }
+
+    @Override
+    public void onProcesar(SolicitudUI s) {
+        if (!puedeProcesarse(s)) {
+            Toast.makeText(this,
+                    "La solicitud no está lista para procesar.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Procesar solicitud")
+                .setMessage(
+                        "La solicitud ya está Aprobada.\n" +
+                                "Se intentará registrar el descuento nuevamente.\n\n" +
+                                "¿Deseas continuar?"
+                )
+                .setPositiveButton("Procesar", (d, w) -> {
+                    showLoading(true);
+                    String aprobNom = nombreUsuarioActual();
+                    // 👉 Solo reintenta la 2da API: registro de descuento
+                    generarDescuentoDesdeSolicitud(s, aprobNom);
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
 
     private void cargarPlantasDesdeSesion() {
         plantasNombres.clear();
@@ -377,6 +422,9 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
                             "Aprobada, pero falló el registro de descuento (" + rsp.code() + ")",
                             Toast.LENGTH_LONG).show();
                 }
+
+                showLoading(false);
+                cargarPendientes();
             }
 
             @Override
@@ -385,6 +433,7 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
                         "Aprobada, error registrando descuento: " +
                                 (t.getMessage()!=null?t.getMessage():""),
                         Toast.LENGTH_LONG).show();
+                showLoading(false);
             }
         });
     }
@@ -562,7 +611,9 @@ public class SolicitudesPendientesActivity extends AppCompatActivity
                 }
 
                 generarDescuentoSiCorresponde(s, aprobNomFinal, rsp);
-                cargarPendientes();
+                if (!"Aprobada".equalsIgnoreCase(s.estado)) {
+                    cargarPendientes();
+                }
             }
 
             @Override

@@ -7,95 +7,91 @@
     android:fitsSystemWindows="true"
     android:background="@color/fn_bg">
 
-    <androidx.core.widget.NestedScrollView
+    <LinearLayout
+        android:id="@+id/content_root"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        android:orientation="vertical"
+        android:padding="16dp">
 
-        <LinearLayout
+        <!-- Tarjeta compacta: chips + buscar -->
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Widget.Farenet.KpiCard"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:strokeWidth="1dp">
 
-            <!-- Tarjeta compacta: chips + buscar -->
-            <com.google.android.material.card.MaterialCardView
-                style="@style/Widget.Farenet.KpiCard"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                app:strokeWidth="1dp">
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <TextView
+                    android:id="@+id/tvHintResumen"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Selecciona mes y planta"
+                    android:textSize="12sp"
+                    android:textColor="@color/tile_subtitle" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="12dp">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="8dp">
 
-                    <TextView
-                        android:id="@+id/tvHintResumen"
-                        android:layout_width="match_parent"
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipPeriodo"
+                        style="@style/Widget.Farenet.FilterChip"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Selecciona mes y planta"
-                        android:textSize="12sp"
-                        android:textColor="@color/tile_subtitle" />
+                        android:text="Mes de trabajo"
+                        app:closeIconEnabled="false" />
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipPlanta"
+                        style="@style/Widget.Farenet.FilterChip"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:layout_marginTop="8dp">
+                        android:layout_marginStart="8dp"
+                        android:text="Planta"
+                        app:closeIconEnabled="false" />
 
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chipPeriodo"
-                            style="@style/Widget.Farenet.FilterChip"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Mes de trabajo"
-                            app:closeIconEnabled="false" />
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1" />
 
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chipPlanta"
-                            style="@style/Widget.Farenet.FilterChip"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:text="Planta"
-                            app:closeIconEnabled="false" />
-
-                        <View
-                            android:layout_width="0dp"
-                            android:layout_height="1dp"
-                            android:layout_weight="1" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnBuscar"
-                            style="@style/Widget.Material3.Button.TonalButton"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:minWidth="0dp"
-                            android:paddingStart="16dp"
-                            android:paddingEnd="16dp"
-                            android:text="Buscar"
-                            app:icon="@drawable/ic_search_24"
-                            app:iconPadding="8dp"
-                            app:iconGravity="textStart" />
-                    </LinearLayout>
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnBuscar"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minWidth="0dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="Buscar"
+                        app:icon="@drawable/ic_search_24"
+                        app:iconPadding="8dp"
+                        app:iconGravity="textStart" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-            <!-- Lista -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvBolsas"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:clipToPadding="false"
-                android:paddingBottom="8dp" />
-        </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
+        <!-- Lista (scroll solo del RecyclerView) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvBolsas"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:paddingBottom="8dp"
+            android:nestedScrollingEnabled="false" />
+        <!-- nestedScrollingEnabled=false mejora la inercia si luego agregas AppBar -->
+    </LinearLayout>
 
     <!-- Loading flotante -->
     <com.google.android.material.progressindicator.CircularProgressIndicator

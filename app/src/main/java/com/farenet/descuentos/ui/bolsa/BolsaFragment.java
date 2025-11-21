@@ -1,7 +1,10 @@
 package com.farenet.descuentos.ui.bolsa;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,6 +21,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.farenet.descuentos.R;
 import com.farenet.descuentos.API.Actual.DTO.bolsa.BolsaAuditoriaDto;
 import com.farenet.descuentos.API.Actual.DTO.bolsa.BolsaConfigDto;
+import com.farenet.descuentos.API.Actual.DTO.auth.LoginRsp;
 import com.farenet.descuentos.API.Actual.DTO.maestros.AccesoPlantaDto;
 import com.farenet.descuentos.Core.Network.NewApiClient;
 import com.farenet.descuentos.Core.Storage.SessionManager;
@@ -44,6 +48,14 @@ import retrofit2.Response;
 
 public class BolsaFragment extends Fragment implements BolsaEstadoAdapter.Actions {
 
+    private static final String TAG = "BolsaFragment";
+
+    // Namespace y keys de preferencias (aislar de otras pantallas)
+    private static final String SP_NS = "usuario";
+    private static final String KEY_PERFIL_ID_LEGACY = "perfil_id";
+    private static final String KEY_PERFIL_ID_V2     = "perfil_id_v2";
+    private static final String KEY_USERNAME         = "username";
+
     private RecyclerView rv;
     private View progress;
 
@@ -61,11 +73,15 @@ public class BolsaFragment extends Fragment implements BolsaEstadoAdapter.Action
     private Call<BolsaConfigDto> upsertCall;
     private Call<Map<String, Object>> estadoCall;
     private Call<List<BolsaAuditoriaDto>> auditCall;
+    private Call<LoginRsp> perfilCall;
 
     private String selectedPeriodoLabel = "";
     private String selectedPeriodoKey   = "";
     private String selectedPlantaNombre = "";
     private String selectedPlantaKey    = null;
+
+    /** Flag congelado para UI + acciones. */
+    private boolean adminModeFlag = false;
 
     @Nullable @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -88,17 +104,14 @@ public class BolsaFragment extends Fragment implements BolsaEstadoAdapter.Action
         session = new SessionManager(requireContext());
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
 
-        // ✳️ Modo admin solo si el usuario es “sistemas”
-        boolean adminMode = isUserSistemas();
-
         adapter = new BolsaEstadoAdapter(this);
-        adapter.setAdminMode(adminMode); // <-- el adapter debe ocultar botones/menú cuando sea false
-        adapter.setPlantaKeyToNombre(plantaKeyToNombre);
         rv.setAdapter(adapter);
+
+        // 1) Admin mode desde local (prefiere v2; si no, usa legacy; como último fallback, SessionManager)
+        refreshAdminMode(false);
 
         buildPeriodoOptions();
         cargarPlantasDesdeSesion();
-
         adapter.setPlantaKeyToNombre(plantaKeyToNombre);
 
         selectedPeriodoLabel = periodoLabels.isEmpty() ? "" : periodoLabels.get(0);
@@ -117,42 +130,149 @@ public class BolsaFragment extends Fragment implements BolsaEstadoAdapter.Action
         chipPlanta.setOnClickListener(v  -> showFiltrosBottomSheet(false, true));
         btnBuscar.setOnClickListener(v -> buscar());
 
+        // 2) Llama al backend autoritativamente y guarda en V2 (sin pisar legacy)
+        fetchPerfilIdRemoteAndRefresh();
+
         buscar();
     }
 
-    /** Devuelve true si el usuario tiene perfil/rol "sistemas". Robusto a distintas implementaciones de SessionManager. */
-    private boolean isUserSistemas() {
+    // ============================ PERFIL / ADMIN MODE ============================
+
+    private void refreshAdminMode(boolean updateAdapterToo) {
+        String localPid = readPerfilIdLocal();
+        boolean isSist = "sistemas".equalsIgnoreCase(normalize(localPid));
+        adminModeFlag = isSist || isUserSistemasFromSessionFallback();
+
+        Log.d(TAG, "SP " + KEY_PERFIL_ID_V2 + "=" + readSP(KEY_PERFIL_ID_V2));
+        Log.d(TAG, "SP " + KEY_PERFIL_ID_LEGACY + "=" + readSP(KEY_PERFIL_ID_LEGACY));
+        Log.i(TAG,  "adminModeFlag=" + adminModeFlag);
+
+        if (updateAdapterToo && adapter != null) {
+            adapter.setAdminMode(adminModeFlag);
+            Log.i(TAG, "adapter.isAdminMode()=" + adapter.isAdminMode());
+        } else if (adapter != null) {
+            // asegura que el adapter tenga el estado inicial correcto
+            adapter.setAdminMode(adminModeFlag);
+            Log.i(TAG, "adapter.isAdminMode()=" + adapter.isAdminMode());
+        }
+    }
+
+    private String readPerfilIdLocal() {
+        // Prefiere V2
+        String v2 = readSP(KEY_PERFIL_ID_V2);
+        if (!TextUtils.isEmpty(v2)) return v2;
+        // Luego legacy
+        String legacy = readSP(KEY_PERFIL_ID_LEGACY);
+        if (!TextUtils.isEmpty(legacy)) return legacy;
+        return "";
+    }
+
+    private void writePerfilIdV2(String pid) {
+        if (pid == null) return;
+        SharedPreferences sp = requireContext().getSharedPreferences(SP_NS, Context.MODE_PRIVATE);
+        sp.edit().putString(KEY_PERFIL_ID_V2, pid).apply();
+        Log.d(TAG, "WRITE SP " + KEY_PERFIL_ID_V2 + "=" + pid);
+    }
+
+    private String readSP(String key) {
+        SharedPreferences sp = requireContext().getSharedPreferences(SP_NS, Context.MODE_PRIVATE);
+        return sp.getString(key, "");
+    }
+
+    private String normalize(String s) {
+        return s == null ? "" : s.trim().toLowerCase(Locale.ROOT);
+    }
+
+    /** Fallback adicional por si el SessionManager ya trae el perfil correcto. */
+    private boolean isUserSistemasFromSessionFallback() {
         if (session == null) return false;
-
-        // 1) Métodos comunes en SessionManager (si existen)
-        try {
-            Method m = session.getClass().getMethod("getPerfilNombre");
-            Object v = m.invoke(session);
-            if (v != null && "sistemas".equalsIgnoreCase(v.toString())) return true;
-        } catch (Throwable ignore) {}
-
+        // getPerfilId()
         try {
             Method m = session.getClass().getMethod("getPerfilId");
             Object v = m.invoke(session);
-            if (v != null && "sistemas".equalsIgnoreCase(v.toString())) return true;
+            if (v != null && "sistemas".equalsIgnoreCase(String.valueOf(v).trim())) return true;
         } catch (Throwable ignore) {}
-
+        // boolean isSistemas()
         try {
-            Method m = session.getClass().getMethod("getRoles");
+            Method m = session.getClass().getMethod("isSistemas");
             Object v = m.invoke(session);
-            if (v instanceof List) {
-                for (Object r : ((List<?>) v)) {
-                    if (r != null) {
-                        String s = r.toString();
-                        if ("sistemas".equalsIgnoreCase(s) || "admin".equalsIgnoreCase(s)) return true;
-                    }
-                }
-            }
+            if (v instanceof Boolean && (Boolean) v) return true;
         } catch (Throwable ignore) {}
-
-        // 2) A falta de lo anterior, nunca habilitar admin
         return false;
     }
+
+    private String resolveUsername() {
+        // 1) SP
+        String u = readSP(KEY_USERNAME);
+        if (!TextUtils.isEmpty(u)) return u;
+        // 2) SessionManager (intenta getUsername / getUsuario / getLogin)
+        try {
+            Method m = session.getClass().getMethod("getUsername");
+            Object v = m.invoke(session);
+            if (v != null) return String.valueOf(v);
+        } catch (Throwable ignore) {}
+        try {
+            Method m = session.getClass().getMethod("getUsuario");
+            Object v = m.invoke(session);
+            if (v != null) return String.valueOf(v);
+        } catch (Throwable ignore) {}
+        try {
+            Method m = session.getClass().getMethod("getLogin");
+            Object v = m.invoke(session);
+            if (v != null) return String.valueOf(v);
+        } catch (Throwable ignore) {}
+        return "";
+    }
+
+    private void fetchPerfilIdRemoteAndRefresh() {
+        final String username = resolveUsername();
+        if (TextUtils.isEmpty(username)) {
+            Log.w(TAG, "No hay username para consultar login_perfiles (saltando fetch remoto).");
+            return;
+        }
+        if (perfilCall != null) perfilCall.cancel();
+        perfilCall = NewApiClient.get().loginPerfilesGet(username);
+        perfilCall.enqueue(new Callback<LoginRsp>() {
+            @Override public void onResponse(Call<LoginRsp> call, Response<LoginRsp> rsp) {
+                if (!isAdded()) return;
+                if (!rsp.isSuccessful() || rsp.body() == null) {
+                    Log.w(TAG, "loginPerfilesGet sin cuerpo / no exitoso");
+                    return;
+                }
+                LoginRsp body = rsp.body();
+                String pid = "";
+                // Intenta getters comunes primero
+                try {
+                    try { pid = (String) LoginRsp.class.getMethod("getPerfil_id").invoke(body); } catch (NoSuchMethodException ignore) {}
+                    if (TextUtils.isEmpty(pid)) {
+                        try { pid = (String) LoginRsp.class.getMethod("getPerfilId").invoke(body); } catch (NoSuchMethodException ignore) {}
+                    }
+                } catch (Throwable ignore) {}
+                // Campos públicos
+                if (TextUtils.isEmpty(pid)) {
+                    try { Object v = LoginRsp.class.getField("perfil_id").get(body); pid = v == null ? "" : String.valueOf(v); } catch (Throwable ignore) {}
+                }
+                if (TextUtils.isEmpty(pid)) {
+                    try { Object v = LoginRsp.class.getField("perfilId").get(body); pid = v == null ? "" : String.valueOf(v); } catch (Throwable ignore) {}
+                }
+
+                Log.d(TAG, "REMOTE perfil_id=" + pid);
+
+                if (!TextUtils.isEmpty(pid)) {
+                    // Siempre guardamos en V2; NUNCA tocamos legacy (para no pelear con otras pantallas)
+                    writePerfilIdV2(pid);
+                    // Recalcular admin y refrescar adapter
+                    refreshAdminMode(true);
+                }
+            }
+            @Override public void onFailure(Call<LoginRsp> call, Throwable t) {
+                if (call.isCanceled()) return;
+                Log.e(TAG, "loginPerfilesGet error: " + t.getMessage());
+            }
+        });
+    }
+
+    // ============================ UI / LISTA ============================
 
     private void buildPeriodoOptions() {
         periodoLabels.clear();
@@ -278,7 +398,7 @@ public class BolsaFragment extends Fragment implements BolsaEstadoAdapter.Action
 
         showLoading(true);
         if (listCall != null) listCall.cancel();
-        listCall = NewApiClient.get().bolsaListConfigs(periodo, plantaKey, null, 50);
+        listCall = NewApiClient.get().bolsaListConfigs(periodo, plantaKey, null, 200);
         listCall.enqueue(new Callback<List<BolsaConfigDto>>() {
             @Override public void onResponse(Call<List<BolsaConfigDto>> call, Response<List<BolsaConfigDto>> rsp) {
                 showLoading(false);
@@ -314,9 +434,7 @@ public class BolsaFragment extends Fragment implements BolsaEstadoAdapter.Action
     // ====== Actions del Adapter ======
     @Override
     public void onAuditoria(BolsaConfigDto item) {
-        // Guard extra: si no es sistemas, no hace nada
-        if (!isUserSistemas()) return;
-        if (item == null) return;
+        if (!adminModeFlag || item == null) return;
 
         showLoading(true);
         if (auditCall != null) auditCall.cancel();
@@ -362,16 +480,21 @@ public class BolsaFragment extends Fragment implements BolsaEstadoAdapter.Action
 
     @Override
     public void onEditarTope(BolsaConfigDto item) {
-        // Guard extra
-        if (!isUserSistemas()) return;
-        if (item == null) return;
+        if (!adminModeFlag || item == null) return;
 
         final View dialog = getLayoutInflater().inflate(R.layout.dialog_edit_tope, null, false);
         final com.google.android.material.textfield.TextInputEditText et =
                 dialog.findViewById(R.id.etNuevoTope);
-        if (item.monto_tope != null) {
-            et.setText(String.format(Locale.getDefault(), "%.2f", item.monto_tope));
-        }
+
+        Double tope = null;
+        try {
+            if (item.monto_tope != null) {
+                tope = (item.monto_tope instanceof Number)
+                        ? ((Number) item.monto_tope).doubleValue()
+                        : Double.parseDouble(String.valueOf(item.monto_tope));
+            }
+        } catch (Exception ignore) {}
+        if (tope != null) et.setText(String.format(Locale.getDefault(), "%.2f", tope));
 
         new AlertDialog.Builder(requireContext())
                 .setTitle("Editar tope")
@@ -420,9 +543,7 @@ public class BolsaFragment extends Fragment implements BolsaEstadoAdapter.Action
 
     @Override
     public void onToggleEstado(BolsaConfigDto item) {
-        // Guard extra
-        if (!isUserSistemas()) return;
-        if (item == null) return;
+        if (!adminModeFlag || item == null) return;
 
         final String nuevo = "CERRADO".equalsIgnoreCase(item.estado) ? "ACTIVO" : "CERRADO";
         new AlertDialog.Builder(requireContext())
@@ -467,5 +588,6 @@ public class BolsaFragment extends Fragment implements BolsaEstadoAdapter.Action
         if (upsertCall != null) upsertCall.cancel();
         if (estadoCall != null) estadoCall.cancel();
         if (auditCall != null) auditCall.cancel();
+        if (perfilCall != null) perfilCall.cancel();
     }
 }

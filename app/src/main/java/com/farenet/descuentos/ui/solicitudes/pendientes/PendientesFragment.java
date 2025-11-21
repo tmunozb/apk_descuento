@@ -315,6 +315,23 @@ public class PendientesFragment extends Fragment implements PendienteSolicitudAd
         return "pendiente".equals(e) || "pendiente (observada)".equals(e);
     }
 
+    private String nombreUsuarioActual() {
+        UsuarioPerfil up = session.getPerfil();
+        if (up != null) {
+            String nom = (safe(up.nombres) + " " + safe(up.apellidos)).trim();
+            if (!TextUtils.isEmpty(nom)) return nom;
+            if (!TextUtils.isEmpty(up.username)) return up.username;
+        }
+        String fallback = session.getUsername();
+        return TextUtils.isEmpty(fallback) ? "USUARIO" : fallback;
+    }
+
+    private boolean puedeProcesarse(SolicitudUI s) {
+        return s != null
+                && "Aprobada".equalsIgnoreCase(s.estado)
+                && s.isCompletaParaDescuento();
+    }
+
     private String mapEstadoUI(String backendEstado) {
         if (backendEstado == null) return "Pendiente";
         switch (backendEstado.toUpperCase(Locale.ROOT)) {
@@ -488,6 +505,31 @@ public class PendientesFragment extends Fragment implements PendienteSolicitudAd
         });
     }
 
+    @Override
+    public void onProcesar(SolicitudUI s) {
+        if (!puedeProcesarse(s)) {
+            Toast.makeText(requireContext(),
+                    "La solicitud no está lista para procesar.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Procesar solicitud")
+                .setMessage("La solicitud ya está aprobada.\n" +
+                        "Se intentará registrar el descuento nuevamente.\n\n" +
+                        "¿Deseas continuar?")
+                .setPositiveButton("Procesar", (d, w) -> {
+                    showLoading(true);
+                    String aprobNom = nombreUsuarioActual();
+                    // 👇 SOLO reintenta el registro del descuento (2ª API)
+                    generarDescuentoDesdeSolicitud(s, aprobNom);
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
+
     private void generarDescuentoSiCorresponde(SolicitudUI s, String aprobNom, AccionSolicitudRsp rsp) {
         String estadoBk = rsp != null ? rsp.estado : null;
         boolean aprobadaOk = "APROBADA".equalsIgnoreCase(estadoBk);
@@ -582,6 +624,10 @@ public class PendientesFragment extends Fragment implements PendienteSolicitudAd
                             "Aprobada, pero falló el registro de descuento (" + rsp.code() + ")",
                             Toast.LENGTH_LONG).show();
                 }
+
+                // 👇 En cualquier caso, cerramos loader y recargamos lista
+                showLoading(false);
+                cargarPendientes();
             }
 
             @Override
@@ -590,6 +636,7 @@ public class PendientesFragment extends Fragment implements PendienteSolicitudAd
                         "Aprobada, error registrando descuento: " +
                                 (t.getMessage()!=null?t.getMessage():""),
                         Toast.LENGTH_LONG).show();
+                showLoading(false);
             }
         });
     }

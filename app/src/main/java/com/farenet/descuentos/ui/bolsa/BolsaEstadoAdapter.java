@@ -1,5 +1,6 @@
 package com.farenet.descuentos.ui.bolsa;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,6 +11,7 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.farenet.descuentos.API.Actual.DTO.bolsa.BolsaConfigDto;
+import com.farenet.descuentos.BuildConfig;
 import com.farenet.descuentos.R;
 import com.google.android.material.button.MaterialButton;
 
@@ -27,6 +29,8 @@ public class BolsaEstadoAdapter extends RecyclerView.Adapter<BolsaEstadoAdapter.
         void onEditarTope(BolsaConfigDto item);
         void onToggleEstado(BolsaConfigDto item);
     }
+
+    private static final String TAG = "BolsaEstadoAdapter";
 
     private final List<BolsaConfigDto> data = new ArrayList<>();
     private final Actions actions;
@@ -51,13 +55,14 @@ public class BolsaEstadoAdapter extends RecyclerView.Adapter<BolsaEstadoAdapter.
     /** Habilita/Deshabilita botones de admin (auditoría / editar / abrir-cerrar). */
     public void setAdminMode(boolean adminMode) {
         this.adminMode = adminMode;
+        android.util.Log.i("BolsaEstadoAdapter", "setAdminMode -> " + adminMode + " (items=" + data.size() + ")");
         notifyDataSetChanged();
     }
 
-    /**
-     * Pasa el mapping de planta_key -> planta_nombre desde el Fragment.
-     * Aquí normalizamos las claves para evitar descalces (espacios, ceros a la izquierda, mayúsculas).
-     */
+    /** Para depuración en el Fragment, si quieres verificar el valor actual. */
+    public boolean isAdminMode() { return adminMode; }
+
+    /** Pasa el mapping de planta_key -> planta_nombre desde el Fragment. */
     public void setPlantaKeyToNombre(Map<String, String> map) {
         this.plantaKeyToNombre.clear();
         if (map != null) {
@@ -89,7 +94,7 @@ public class BolsaEstadoAdapter extends RecyclerView.Adapter<BolsaEstadoAdapter.
     public void onBindViewHolder(@NonNull VH h, int pos) {
         final BolsaConfigDto it = data.get(pos);
 
-        // -------- Planta: lookup con clave normalizada, con varios fallbacks
+        // -------- Planta: lookup con clave normalizada + fallback
         String rawKey = it != null && it.planta_key != null ? it.planta_key : "";
         String normKey = normalizeKey(rawKey);
 
@@ -97,7 +102,6 @@ public class BolsaEstadoAdapter extends RecyclerView.Adapter<BolsaEstadoAdapter.
         if (normKey != null) {
             nombrePlanta = plantaKeyToNombre.get(normKey);
             if (nombrePlanta == null) {
-                // Fallback extra: si es numérico, prueba sin ceros a la izquierda / con ceros
                 String alt = tryAlternateNumericKeys(normKey);
                 if (alt != null) nombrePlanta = plantaKeyToNombre.get(alt);
             }
@@ -123,10 +127,10 @@ public class BolsaEstadoAdapter extends RecyclerView.Adapter<BolsaEstadoAdapter.
             h.tvEstado.setTextColor(h.defaultEstadoColor);
         }
 
-        // Montos (robusto a nulls)
-        double tope  = it != null && it.monto_tope  != null ? it.monto_tope  : 0d;
-        double usado = it != null && it.monto_usado != null ? it.monto_usado : 0d;
-        double saldo = it != null && it.saldo       != null ? it.saldo       : (tope - usado);
+        // ---- MONTOS robustos (pueden venir como String en la API) ----
+        double tope  = parseDoubleSafe(it != null ? it.monto_tope  : null);
+        double usado = parseDoubleSafe(it != null ? it.monto_usado : null);
+        double saldo = (it != null && it.saldo != null) ? parseDoubleSafe(it.saldo) : (tope - usado);
 
         h.tvTUS.setText(
                 "Tope: S/ "  + dfMonto.format(tope)  +
@@ -135,6 +139,7 @@ public class BolsaEstadoAdapter extends RecyclerView.Adapter<BolsaEstadoAdapter.
         );
 
         // ---------- Acciones ----------
+        // IMPORTANTE: el valor depende de setAdminMode() llamado por el Fragment
         if (adminMode) {
             h.btnAuditoria.setVisibility(View.VISIBLE);
             h.btnEditarTope.setVisibility(View.VISIBLE);
@@ -161,29 +166,37 @@ public class BolsaEstadoAdapter extends RecyclerView.Adapter<BolsaEstadoAdapter.
 
     // ---------- Utils ----------
 
+    /** Acepta Number, String o null. */
+    private double parseDoubleSafe(Object val) {
+        if (val == null) return 0d;
+        if (val instanceof Number) return ((Number) val).doubleValue();
+        try {
+            String s = String.valueOf(val).trim().replace(",", ".");
+            if (s.isEmpty() || s.equalsIgnoreCase("null")) return 0d;
+            return Double.parseDouble(s);
+        } catch (Exception ignore) {
+            return 0d;
+        }
+    }
+
     /** Normaliza claves: trim, mayúsculas, si es numérico elimina ceros a la izquierda. */
     private String normalizeKey(String key) {
         if (key == null) return null;
         String k = key.trim();
         if (k.isEmpty()) return "";
-        // Si es numérico, normaliza a forma sin ceros a la izquierda
         if (k.matches("^0*\\d+$")) {
             try {
                 long n = Long.parseLong(k);
                 return String.valueOf(n);
-            } catch (NumberFormatException ignore) { /* sigue con texto tal cual */ }
+            } catch (NumberFormatException ignore) { }
         }
         return k.toUpperCase(Locale.ROOT);
     }
 
-    /** Si la clave es numérica, devuelve una alternativa (con/sin ceros) para probar un segundo lookup. */
     private String tryAlternateNumericKeys(String normalizedKey) {
         if (normalizedKey == null) return null;
-        // Si es numérico “puro”
         if (normalizedKey.matches("^\\d+$")) {
-            // Por si el mapa fue cargado con la versión uppercase (no aplica a dígitos) o con ceros a la izquierda
-            // Construye una versión 'zero-padded' común (ej: 000203) si sospechas longitudes fijas; aquí omitimos longitud fija.
-            // Retorna null y dejamos el fallback al rawKey ya mostrado en UI.
+            // Aquí podrías devolver una versión zero-padded si tu mapa se cargara así.
             return null;
         }
         return null;

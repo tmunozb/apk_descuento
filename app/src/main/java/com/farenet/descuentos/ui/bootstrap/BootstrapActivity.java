@@ -30,6 +30,7 @@ import com.farenet.descuentos.ui.auth.LoginActivity;
 import com.farenet.descuentos.ui.comercialhost.ComercialHostActivity;
 
 import com.farenet.descuentos.ui.operacioneshost.OperacionesHostActivity;
+import com.farenet.descuentos.ui.sistemashost.SistemasHostActivity;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
 
@@ -294,11 +295,11 @@ public class BootstrapActivity extends AppCompatActivity {
         Class<?> next;
 
         if ("sistemas".equalsIgnoreCase(perfil)) {
-            next = com.farenet.descuentos.ui.selection.sistemas.SelectionSistemasActivity.class;
+            next = SistemasHostActivity.class;
         } else if ("operaciones".equalsIgnoreCase(perfil)) {
             next = OperacionesHostActivity.class;
         } else if ("administrador".equalsIgnoreCase(perfil)) {
-            next = OperacionesHostActivity.class;
+            next = AsistenteHostActivity.class;
         } else if ("comercial".equalsIgnoreCase(perfil)) {
             next = ComercialHostActivity.class;
         } else if ("asistente_servicio".equalsIgnoreCase(perfil)) {

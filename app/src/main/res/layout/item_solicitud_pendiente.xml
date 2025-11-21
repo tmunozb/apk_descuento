@@ -86,6 +86,15 @@
                 android:layout_height="wrap_content"
                 android:text="Aprobar"
                 android:layout_marginStart="8dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_procesar"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Procesar"
+                android:visibility="gone"/>
+
         </LinearLayout>
 
     </LinearLayout>

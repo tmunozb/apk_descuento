@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.farenet.descuentos">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
 
@@ -27,7 +26,7 @@
         android:theme="@style/Theme.App"
         android:usesCleartextTraffic="true">
 
-        <!-- Todas las Activities heredan Theme.App (no mezclar MaterialComponents) -->
+        <!-- Activities -->
         <activity
             android:name=".ui.solicitudes.historial.HistorialSolicitudesActivity"
             android:exported="false" />
@@ -59,32 +58,39 @@
 
         <activity
             android:name=".ui.solicitudes.cortesia.CortesiaActivity"
-            android:windowSoftInputMode="stateHidden|adjustPan"
-            android:exported="false" />
+            android:exported="false"
+            android:windowSoftInputMode="stateHidden|adjustPan" />
 
-        <!-- Corrige: antes tenía Theme.MaterialComponents... cámbialo a Theme.App -->
         <activity
             android:name=".ui.comercialhost.ComercialHostActivity"
             android:exported="false"
             android:theme="@style/Theme.App" />
 
         <activity
+            android:name=".ui.sistemashost.SistemasHostActivity"
+            android:exported="false"
+            android:theme="@style/Theme.App"
+            android:windowSoftInputMode="stateHidden|adjustPan" />
+
+        <activity
             android:name=".ui.operacioneshost.OperacionesHostActivity"
             android:exported="false"
-            android:windowSoftInputMode="stateHidden|adjustPan"
-            android:theme="@style/Theme.App" />
+            android:theme="@style/Theme.App"
+            android:windowSoftInputMode="stateHidden|adjustPan" />
 
         <activity
             android:name=".ui.asistentehost.AsistenteHostActivity"
             android:exported="false"
             android:theme="@style/Theme.App" />
 
+        <!-- 🔹 Activity principal (única con MAIN + LAUNCHER) -->
         <activity
             android:name=".ui.bootstrap.BootstrapActivity"
-            android:exported="true">
+            android:exported="true"
+            android:screenOrientation="portrait">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
@@ -96,7 +102,6 @@
             android:name=".ui.bolsa.BolsaBulkActivity"
             android:exported="false" />
 
-        <!-- BaseSelectionActivity puede estar declarado aunque sea base (no se lanzará) -->
         <activity
             android:name=".ui.selection.base.BaseSelectionActivity"
             android:exported="false" />
@@ -111,22 +116,18 @@
 
         <activity
             android:name=".ui.selection.comercial.SelectionComercialActivity"
-            android:windowSoftInputMode="adjustResize"
-            android:exported="false" />
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".ui.selection.asistente.SelectionAsistenteActivity"
             android:exported="false" />
 
+        <!-- 🔸 LoginActivity ya no tiene LAUNCHER (solo se abre internamente) -->
         <activity
             android:name=".ui.auth.LoginActivity"
             android:exported="true"
-            android:screenOrientation="portrait">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:screenOrientation="portrait" />
 
     </application>
 </manifest>

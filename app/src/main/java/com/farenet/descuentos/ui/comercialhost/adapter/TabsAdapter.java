@@ -7,6 +7,7 @@ import androidx.viewpager2.adapter.FragmentStateAdapter;
 
 import com.farenet.descuentos.ui.home.HomeFragment;
 import com.farenet.descuentos.ui.bolsa.BolsaFragment;
+import com.farenet.descuentos.ui.solicitudes.historial.HistorialSolicitudesFragment;
 import com.farenet.descuentos.ui.solicitudes.pendientes.PendientesFragment;
 
 public class TabsAdapter extends FragmentStateAdapter {
@@ -20,10 +21,11 @@ public class TabsAdapter extends FragmentStateAdapter {
         switch (position) {
             case 0: return new HomeFragment();
             case 1: return new BolsaFragment();
-            default: return new PendientesFragment();
+            case 2: return new PendientesFragment();
+            default: return new HistorialSolicitudesFragment();
         }
     }
 
     @Override
-    public int getItemCount() { return 3; }
+    public int getItemCount() { return 4; }
 }

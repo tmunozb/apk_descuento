@@ -27,7 +27,8 @@ import com.farenet.descuentos.Core.Network.NewApiClient;
 import com.farenet.descuentos.Core.Storage.SessionManager;
 import com.farenet.descuentos.R;
 import com.farenet.descuentos.ui.auth.LoginActivity;
-import com.farenet.descuentos.ui.asistentehost.AsistenteHostActivity;
+import com.farenet.descuentos.ui.operacioneshost.OperacionesHostActivity;
+import com.farenet.descuentos.ui.sistemashost.SistemasHostActivity;
 import com.farenet.descuentos.ui.solicitudes.comunes.adapter.SolicitudSimpleAdapter;
 import com.farenet.descuentos.ui.solicitudes.model.SolicitudUI;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -35,7 +36,6 @@ import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.text.Normalizer;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
@@ -54,7 +54,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class AsistentesHomeFragment extends Fragment {
+public class SistemasHomeFragment extends Fragment {
 
     private static final boolean ONLY_THIS_MONTH_FOR_APPROVED = false;
 
@@ -79,10 +79,6 @@ public class AsistentesHomeFragment extends Fragment {
     private Call<List<SolicitudDto>> callUltimas;
     private Call<List<BolsaConfigDto>> callBolsas;
 
-    // Resumen Descuentos (mes)
-    private TextView tvDescCountMes, tvDescMontoMes, tvDescPromMes;
-    private Call<List<SolicitudDto>> callDescMes;
-
     private String getUser() {
         String u = session != null ? session.getUsername() : null;
         if (!TextUtils.isEmpty(u)) return u.trim();
@@ -97,7 +93,7 @@ public class AsistentesHomeFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_home_asistentes, container, false);
+        return inflater.inflate(R.layout.fragment_home_sistemas, container, false);
     }
 
     @Override
@@ -138,11 +134,6 @@ public class AsistentesHomeFragment extends Fragment {
         tvUsadoTotal = view.findViewById(R.id.tvUsadoTotal);
         tvSaldoTotal = view.findViewById(R.id.tvSaldoTotal);
 
-        // Resumen Descuentos (mes actual)
-        tvDescCountMes = view.findViewById(R.id.tvDescCountMes);
-        tvDescMontoMes = view.findViewById(R.id.tvDescMontoMes);
-        tvDescPromMes  = view.findViewById(R.id.tvDescPromMes);
-
         // Tile “Pendientes”
         MaterialCardView tilePend = view.findViewById(R.id.tilePendientesAut);
         if (tilePend != null) {
@@ -180,8 +171,7 @@ public class AsistentesHomeFragment extends Fragment {
         // Cargar datos al abrir
         loadKpis();
         loadUltimas(null);
-        cargarResumenBolsaGeneral();
-        cargarResumenDescuentosMes();
+        cargarResumenBolsaGeneral(); // resumen de bolsa visible
     }
 
     @Override
@@ -189,8 +179,7 @@ public class AsistentesHomeFragment extends Fragment {
         super.onResume();
         loadKpis();
         loadUltimas(trimOrEmpty(etBuscarUltimos == null ? null : etBuscarUltimos.getText()));
-        cargarResumenBolsaGeneral();
-        cargarResumenDescuentosMes();
+        cargarResumenBolsaGeneral(); // refresca resumen al volver
     }
 
     private void applyPreloadedDashboard() {
@@ -207,12 +196,13 @@ public class AsistentesHomeFragment extends Fragment {
         if (cur == null || !next.contentEquals(cur)) tv.setText(next);
     }
 
-    /** KPIs (sin acciones de bolsa) **/
+    /** KPIs **/
     private void loadKpis() {
+        // pinta “…” para evitar que se vea dato viejo del caché
         if (tvKpiPendientes != null) tvKpiPendientes.setText("…");
         if (tvKpiAprobadas  != null) tvKpiAprobadas.setText("…");
 
-        // --- Pendientes (OPERACIONES usa "PENDIENTE") ---
+        // --- Pendientes (Operaciones: estado PENDIENTE, excluyendo PENDIENTE_AUT) ---
         if (callPendAut != null) callPendAut.cancel();
         callPendAut = NewApiClient.get().listarSolicitudes(
                 getUser(), "PENDIENTE", null, null, 500, 0, "-creado_en"
@@ -221,7 +211,6 @@ public class AsistentesHomeFragment extends Fragment {
             @Override public void onResponse(Call<List<SolicitudDto>> call, Response<List<SolicitudDto>> rsp) {
                 int n = 0;
                 if (rsp.isSuccessful() && rsp.body() != null) {
-                    // ⚠️ Filtro en cliente para EXCLUIR cualquier variante de "Pendiente Autorización"
                     for (SolicitudDto d : rsp.body()) {
                         String norm = normalizeEstado(d != null ? d.estado : null);
                         if (!isBackendPendienteAut(norm)) {
@@ -239,7 +228,7 @@ public class AsistentesHomeFragment extends Fragment {
             }
         });
 
-        // --- “Aprobadas” (aquí realmente: INGRESADAS de tipo BOLSA) ---
+        // --- “Aprobadas” (en Operaciones estaba como INGRESADA de tipo BOLSA) ---
         if (callAprob != null) callAprob.cancel();
         callAprob = NewApiClient.get().listarSolicitudes(
                 getUser(), "INGRESADA", "BOLSA", null, 500, 0, "-creado_en"
@@ -258,13 +247,6 @@ public class AsistentesHomeFragment extends Fragment {
                 updateTextIfChanged(tvKpiAprobadas, 0);
             }
         });
-    }
-
-    private void setKpiLoading() {
-        int pend = DashboardCache.getKpiPendAut();
-        int apr  = DashboardCache.getKpiAprobadas();
-        if (tvKpiPendientes != null && pend < 0) tvKpiPendientes.setText("…");
-        if (tvKpiAprobadas  != null && apr  < 0) tvKpiAprobadas.setText("…");
     }
 
     private int filterThisMonthCount(List<SolicitudDto> list) {
@@ -295,7 +277,7 @@ public class AsistentesHomeFragment extends Fragment {
             String est  = d.estado != null ? d.estado.trim().toUpperCase(Locale.ROOT) : "";
             String tipo = d.tipo   != null ? d.tipo.trim().toUpperCase(Locale.ROOT)   : "";
 
-            if (!"INGRESADA".equals(est)) continue;
+            if (!"PROCESADA".equals(est)) continue;
             if (!"BOLSA".equals(tipo))     continue;
 
             if (onlyThisMonth) {
@@ -359,7 +341,7 @@ public class AsistentesHomeFragment extends Fragment {
         if (ultimosAdapter != null) ultimosAdapter.notifyDataSetChanged();
     }
 
-    /** Prompt para pendientes */
+    /** Prompt para pendientes (Operaciones) */
     private void maybePromptPendientes(int n) {
         if (n <= 0) return;
         if (!isAdded() || !isResumed()) return;
@@ -373,16 +355,16 @@ public class AsistentesHomeFragment extends Fragment {
                 : "⚠️  Tienes " + n + " descuentos por aprobar");
 
         String msgRaw = (uno
-                ? "Hay <b>1</b> solicitud pendiente de autorización. ¿Deseas aprobarla ahora?"
-                : "Hay <b>" + n + "</b> solicitudes pendientes de autorización. ¿Deseas revisarlas ahora?");
+                ? "Hay <b>1</b> solicitud pendiente de aprobación. ¿Deseas aprobarla ahora?"
+                : "Hay <b>" + n + "</b> solicitudes pendientes de aprobación. ¿Deseas revisarlas ahora?");
 
         new MaterialAlertDialogBuilder(requireContext())
                 .setIcon(R.drawable.ic_notifications)
                 .setTitle(title)
                 .setMessage(HtmlCompat.fromHtml(msgRaw, HtmlCompat.FROM_HTML_MODE_LEGACY))
                 .setPositiveButton(uno ? "Sí, aprobar ahora" : "Sí, ir ahora", (d, w) -> {
-                    if (requireActivity() instanceof AsistenteHostActivity) {
-                        ((AsistenteHostActivity) requireActivity()).goToPendingApprovals();
+                    if (requireActivity() instanceof SistemasHostActivity) {
+                        ((SistemasHostActivity) requireActivity()).goToPendingApprovals();
                     }
                 })
                 .setNegativeButton("No, luego", (d, w) -> { /* cerrar */ })
@@ -430,125 +412,6 @@ public class AsistentesHomeFragment extends Fragment {
                 setMoney(tvSaldoTotal, 0d);
             }
         });
-    }
-
-    private void cargarResumenDescuentosMes() {
-        if (callDescMes != null) callDescMes.cancel();
-
-        // Traemos todo y filtramos local (tipo/estado/mes)
-        callDescMes = NewApiClient.get().listarSolicitudes(
-                getUser(),
-                null,          // estado (local)
-                null,          // tipo (local)
-                null,          // q
-                1000,          // limit
-                0,             // offset
-                "-creado_en"   // orden
-        );
-
-        callDescMes.enqueue(new Callback<List<SolicitudDto>>() {
-            @Override public void onResponse(Call<List<SolicitudDto>> call, Response<List<SolicitudDto>> rsp) {
-                int count = 0;
-                double total = 0d;
-
-                if (rsp.isSuccessful() && rsp.body() != null) {
-                    for (SolicitudDto d : rsp.body()) {
-                        if (d == null) continue;
-
-                        // Tipo: acepta variantes (p.ej., "Descuento bolsa")
-                        String tipo = d.tipo == null ? "" : d.tipo.trim().toUpperCase(Locale.ROOT);
-                        if (!tipo.contains("BOLSA")) continue;
-
-                        // Estado: INGRESADA / INGRESADO / similares
-                        String est = d.estado == null ? "" : d.estado.trim().toUpperCase(Locale.ROOT);
-                        if (!est.startsWith("INGRES")) continue;
-
-                        // Fecha: aprobadaEn si existe; si no, creadoEn
-                        String fecha = !TextUtils.isEmpty(d.aprobadaEn) ? d.aprobadaEn : d.creadoEn;
-                        if (TextUtils.isEmpty(fecha) || !isFromThisMonth(fecha)) continue;
-
-                        total += readMonto(d);
-                        count++;
-                    }
-                }
-
-                double prom = count > 0 ? (total / count) : 0d;
-                setInt(tvDescCountMes, count);
-                setMoney(tvDescMontoMes, total);
-                setMoney(tvDescPromMes,  prom);
-            }
-
-            @Override public void onFailure(Call<List<SolicitudDto>> call, Throwable t) {
-                setInt(tvDescCountMes, 0);
-                setMoney(tvDescMontoMes, 0d);
-                setMoney(tvDescPromMes,  0d);
-            }
-        });
-    }
-
-    private double readMonto(SolicitudDto d) {
-        if (d == null) return 0d;
-
-        // Getters comunes
-        Double viaGetter = callNumericGetter(d, "getMonto");
-        if (viaGetter != null) return viaGetter;
-
-        viaGetter = callNumericGetter(d, "getMontoAprobado");
-        if (viaGetter != null) return viaGetter;
-        viaGetter = callNumericGetter(d, "getMonto_aprobado");
-        if (viaGetter != null) return viaGetter;
-
-        viaGetter = callNumericGetter(d, "getMontoSolicitado");
-        if (viaGetter != null) return viaGetter;
-        viaGetter = callNumericGetter(d, "getMonto_solicitado");
-        if (viaGetter != null) return viaGetter;
-
-        viaGetter = callNumericGetter(d, "getImporte");
-        if (viaGetter != null) return viaGetter;
-
-        viaGetter = callNumericGetter(d, "getTotal");
-        if (viaGetter != null) return viaGetter;
-
-        // Campos directos
-        Double viaField = readNumericField(d, "monto");
-        if (viaField != null) return viaField;
-
-        viaField = readNumericField(d, "montoAprobado");
-        if (viaField != null) return viaField;
-        viaField = readNumericField(d, "monto_aprobado");
-        if (viaField != null) return viaField;
-
-        viaField = readNumericField(d, "montoSolicitado");
-        if (viaField != null) return viaField;
-        viaField = readNumericField(d, "monto_solicitado");
-        if (viaField != null) return viaField;
-
-        viaField = readNumericField(d, "importe");
-        if (viaField != null) return viaField;
-
-        viaField = readNumericField(d, "total");
-        if (viaField != null) return viaField;
-
-        return 0d;
-    }
-
-    private @Nullable Double callNumericGetter(Object obj, String getterName) {
-        try {
-            Method m = obj.getClass().getMethod(getterName);
-            Object v = m.invoke(obj);
-            return asDouble(v);
-        } catch (Throwable ignore) {}
-        return null;
-    }
-
-    private @Nullable Double readNumericField(Object obj, String fieldName) {
-        try {
-            Field f = obj.getClass().getDeclaredField(fieldName);
-            f.setAccessible(true);
-            Object v = f.get(obj);
-            return asDouble(v);
-        } catch (Throwable ignore) {}
-        return null;
     }
 
     private Set<String> allowedPlantas() {
@@ -618,11 +481,6 @@ public class AsistentesHomeFragment extends Fragment {
         return null;
     }
 
-    private void setInt(TextView tv, int val) {
-        if (tv == null) return;
-        tv.setText(String.valueOf(val));
-    }
-
     private void setMoney(TextView tv, double amount) {
         if (tv == null) return;
         NumberFormat nf = NumberFormat.getNumberInstance(new Locale("es", "PE"));
@@ -643,6 +501,7 @@ public class AsistentesHomeFragment extends Fragment {
         if (estadoNorm == null) return false;
         if (estadoNorm.equals("PENDIENTEAUT")) return true;
         if (estadoNorm.equals("PENDIENTEAUTORIZACION")) return true;
+        // defensivo por variantes
         return (estadoNorm.startsWith("PENDIENTE") && estadoNorm.contains("AUT"));
     }
 

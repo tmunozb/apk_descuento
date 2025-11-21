@@ -19,6 +19,8 @@ public class PendienteSolicitudAdapter extends RecyclerView.Adapter<PendienteSol
     public interface Actions {
         void onAprobar(SolicitudUI s);
         void onRechazar(SolicitudUI s);
+
+        void onProcesar(SolicitudUI s);
     }
 
     private final List<SolicitudUI> data;
@@ -53,6 +55,16 @@ public class PendienteSolicitudAdapter extends RecyclerView.Adapter<PendienteSol
         h.btnRechazar.setOnClickListener(v -> {
             if (actions != null) actions.onRechazar(s);
         });
+
+        // 👇 Mostrar "Procesar" SOLO cuando está Aprobada y está completa para descuento
+        boolean puedeProcesar =
+                "Aprobada".equalsIgnoreCase(s.estado) &&
+                        s.isCompletaParaDescuento();
+
+        h.btnProcesar.setVisibility(puedeProcesar ? View.VISIBLE : View.GONE);
+        h.btnProcesar.setOnClickListener(v -> {
+            if (actions != null) actions.onProcesar(s);
+        });
     }
 
     @Override
@@ -60,7 +72,7 @@ public class PendienteSolicitudAdapter extends RecyclerView.Adapter<PendienteSol
 
     static class VH extends RecyclerView.ViewHolder {
         TextView tvTitulo,tvPlanta, tvSub, tvSub2,tvMonto,tvMotivo, tvEstado;
-        MaterialButton btnAprobar, btnRechazar;
+        MaterialButton btnAprobar, btnRechazar, btnProcesar;
         VH(@NonNull View v) {
             super(v);
             tvTitulo = v.findViewById(R.id.tv_titulo);
@@ -72,6 +84,7 @@ public class PendienteSolicitudAdapter extends RecyclerView.Adapter<PendienteSol
             tvEstado = v.findViewById(R.id.tv_estado);
             btnAprobar  = v.findViewById(R.id.btn_aprobar);
             btnRechazar = v.findViewById(R.id.btn_rechazar);
+            btnProcesar  = v.findViewById(R.id.btn_procesar);
         }
     }
 }

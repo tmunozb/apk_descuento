@@ -2,18 +2,27 @@ package com.farenet.descuentos.ui.solicitudes.pendientes;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AutoCompleteTextView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.view.MenuHost;
+import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Lifecycle;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
@@ -86,6 +95,26 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
     private final java.util.Map<String,String> conceptoNombreByKey = new java.util.HashMap<>();
     private final java.util.Map<String,String> tipoPagoNombreByKey = new java.util.HashMap<>();
 
+    // ====== Refresh ======
+    private static final long AUTO_REFRESH_INTERVAL_MS = 30_000L; // 30s
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private boolean autoRefreshEnabled = false;
+    private boolean softRefresh = false; // evita loader “duro” cuando refrescamos manual/auto
+
+    // arriba, junto a tus otros campos:
+    private static final int MENU_REFRESH_ID = 0x1001;
+    private static final int MENU_AUTO_REFRESH_ID = 0x1002;
+
+
+    private final Runnable autoRefreshTask = new Runnable() {
+        @Override public void run() {
+            if (!isAdded()) return;
+            refreshNow(); // soft refresh
+            // volver a programar
+            handler.postDelayed(this, AUTO_REFRESH_INTERVAL_MS);
+        }
+    };
+
     @Nullable @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
@@ -112,10 +141,13 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
         adapter = new PendienteSolicitudAdapter(data, this);
         rv.setAdapter(adapter);
 
-        // Pull-to-refresh
+        // Pull-to-refresh (soft)
         if (srl != null) {
-            srl.setOnRefreshListener(this::cargarPendientes);
+            srl.setOnRefreshListener(this::refreshNow);
         }
+
+        // Menú: Recargar y Auto-actualizar
+        attachMenu();
 
         cargarPlantasDesdeSesion();
         actPlanta.setAdapter(new android.widget.ArrayAdapter<>(requireContext(),
@@ -152,9 +184,78 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
             refreshMaestrosIfNeeded();
         }
 
-        // Estado inicial (oculto lista y vacío; muestro loader)
+        // Estado inicial (loader duro)
         showLoading(true);
         cargarPendientes();
+    }
+
+    // ===== Menú (Recargar / Auto-actualizar) =====
+    private void attachMenu() {
+        MenuHost host = requireActivity();
+        host.addMenuProvider(new MenuProvider() {
+            @Override
+            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
+                // Ítem: Recargar
+                MenuItem refresh = menu.add(Menu.NONE, MENU_REFRESH_ID, 0, "Recargar");
+                // Usa un ícono del sistema para evitar recursos faltantes
+                refresh.setIcon(android.R.drawable.ic_popup_sync);
+                refresh.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+
+                // Ítem: Auto-actualizar (toggle)
+                MenuItem auto = menu.add(Menu.NONE, MENU_AUTO_REFRESH_ID, 1,
+                        autoRefreshEnabled ? "Auto-actualizar: ON" : "Auto-actualizar: OFF");
+                auto.setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
+            }
+
+            @Override
+            public boolean onMenuItemSelected(@NonNull MenuItem item) {
+                int id = item.getItemId();
+                if (id == MENU_REFRESH_ID) {
+                    refreshNow();
+                    return true;
+                } else if (id == MENU_AUTO_REFRESH_ID) {
+                    autoRefreshEnabled = !autoRefreshEnabled;
+                    item.setTitle(autoRefreshEnabled ? "Auto-actualizar: ON" : "Auto-actualizar: OFF");
+                    if (autoRefreshEnabled) startAutoRefresh(); else stopAutoRefresh();
+                    return true;
+                }
+                return false;
+            }
+        }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
+    }
+
+
+    private void startAutoRefresh() {
+        handler.removeCallbacks(autoRefreshTask);
+        handler.postDelayed(autoRefreshTask, AUTO_REFRESH_INTERVAL_MS);
+        Toast.makeText(requireContext(), "Auto-actualización activada", Toast.LENGTH_SHORT).show();
+    }
+
+    private void stopAutoRefresh() {
+        handler.removeCallbacks(autoRefreshTask);
+        Toast.makeText(requireContext(), "Auto-actualización desactivada", Toast.LENGTH_SHORT).show();
+    }
+
+    private void refreshNow() {
+        if (srl != null && !srl.isRefreshing()) srl.setRefreshing(true);
+        softRefresh = true;
+        cargarPendientes();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Si el usuario vuelve a esta pantalla, puedes traer lo último
+        // (rápido y sin bloquear con loader duro)
+        refreshNow();
+        if (autoRefreshEnabled) startAutoRefresh();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        // Detén el auto-refresh para ahorrar recursos
+        stopAutoRefresh();
     }
 
     // ===== Roles / permisos =====
@@ -232,15 +333,18 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
     private void cargarPendientes() {
         if (listarCall != null) listarCall.cancel();
 
-        // Mientras carga: oculto lista y empty
-        showLoading(true);
+        // Cuando es hard-load (inicial) mostramos loader. Para soft refresh (pull/auto), no.
+        if (!softRefresh) {
+            showLoading(true);
+        }
 
         listarCall = NewApiClient.get().listarPendientes();
         listarCall.enqueue(new Callback<List<SolicitudPendienteDto>>() {
             @Override
             public void onResponse(Call<List<SolicitudPendienteDto>> call, Response<List<SolicitudPendienteDto>> response) {
-                showLoading(false);
                 if (srl != null && srl.isRefreshing()) srl.setRefreshing(false);
+                softRefresh = false;
+                showLoading(false);
 
                 if (!response.isSuccessful() || response.body() == null) {
                     showEmpty("No se pudo cargar pendientes.");
@@ -251,13 +355,11 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
                 for (SolicitudPendienteDto d : response.body()) {
                     final String estadoBkNorm = normalizeEstado(d.estado);
 
-                    // PERFIL: Comercial → SOLO ver PENDIENTE AUTORIZACION
                     if (isSoloComercial()) {
                         if (!isBackendPendienteAut(estadoBkNorm)) {
-                            continue; // descarta todo excepto pendiente_aut(oriza…)
+                            continue;
                         }
                     } else {
-                        // NO comercial → excluir PENDIENTE AUTORIZACION del listado y conteo
                         if (isBackendPendienteAut(estadoBkNorm)) {
                             continue;
                         }
@@ -286,18 +388,38 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
                     );
                     all.add(ui);
                 }
-                filtrar(); // internamente actualiza empty state
+                filtrar();
             }
 
             @Override
             public void onFailure(Call<List<SolicitudPendienteDto>> call, Throwable t) {
                 if (call.isCanceled()) return;
-                showLoading(false);
                 if (srl != null && srl.isRefreshing()) srl.setRefreshing(false);
+                softRefresh = false;
+                showLoading(false);
                 showEmpty("Error al cargar pendientes.");
             }
         });
     }
+
+    private boolean puedeProcesarse(SolicitudUI s) {
+        return s != null
+                && "Aprobada".equalsIgnoreCase(s.estado)
+                && s.isCompletaParaDescuento();
+    }
+
+    private String nombreUsuarioActual() {
+        UsuarioPerfil up = session.getPerfil();
+        if (up != null) {
+            String nom = (safe(up.nombres) + " " + safe(up.apellidos)).trim();
+            if (!TextUtils.isEmpty(nom)) return nom;
+            if (!TextUtils.isEmpty(up.username)) return up.username;
+        }
+        String fallback = session.getUsername();
+        return TextUtils.isEmpty(fallback) ? "USUARIO" : fallback;
+    }
+
+
 
     private void filtrar() {
         String planta = safe(actPlanta.getText() != null ? actPlanta.getText().toString() : "");
@@ -320,7 +442,6 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
         }
         adapter.notifyDataSetChanged();
 
-        // Empty state según filtros
         if (data.isEmpty()) {
             showEmpty("No hay descuentos por aprobar.");
         } else {
@@ -341,26 +462,20 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
         if ("RECHAZADA".equals(n)) return "Rechazada";
         if ("OBSERVADA".equals(n)) return "Pendiente (Observada)";
         if ("ENVIADA".equals(n))   return "Pendiente";
-        // fallback
         return "Pendiente";
     }
 
-    // ===== normalización/chequeos de estado backend =====
     private static String normalizeEstado(String raw) {
         if (raw == null) return "";
         String up = raw.trim().toUpperCase();
-        // elimina tildes
         String noAccents = Normalizer.normalize(up, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
-        // quita espacios, guiones y guiones bajos
         return noAccents.replaceAll("[\\s_-]+", "");
     }
 
     private static boolean isBackendPendienteAut(String estadoNorm) {
-        // Acepta: PENDIENTE_AUT, PENDIENTE AUT, PENDIENTE_AUTORIZACION, etc.
         if (estadoNorm == null) return false;
         if (estadoNorm.equals("PENDIENTEAUT")) return true;
         if (estadoNorm.equals("PENDIENTEAUTORIZACION")) return true;
-        // Por si llega como "PENDIENTEAUTORIZADA" (no debería) o similares, hacemos un contains doble
         return (estadoNorm.startsWith("PENDIENTE") && estadoNorm.contains("AUT"));
     }
 
@@ -421,8 +536,6 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
                     generarDescuentoSiCorresponde(s, nomFinal, rsp.body());
                 } else {
                     Toast.makeText(requireContext(), "Sigue pendiente de autorización", Toast.LENGTH_LONG).show();
-
-                    // También enviamos "Descuento solicitado"
                     String placa = s.placa != null ? s.placa : "";
                     String plantaNombre = s.planta != null ? s.planta : "";
 
@@ -460,7 +573,7 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
                             solicitadoPor
                     );
                 }
-                cargarPendientes();
+                refreshNow();
             }
             @Override public void onFailure(Call<AccionSolicitudRsp> call, Throwable t) {
                 showLoading(false);
@@ -509,7 +622,6 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
                 } else if ("Pendiente (Autorización)".equalsIgnoreCase(nuevoEstado)) {
                     Toast.makeText(requireContext(), "Sin saldo: Queda pendiente de autorización", Toast.LENGTH_LONG).show();
 
-                    // --- WhatsApp: DESCUENTO SOLICITADO (con todos los datos) ---
                     String placa = s.placa != null ? s.placa : "";
                     String plantaNombre = s.planta != null ? s.planta : "";
 
@@ -546,14 +658,12 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
                             campaniaNombre,
                             solicitadoPor
                     );
-                    // --- fin WhatsApp ---
-
                 } else {
                     Toast.makeText(requireContext(), "Aprobación realizada", Toast.LENGTH_SHORT).show();
                 }
 
                 generarDescuentoSiCorresponde(s, aprobNomFinal, rsp);
-                cargarPendientes();
+                refreshNow();
             }
 
             @Override
@@ -592,7 +702,7 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
                 s.estado = "Rechazada";
                 adapter.notifyDataSetChanged();
                 Toast.makeText(requireContext(), "Rechazada", Toast.LENGTH_SHORT).show();
-                cargarPendientes();
+                refreshNow();
             }
 
             @Override
@@ -603,6 +713,31 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
             }
         });
     }
+
+    @Override
+    public void onProcesar(SolicitudUI s) {
+        if (!puedeProcesarse(s)) {
+            Toast.makeText(requireContext(),
+                    "La solicitud no está lista para procesar.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Procesar solicitud")
+                .setMessage("La solicitud ya está aprobada.\n" +
+                        "Se intentará registrar el descuento nuevamente.\n\n" +
+                        "¿Deseas continuar?")
+                .setPositiveButton("Procesar", (d, w) -> {
+                    showLoading(true);
+                    String aprobNom = nombreUsuarioActual();
+                    // 👇 SOLO reintenta el registro del descuento (2ª API)
+                    generarDescuentoDesdeSolicitud(s, aprobNom);
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
 
     private void generarDescuentoSiCorresponde(SolicitudUI s, String aprobNom, AccionSolicitudRsp rsp) {
         String estadoBk = rsp != null ? rsp.estado : null;
@@ -654,11 +789,9 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
                     Toast.makeText(requireContext(),
                             "Descuento registrado correctamente", Toast.LENGTH_SHORT).show();
 
-                    // ===== Enviar WhatsApp con “Descuento registrado” (sin código/fecha) =====
                     String placa = s.placa != null ? s.placa : "";
                     String plantaNombre = s.planta != null ? s.planta : "";
 
-                    // Concepto legible: abreviatura/nombre desde maestros; si no hay, usa la key
                     String conceptoDisplay;
                     if (!TextUtils.isEmpty(s.conceptoKey)) {
                         conceptoDisplay = conceptoNombreByKey.get(s.conceptoKey);
@@ -667,7 +800,6 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
                         conceptoDisplay = "Concepto";
                     }
 
-                    // Tipo de pago para decidir el label del monto
                     String tipoPagoNameOrKey;
                     if (!TextUtils.isEmpty(s.tipoPagoKey)) {
                         tipoPagoNameOrKey = tipoPagoNombreByKey.get(s.tipoPagoKey);
@@ -695,13 +827,15 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
                             campaniaNombre,
                             autorizadoPor
                     );
-                    // ===== FIN =====
-
                 } else {
                     Toast.makeText(requireContext(),
                             "Aprobada, pero falló el registro de descuento (" + rsp.code() + ")",
                             Toast.LENGTH_LONG).show();
                 }
+
+                // 👇 En cualquier caso, cerramos loader y recargamos lista
+                showLoading(false);
+                cargarPendientes();
             }
 
             @Override
@@ -710,6 +844,7 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
                         "Aprobada, error registrando descuento: " +
                                 (t.getMessage() != null ? t.getMessage() : ""),
                         Toast.LENGTH_LONG).show();
+                showLoading(false);
             }
         });
     }
@@ -833,5 +968,6 @@ public class AsistentesPendientesFragment extends Fragment implements PendienteS
         if (listarCall != null) listarCall.cancel();
         if (aprobarCall != null) aprobarCall.cancel();
         if (rechazarCall != null) rechazarCall.cancel();
+        handler.removeCallbacksAndMessages(null);
     }
 }

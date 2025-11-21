@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/Widget.Material3.CardView.Outlined"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="12dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvTituloMas"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Más opciones"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:paddingBottom="8dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCortesias"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:drawableStart="@drawable/ic_cortesia"
+            android:text="Cortesías"
+            android:paddingVertical="8dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnBolsaMasivo"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:drawableStart="@drawable/ic_account_balance_wallet_24"
+            android:text="Bolsa Masivo"
+            android:paddingVertical="8dp"/>
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

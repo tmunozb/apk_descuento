@@ -49,7 +49,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class OperacionesPendientesFragment extends Fragment implements PendienteSolicitudAdapter.Actions {
+public class SistemasPendientesFragment extends Fragment implements PendienteSolicitudAdapter.Actions {
 
     private AutoCompleteTextView actPlanta, actTipo, actEstado;
     private RecyclerView rv;
@@ -163,6 +163,25 @@ public class OperacionesPendientesFragment extends Fragment implements Pendiente
         estados.add("Rechazada");
         return estados.toArray(new String[0]);
     }
+
+    private String nombreUsuarioActual() {
+        UsuarioPerfil up = session.getPerfil();
+        if (up != null) {
+            String nom = (safe(up.nombres) + " " + safe(up.apellidos)).trim();
+            if (!TextUtils.isEmpty(nom)) return nom;
+            if (!TextUtils.isEmpty(up.username)) return up.username;
+        }
+        String fallback = session.getUsername();
+        return TextUtils.isEmpty(fallback) ? "USUARIO" : fallback;
+    }
+
+    private boolean puedeProcesarse(SolicitudUI s) {
+        return s != null
+                && "Aprobada".equalsIgnoreCase(s.estado)
+                && s.isCompletaParaDescuento();
+    }
+
+
 
     private void computeRoleFlags() {
         UsuarioPerfil up = session.getPerfil();
@@ -310,24 +329,6 @@ public class OperacionesPendientesFragment extends Fragment implements Pendiente
         }
     }
 
-    private String nombreUsuarioActual() {
-        UsuarioPerfil up = session.getPerfil();
-        if (up != null) {
-            String nom = (safe(up.nombres) + " " + safe(up.apellidos)).trim();
-            if (!TextUtils.isEmpty(nom)) return nom;
-            if (!TextUtils.isEmpty(up.username)) return up.username;
-        }
-        String fallback = session.getUsername();
-        return TextUtils.isEmpty(fallback) ? "USUARIO" : fallback;
-    }
-
-    private boolean puedeProcesarse(SolicitudUI s) {
-        return s != null
-                && "Aprobada".equalsIgnoreCase(s.estado)
-                && s.isCompletaParaDescuento();
-    }
-
-
     private boolean isPendienteGrupo(String estadoUi) {
         if (estadoUi == null) return false;
         String e = estadoUi.trim().toLowerCase();
@@ -367,6 +368,31 @@ public class OperacionesPendientesFragment extends Fragment implements Pendiente
                 .setNegativeButton("Cancelar", null)
                 .show();
     }
+
+    @Override
+    public void onProcesar(SolicitudUI s) {
+        if (!puedeProcesarse(s)) {
+            Toast.makeText(requireContext(),
+                    "La solicitud no está lista para procesar.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Procesar solicitud")
+                .setMessage("La solicitud ya está aprobada.\n" +
+                        "Se intentará registrar el descuento nuevamente.\n\n" +
+                        "¿Deseas continuar?")
+                .setPositiveButton("Procesar", (d, w) -> {
+                    showLoading(true);
+                    String aprobNom = nombreUsuarioActual();
+                    // 👇 SOLO reintenta el registro del descuento (2ª API)
+                    generarDescuentoDesdeSolicitud(s, aprobNom);
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
 
     private void autorizar(SolicitudUI s, String modo) {
         showLoading(true);
@@ -586,31 +612,6 @@ public class OperacionesPendientesFragment extends Fragment implements Pendiente
         });
     }
 
-    @Override
-    public void onProcesar(SolicitudUI s) {
-        if (!puedeProcesarse(s)) {
-            Toast.makeText(requireContext(),
-                    "La solicitud no está lista para procesar.",
-                    Toast.LENGTH_LONG).show();
-            return;
-        }
-
-        new AlertDialog.Builder(requireContext())
-                .setTitle("Procesar solicitud")
-                .setMessage("La solicitud ya está aprobada.\n" +
-                        "Se intentará registrar el descuento nuevamente.\n\n" +
-                        "¿Deseas continuar?")
-                .setPositiveButton("Procesar", (d, w) -> {
-                    showLoading(true);
-                    String aprobNom = nombreUsuarioActual();
-                    // 👇 SOLO reintenta el registro del descuento (2ª API)
-                    generarDescuentoDesdeSolicitud(s, aprobNom);
-                })
-                .setNegativeButton("Cancelar", null)
-                .show();
-    }
-
-
     private void generarDescuentoSiCorresponde(SolicitudUI s, String aprobNom, AccionSolicitudRsp rsp) {
         String estadoBk = rsp != null ? rsp.estado : null;
         boolean aprobadaOk = "APROBADA".equalsIgnoreCase(estadoBk);
@@ -715,7 +716,6 @@ public class OperacionesPendientesFragment extends Fragment implements Pendiente
                         "Aprobada, error registrando descuento: " +
                                 (t.getMessage()!=null?t.getMessage():""),
                         Toast.LENGTH_LONG).show();
-                showLoading(false);
             }
         });
     }

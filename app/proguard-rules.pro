@@ -1,64 +1,92 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
-
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
-
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
-
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
-######## Atributos que NO deben perderse (clave para Retrofit/Gson) ########
+###############################
+# Atributos que NO deben perderse
+###############################
+# Genéricos, anotaciones y contexto para reflexión/Gson/Retrofit
 -keepattributes Signature,InnerClasses,EnclosingMethod
+-keepattributes SourceFile,LineNumberTable
 -keepattributes *Annotation*,RuntimeVisibleAnnotations,RuntimeInvisibleAnnotations,RuntimeVisibleParameterAnnotations,RuntimeInvisibleParameterAnnotations
 
-######## Retrofit / OkHttp ########
+###############################
+# Retrofit / OkHttp
+###############################
+# Mantén interfaces y evita warnings innecesarios
 -keep class retrofit2.** { *; }
 -keep interface retrofit2.** { *; }
 -dontwarn retrofit2.**
+
 -keep class okhttp3.** { *; }
 -dontwarn okhttp3.**
 -dontwarn okio.**
 -dontwarn javax.annotation.**
 -dontwarn org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement
 
-# Mantén métodos anotados con @retrofit2.http.* (para que no se los lleve el shrinker)
+# Mantener métodos anotados con @retrofit2.http.*
 -keepclasseswithmembers class * {
     @retrofit2.http.* <methods>;
 }
 
-######## Gson ########
+###############################
+# Gson
+###############################
+# Mantén anotaciones y stream
 -keep class com.google.gson.** { *; }
 -keep class com.google.gson.stream.** { *; }
 
-# Modelos que Gson/Retrofit serializan/deserializan (ajusta a tus paquetes reales)
+# Si usas @SerializedName, evita que se pierdan nombres de campos
+-keepclassmembers class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+-keepnames class * {
+    @com.google.gson.annotations.SerializedName *;
+}
+
+###############################
+# TUS MODELOS / DTOs (Reflexión)
+###############################
+# ⚠️ CLAVE: Mantener *todos los miembros* (campos y getters/setters) porque accedes por reflexión
 -keep class com.farenet.descuentos.API.Actual.DTO.** { *; }
+-keep class com.farenet.descuentos.ui.solicitudes.model.** { *; }
 -keep class com.farenet.descuentos.domain.model.** { *; }
 -keep class com.farenet.descuentos.data.local.realm.entity.** { *; }
 
-######## Realm ########
+# (Opcional) Si tienes otros paquetes de datos, descomenta/ajusta:
+# -keep class com.farenet.descuentos.API.**.model.** { *; }
+# -keep class com.farenet.descuentos.API.**.dto.** { *; }
+
+# Si usas getters/setters genéricos por reflexión, ayuda a no ofuscar nombres comunes
+-keepclassmembers class * {
+    *** get*(...);
+    void set*(***);
+}
+
+###############################
+# Realm (Java plugin)
+###############################
+-keep class io.realm.** { *; }
 -keep class io.realm.annotations.RealmModule
 -keep @io.realm.annotations.RealmModule class * { *; }
 -keep class io.realm.internal.Keep
 -keep @io.realm.internal.Keep class * { *; }
--keep class io.realm.** { *; }
--keep class com.farenet.descuentos.** extends io.realm.RealmObject { *; }
+# Tus modelos Realm (si extienden RealmObject o usan @RealmClass)
+-keep class * extends io.realm.RealmObject { *; }
+-keep @io.realm.annotations.RealmClass class * { *; }
 -dontwarn javax.**
 
-######## AndroidX/Material (ruido) ########
+###############################
+# Kotlin / Parcelize / Parcelable (por si aplica)
+###############################
+-keep class ** implements android.os.Parcelable { *; }
+-keepclassmembers class ** implements android.os.Parcelable {
+    static ** CREATOR;
+}
+
+###############################
+# AndroidX / Material (reducir ruido de warnings)
+###############################
 -dontwarn androidx.**
 -dontwarn com.google.android.material.**
 
-######## Kotlin coroutines (si usas) ########
--dontwarn kotlinx.coroutines.**
+###############################
+# (Opcional) Logging: Timber u otros
+###############################
+-dontwarn timber.log.**

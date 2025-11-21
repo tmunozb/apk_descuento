@@ -63,6 +63,10 @@ public class ComercialHostActivity extends AppCompatActivity {
                 setCurrent(2);
                 return true;
             }
+            else if (id == R.id.tab_historial) {
+                setCurrent(3);
+                return true;
+            }
             return false;
         });
 
@@ -70,7 +74,9 @@ public class ComercialHostActivity extends AppCompatActivity {
         pager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override public void onPageSelected(int position) {
                 int target = position == 0 ? R.id.tab_home :
-                        position == 1 ? R.id.tab_Bolsa : R.id.tab_solicitudes;
+                        position == 1 ? R.id.tab_Bolsa :
+                                position == 2 ? R.id.tab_solicitudes:
+                                        R.id.tab_historial;
                 if (bottom.getSelectedItemId() != target) bottom.setSelectedItemId(target);
             }
         });

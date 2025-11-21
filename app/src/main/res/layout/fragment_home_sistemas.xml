@@ -28,7 +28,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="80dp"
                 android:background="@drawable/bg_hero_comercial"
-                android:padding="6dp">
+                android:padding="16dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -41,7 +41,7 @@
                         style="@style/Text.Farenet.HeroTitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="¡Hola, Asistente!" />
+                        android:text="¡Hola, Sistemas!" />
 
                     <TextView
                         android:id="@+id/tvSubtitle"
@@ -150,7 +150,7 @@
                                 style="@style/Text.Farenet.KpiLabel"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Ingresadas" />
+                                android:text="Aprobadas" />
 
                             <TextView
                                 android:id="@+id/tvKpiAprobadas"
@@ -288,20 +288,20 @@
                 android:layout_marginEnd="16dp"
                 android:layout_marginTop="8dp"
                 android:layout_marginBottom="8dp"
-                android:visibility="gone"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
+                    android:visibility="gone"
                     android:padding="12dp">
 
                     <TextView
                         android:id="@+id/tvTituloDescMes"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Descuentos Ingresados(Bolsa)"
+                        android:text="Descuentos Ingresados"
                         android:textStyle="bold"
                         android:textColor="@color/cardTitle"
                         android:textSize="14sp"
