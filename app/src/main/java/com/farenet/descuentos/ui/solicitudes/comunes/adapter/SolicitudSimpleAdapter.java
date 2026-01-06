@@ -39,7 +39,6 @@ public class SolicitudSimpleAdapter extends RecyclerView.Adapter<SolicitudSimple
     @Override
     public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(parent.getContext())
-                // Asegúrate que este sea tu layout real del ítem
                 .inflate(R.layout.item_solicitud_historial, parent, false);
         return new VH(v);
     }
@@ -48,9 +47,10 @@ public class SolicitudSimpleAdapter extends RecyclerView.Adapter<SolicitudSimple
     public void onBindViewHolder(@NonNull VH h, int pos) {
         final SolicitudUI s = data.get(pos);
 
-        // Campos básicos
+        // ===== Campos básicos =====
         h.tvCodigo.setText(nz(s.codigo));
         h.tvFecha.setText(nz(s.fecha));
+
         h.chEstado.setText(nz(s.estado));
         tintEstado(h.chEstado, s.estado);
 
@@ -59,42 +59,32 @@ public class SolicitudSimpleAdapter extends RecyclerView.Adapter<SolicitudSimple
         h.tvPlanta.setText(nz(s.planta));
 
         // ===== Concepto (opcional) =====
-        // Si tu layout tiene un TextView con id tvConcepto y tu SolicitudUI expone nombre/abreviatura
-        // del concepto (p.ej. s.conceptoNombre o similar), lo mostramos. Si no, lo ocultamos.
+        // Muestra SOLO si hay valor real. Si viene "LIV..." sin prefijo, agrega "Concepto: ".
         if (h.tvConcepto != null) {
-            // Intenta usar un campo "conceptoNombre" si lo tienes en tu SolicitudUI; si no, cae a la key
-            String conceptoDisplay = null;
-            try {
-                // Si añadiste un método/field en SolicitudUI para nombre bonito del concepto, úsalo aquí
-                // ejemplo: conceptoDisplay = s.getConceptoDisplay();
-                // si no tienes, usa la key sólo si aporta algo:
-                if (!TextUtils.isEmpty(s.conceptoKey)) {
-                    conceptoDisplay = s.conceptoKey;
-                }
-            } catch (Throwable ignore) {}
-            setOrGone(h.tvConcepto, conceptoDisplay);
+            String c = (s.conceptoDisplay == null) ? "" : s.conceptoDisplay.trim();
+
+            // Evita mostrar placeholders tipo "Concepto"
+            if (c.equalsIgnoreCase("concepto")) c = "";
+
+            if (!c.isEmpty() && !c.toLowerCase(Locale.ROOT).startsWith("concepto")) {
+                c = "Concepto: " + c;
+            }
+            setOrGone(h.tvConcepto, c.isEmpty() ? null : c);
         }
 
         // ===== Monto y Aprobado (opcional) =====
-        // 1) Preferimos el valor de s.monto si viene en el modelo (p.ej. en Pendientes)
-        // 2) Si vienes del historial donde inyectaste "Monto: ..." y "Aprobó: ..." dentro de motivo,
-        //    los extraemos y limpiamos el motivo para no duplicar.
+        // 1) Preferimos s.monto si viene en el modelo.
+        // 2) Si el historial inyectó "Monto: ..." y "Aprobó: ..." dentro de motivo, los extraemos.
         String motivo = nz(s.motivo);
 
-        // Intento extraer de motivo si vino inyectado (Historial)
         Extracted extrasFromMotivo = extractMontoYAprobador(motivo);
 
-        // Si el modelo ya trae monto, éste manda sobre el detectado por motivo
         Double montoFinal = (s.monto != null && s.monto > 0) ? s.monto : extrasFromMotivo.monto;
-        String aprobadorFinal = extrasFromMotivo.aprobador; // SolicitudUI no trae aprobador; si lo agregas, úsalo
+        String aprobadorFinal = extrasFromMotivo.aprobador;
 
-        // Limpia el texto del motivo para evitar ver " · Monto: ... · Aprobó: ..." repetido
         String motivoLimpio = cleanMotivo(motivo);
-
-        // Mostrar motivo limpio
         h.tvMotivo.setText(nz(motivoLimpio));
 
-        // Bind a vistas opcionales si existen
         if (h.tvMonto != null) {
             if (montoFinal != null && montoFinal > 0) {
                 h.tvMonto.setVisibility(View.VISIBLE);
@@ -109,7 +99,7 @@ public class SolicitudSimpleAdapter extends RecyclerView.Adapter<SolicitudSimple
             setOrGone(h.tvAprobado, (TextUtils.isEmpty(aprobadorFinal) ? null : "Aprobó: " + aprobadorFinal));
         }
 
-        // Click
+        // ===== Click =====
         h.itemView.setOnClickListener(v -> {
             if (listener != null) listener.onClick(s);
         });
@@ -120,13 +110,15 @@ public class SolicitudSimpleAdapter extends RecyclerView.Adapter<SolicitudSimple
         return (data == null) ? 0 : data.size();
     }
 
-    // ====== ViewHolder con vistas opcionales ======
+    // ====== ViewHolder ======
     static class VH extends RecyclerView.ViewHolder {
         TextView tvCodigo, tvFecha, tvTipo, tvPlaca, tvPlanta, tvMotivo;
-        // Opcionales si tu layout los define:
+
+        // Opcionales (si existen en el layout)
         TextView tvConcepto;
         TextView tvMonto;
         TextView tvAprobado;
+
         Chip chEstado;
 
         VH(@NonNull View v) {
@@ -139,7 +131,6 @@ public class SolicitudSimpleAdapter extends RecyclerView.Adapter<SolicitudSimple
             tvPlanta  = v.findViewById(R.id.tvPlanta);
             tvMotivo  = v.findViewById(R.id.tvMotivo);
 
-            // Estas pueden NO existir en tu item. Si el id no está, quedarán en null (y el adapter lo maneja).
             tvConcepto = safeFind(v, R.id.tvConcepto);
             tvMonto    = safeFind(v, R.id.tvMonto);
             tvAprobado = safeFind(v, R.id.tvAprobado);
@@ -170,18 +161,11 @@ public class SolicitudSimpleAdapter extends RecyclerView.Adapter<SolicitudSimple
         Extracted ex = new Extracted();
         if (TextUtils.isEmpty(motivo)) return ex;
 
-        // Busca "Monto:" y "Aprobó:" con separadores tipo " · "
-        // Ejemplos válidos:
-        //   "Motivo X · Monto: S/ 123.45 · Aprobó: Juan Pérez"
-        //   "Monto: S/ 50 · Aprobó: JP"
-        String lower = motivo.toLowerCase(Locale.ROOT);
-
         // Monto
         int idxMonto = indexOfIgnoreCase(motivo, "Monto:");
         if (idxMonto >= 0) {
             int nextSep = motivo.indexOf("·", idxMonto + 6);
             String montoChunk = (nextSep > idxMonto) ? motivo.substring(idxMonto, nextSep) : motivo.substring(idxMonto);
-            // intento parsear el número dentro
             Double parsed = parseMontoFromChunk(montoChunk);
             if (parsed != null) ex.monto = parsed;
         }
@@ -207,7 +191,7 @@ public class SolicitudSimpleAdapter extends RecyclerView.Adapter<SolicitudSimple
 
     private static Double parseMontoFromChunk(String chunk) {
         if (TextUtils.isEmpty(chunk)) return null;
-        // Elimina "Monto:", "S/", espacios y comas de millares
+
         String s = chunk.replace("Monto:", "")
                 .replace("S/", "")
                 .replace("s/", "")
@@ -216,10 +200,10 @@ public class SolicitudSimpleAdapter extends RecyclerView.Adapter<SolicitudSimple
                 .replace(" ", "")
                 .replace(",", "")
                 .trim();
+
         if (s.isEmpty()) return null;
-        // Ahora s debería ser el número
+
         try {
-            // También corta si hay “·” colgando
             int cut = s.indexOf("·");
             if (cut >= 0) s = s.substring(0, cut).trim();
             return Double.parseDouble(s);
@@ -232,9 +216,7 @@ public class SolicitudSimpleAdapter extends RecyclerView.Adapter<SolicitudSimple
     private static String cleanMotivo(String motivo) {
         if (TextUtils.isEmpty(motivo)) return "";
         String out = motivo;
-        // borra " · Monto: S/ xxx.xx"
         out = out.replaceAll("\\s*·\\s*Monto:\\s*S/?\\.?\\s*[0-9.,]+", "");
-        // borra " · Aprobó: Nombre"
         out = out.replaceAll("\\s*·\\s*Aprobó:\\s*[^·]+", "");
         return out.trim();
     }
@@ -243,17 +225,17 @@ public class SolicitudSimpleAdapter extends RecyclerView.Adapter<SolicitudSimple
     private static void tintEstado(Chip ch, String estado) {
         if (ch == null) return;
         String e = (estado == null ? "" : estado.trim().toLowerCase(Locale.ROOT));
-        // Usa colores de Material; puedes afinar con tus recursos.
+
         if (e.startsWith("aproba")) {
-            ch.setChipBackgroundColorResource(R.color.fn_accent_success);   // ejemplo
+            ch.setChipBackgroundColorResource(R.color.fn_accent_success);
         } else if (e.startsWith("rechaza")) {
-            ch.setChipBackgroundColorResource(R.color.gg_error);    // ejemplo
+            ch.setChipBackgroundColorResource(R.color.gg_error);
         } else if (e.startsWith("procesa") || e.startsWith("ingresa")) {
-            ch.setChipBackgroundColorResource(R.color.fn_accent_success); // ejemplo
+            ch.setChipBackgroundColorResource(R.color.fn_accent_success);
         } else if (e.startsWith("pend") || e.startsWith("envia")) {
-            ch.setChipBackgroundColorResource(R.color.bottom_nav_active); // ejemplo
+            ch.setChipBackgroundColorResource(R.color.bottom_nav_active);
         } else {
-            ch.setChipBackgroundColorResource(R.color.fn_accent_success);   // default
+            ch.setChipBackgroundColorResource(R.color.fn_accent_success);
         }
     }
 

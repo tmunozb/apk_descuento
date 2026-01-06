@@ -79,7 +79,7 @@
             android:layout_height="wrap_content"
             android:text="Concepto: LIV - Liviano"
             android:textColor="?attr/colorOnSurface"
-            android:visibility="visible" />
+            android:visibility="gone" />
 
         <!-- Motivo -->
         <TextView

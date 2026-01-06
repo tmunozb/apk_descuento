@@ -20,6 +20,11 @@ public class SolicitudDto {
     @SerializedName("monto")              public Double monto;
     @SerializedName("monto_aprobado")     public Double montoAprobado;
     @SerializedName("monto_solicitado")   public Double montoSolicitado;
+
+    @SerializedName("concepto_key")          public String conceptoKey;
+    @SerializedName("concepto_abreviatura") public String conceptoAbreviatura;
+
+    @SerializedName("concepto_nombre")      public String conceptoNombre;
     @SerializedName("importe")            public Double importe;
     @SerializedName("total")              public Double total;         // por si acaso
 

@@ -10,8 +10,8 @@ android {
         buildConfigField "String", "NEW_API_BASE_URL", "\"http://209.45.83.185:5004/\""
         minSdkVersion 21
         targetSdk 35
-        versionCode 10041
-        versionName "1.0.41"
+        versionCode 10042
+        versionName "1.0.42 Historial con conceptos"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         multiDexEnabled true

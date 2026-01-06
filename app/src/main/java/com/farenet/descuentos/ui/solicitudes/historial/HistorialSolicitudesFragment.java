@@ -161,6 +161,14 @@ public class HistorialSolicitudesFragment extends Fragment {
                 // Mapear e inyectar "Monto" y "Aprobó" (desde aprobadoPorNombre) en 'motivo'
                 List<SolicitudUI> mapped = new ArrayList<>();
                 for (SolicitudDto d : rsp.body()) {
+                    String conceptoDisplay = "";
+                    if (!TextUtils.isEmpty(d.conceptoAbreviatura)) {
+                        conceptoDisplay = "Concepto: " + d.conceptoAbreviatura;
+                    } else if (!TextUtils.isEmpty(d.conceptoKey)) {
+                        conceptoDisplay = "Concepto: " + d.conceptoKey;
+                    } else if (!TextUtils.isEmpty(d.conceptoNombre)) {
+                        conceptoDisplay = "Concepto: " + d.conceptoNombre;
+                    }
                     String motivoBase = nz(d.motivo);
                     Double monto      = readMonto(d);
                     // 👇 USAR DIRECTO EL CAMPO MAPEADO POR GSON
@@ -177,7 +185,7 @@ public class HistorialSolicitudesFragment extends Fragment {
                         motivoDisplay.append("Aprobó: ").append(aprobador);
                     }
 
-                    mapped.add(new SolicitudUI(
+                    SolicitudUI ui = new SolicitudUI(
                             nz(d.codigo),
                             nz(capFirst(d.tipo)),
                             nz(d.placa),
@@ -185,7 +193,14 @@ public class HistorialSolicitudesFragment extends Fragment {
                             motivoDisplay.toString(),
                             nz(capFirst(d.estado)),
                             nz(d.creadoEn)
-                    ));
+                    );
+
+// ✅ Aquí se estaba perdiendo el concepto
+                    ui.conceptoDisplay = conceptoDisplay;
+
+                    mapped.add(ui);
+
+
                 }
 
                 // Filtro en memoria

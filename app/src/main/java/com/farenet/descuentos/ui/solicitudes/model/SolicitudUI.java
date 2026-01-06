@@ -60,7 +60,8 @@ public class SolicitudUI {
         this.estado = nz(estado);
         this.id     = id;
         this.fecha  = fecha;
-        this.conceptoDisplay = "Concepto";
+        this.conceptoDisplay = null; // o ""
+
     }
 
     // ===== Constructor completo =====
@@ -93,7 +94,8 @@ public class SolicitudUI {
      * Si no se encuentra, devuelve el key como fallback.
      */
     private static String resolveConceptoDisplay(@Nullable String conceptoKey) {
-        if (conceptoKey == null || conceptoKey.trim().isEmpty()) return "Concepto";
+        if (conceptoKey == null || conceptoKey.trim().isEmpty()) return null;
+
 
         // Inicializa cache si es necesario
         if (conceptosCache == null) {
